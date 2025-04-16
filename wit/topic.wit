@@ -1,0 +1,9 @@
+interface topic {
+    use types.{invocation-error};
+
+    // Publish a string message to a topic
+    publish: func(topic: string, value: string) -> result<_, invocation-error>;
+
+    // Publish a bytes message to a topic
+    publish-bytes: func(topic: string, value: list<u8>) -> result<_, invocation-error>;
+}

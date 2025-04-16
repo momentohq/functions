@@ -1,0 +1,42 @@
+interface aws-lambda {
+    use aws-auth.{credentials-provider};
+
+    variant lambda-error {
+        /// The request was not authorized.
+        unauthorized(string),
+        /// The request was malformed.
+        malformed(string),
+        /// The request failed for some other reason.
+        other(string),
+    }
+
+    record invoke-request {
+        function-name: string,
+        qualifier: option<string>,
+        payload: option<list<u8>>,
+        invocation-type: invocation-type,
+    }
+    variant invocation-type {
+        request-response(invoke-synchronous-parameters),
+        event,
+        dry-run,
+    }
+    record invoke-synchronous-parameters {
+        log-type: option<log-type>,
+        client-context: option<string>,
+    }
+    variant log-type {
+        tail,
+    }
+    record invoke-output {
+        status-code: s32,
+        payload: option<list<u8>>,
+        log-result: option<string>,
+        executed-version: option<string>,
+    }
+
+    resource client {
+        constructor(credentials: credentials-provider);
+        invoke: func(request: invoke-request) -> result<invoke-output, lambda-error>;
+    }
+}

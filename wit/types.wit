@@ -1,0 +1,6 @@
+interface types {
+    variant invocation-error {
+        unsupported,
+        request-error(string),
+    }
+}

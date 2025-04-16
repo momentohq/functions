@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "momento-functions",
+    "momento-functions-host",
+    "momento-functions-log",
+    "momento-functions-wit",
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["momentohq", "kvc0"]
+repository = "https://github.com/momentohq/functions"
+edition = "2024"
+license = "Apache-2.0"
+readme = "README.md"
+keywords = ["service", "performance", "faas"]
+categories = ["web-programming"]
+
+[profile.release]
+lto = true
+
+[workspace.dependencies]
+momento-functions-host  = { version = "0", path = "momento-functions-host" }
+momento-functions-log   = { version = "0", path = "momento-functions-log" }
+momento-functions-wit   = { version = "0", path = "momento-functions-wit" }
+
+log                     = { version = "0" }
+serde                   = { version = "1", features = ["derive"] }
+serde_json              = { version = "1" }
+thiserror               = { version = "2" }
+wit-bindgen             = { version = "0.41" }

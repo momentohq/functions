@@ -1,0 +1,18 @@
+interface aws-auth {
+    /// Bare AWS credentials. Prefer other variants.
+    record credentials {
+        access-key-id: string,
+        secret-access-key: string,
+    }
+
+    variant authorization {
+        hardcoded(credentials),
+    }
+
+    variant auth-error {
+        unauthorized(string),
+    }
+
+    resource credentials-provider;
+    provider: func(authorization: authorization, region: string) -> result<credentials-provider, auth-error>;
+}

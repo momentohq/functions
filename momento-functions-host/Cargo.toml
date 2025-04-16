@@ -1,0 +1,17 @@
+[package]
+name = "momento-functions-host"
+description = "Host interface support crate for Momento Functions"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+momento-functions-wit   = { workspace = true }
+serde                   = { workspace = true }
+serde_json              = { workspace = true }
+thiserror               = { workspace = true }

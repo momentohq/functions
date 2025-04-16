@@ -1,0 +1,6 @@
+
+interface guest-function-web {
+    use types.{invocation-error};
+
+    post: func(payload: list<u8>) -> result<list<u8>, invocation-error>;
+}

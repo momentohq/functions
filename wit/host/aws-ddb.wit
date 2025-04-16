@@ -1,0 +1,97 @@
+interface aws-ddb {
+    use aws-auth.{credentials-provider};
+
+    variant ddb-error {
+        /// The request was not authorized.
+        unauthorized(string),
+        /// The request was malformed.
+        malformed(string),
+        /// The request failed for some other reason.
+        other(string),
+    }
+
+    record key-attribute {
+        name: string,
+        value: key-value,
+    }
+    variant key-value {
+        s(string),
+        n(string),
+        b(string),
+    }
+    record conditional {
+        expression: string,
+        expression-attribute-names: option<list<tuple<string, string>>>,
+        expression-attribute-values: option<item>,
+    }
+    variant return-consumed-capacity {
+        none,
+        total,
+        indexes,
+    }
+    variant return-values {
+        none,
+        all-old,
+    }
+    record consumed-capacity {
+        table-name: string,
+        capacity-units: option<f64>,
+        read-capacity-units: option<f64>,
+        write-capacity-units: option<f64>,
+        table: option<capacity>,
+        local-secondary-indexes: option<list<tuple<string, capacity>>>,
+        global-secondary-indexes: option<list<tuple<string, capacity>>>,
+    }
+    record capacity {
+        capacity-units: option<f64>,
+        read-capacity-units: option<f64>,
+        write-capacity-units: option<f64>,
+    }
+    variant item {
+        /// a json string of dynamodb-formatted json. Something like this:
+        /// {
+        ///   "profile_picture": { "B": "base64 string" },
+        ///   "is_valid": { "BOOL": true },
+        ///   "pictures": { "BS": ["base64 1", "base64 2"] },
+        ///   "friends": { "L": [{ "S": "bob" }, { "S": "alice" }] },
+        ///   "relationship": { "M": { "bob": {"S": "best friend"}, "alice": { "S": "second best friend" } } },
+        ///   "age": { "N": "23" },
+        ///   "favorite_birthdays": { "NS": ["17", "25"] },
+        ///   "children": { "NULL": true },
+        ///   "name": { "S": "arthur" },
+        ///   "friends": { "SS": ["bob", "alice"] }
+        /// }
+        json(string),
+    }
+
+    record put-item-request {
+        table-name: string,
+        item: item,
+        return-values: return-values,
+        return-consumed-capacity: return-consumed-capacity,
+        condition: option<conditional>,
+    }
+    record put-item-output {
+        attributes: option<item>,
+        consumed-capacity: option<consumed-capacity>,
+    }
+
+    record get-item-request {
+        table-name: string,
+        key: list<key-attribute>,
+        consistent-read: bool,
+        return-consumed-capacity: return-consumed-capacity,
+        projection-expression: option<string>,
+        expression-attribute-names: option<list<tuple<string, string>>>,
+    }
+    record get-item-output {
+        item: option<item>,
+        consumed-capacity: option<consumed-capacity>,
+    }
+
+    resource client {
+        constructor(credentials: credentials-provider);
+        put-item: func(request: put-item-request) -> result<put-item-output, ddb-error>;
+        get-item: func(request: get-item-request) -> result<get-item-output, ddb-error>;
+    }
+}

@@ -1,0 +1,38 @@
+
+interface http {
+    record request {
+        url: string,
+        headers: list<tuple<string, string>>,
+        body: list<u8>,
+        authorization: authorization,
+    }
+
+    record response {
+        status: u16,
+        headers: list<tuple<string, string>>,
+        body: list<u8>,
+    }
+
+    variant authorization {
+        /// No special authorization behavior. You can still set an authorization header if you want.
+        none,
+        /// Explicit sigv4 signed request
+        aws-sigv4-secret(aws-sigv4-secret),
+    }
+
+    record aws-sigv4-secret {
+        access-key-id: string,
+        secret-access-key: string,
+        region: string,
+        service: string,
+    }
+
+    /// Send a GET request
+    get: func(request: request) -> response;
+    /// Send a PUT request
+    put: func(request: request) -> response;
+    /// Send a POST request
+    post: func(request: request) -> response;
+    /// Send a DELETE request
+    delete: func(request: request) -> response;
+}

@@ -1,6 +1,8 @@
 # Momento Functions
 Momento Functions are how you can extend Momento.
 
+A work in progress, you can learn more about Functions by reaching out to support@momentohq.com
+
 Functions run on Momento's service hosts, and offer a powerful scripting capability.
 * Use the Momento host interfaces to interact with Momento features within your cache
 * Use the AWS host interfaces to use a managed, hot channel to talk to AWS resources

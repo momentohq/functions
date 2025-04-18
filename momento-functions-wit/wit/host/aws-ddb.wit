@@ -90,7 +90,7 @@ interface aws-ddb {
     }
 
     resource client {
-        constructor(credentials: credentials-provider);
+        constructor(credentials: borrow<credentials-provider>);
         put-item: func(request: put-item-request) -> result<put-item-output, ddb-error>;
         get-item: func(request: get-item-request) -> result<get-item-output, ddb-error>;
     }

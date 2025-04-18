@@ -10,6 +10,7 @@
 //! * [`momento-functions`](https://crates.io/crates/momento-functions): Code generators for Functions.
 //! * [`momento-functions-log`](https://crates.io/crates/momento-functions-log): Standard `log` adapter.
 
+pub mod aws;
 pub mod cache;
 mod error;
 pub mod topics;

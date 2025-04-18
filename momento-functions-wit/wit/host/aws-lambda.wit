@@ -36,7 +36,7 @@ interface aws-lambda {
     }
 
     resource client {
-        constructor(credentials: credentials-provider);
+        constructor(credentials: borrow<credentials-provider>);
         invoke: func(request: invoke-request) -> result<invoke-output, lambda-error>;
     }
 }

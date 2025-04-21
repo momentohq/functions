@@ -1,12 +1,18 @@
+//! Common host interfaces types
+
 use momento_functions_wit::host::momento::functions::types::InvocationError;
 
+/// An alias for Result<T, Error> for convenience.
 pub type FunctionResult<T> = std::result::Result<T, Error>;
 
+/// An error during the execution of a Function.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    /// A low-level WIT error during the invocation of a Function.
     #[error("Invocation error: {0}")]
     InvocationError(#[from] InvocationError),
 
+    /// A catch-all error with a message.
     #[error("{0}")]
     MessageError(String),
 }

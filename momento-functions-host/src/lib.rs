@@ -1,3 +1,5 @@
+#![deny(missing_docs)]
+
 //! Host interface tools for Momento Functions
 //!
 //! This crate helps you write Momento Functions.

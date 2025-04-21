@@ -1,3 +1,5 @@
+//! Host interfaces for working with AWS credentials
+
 use crate::FunctionResult;
 use momento_functions_wit::host::momento::host::aws_auth;
 
@@ -56,7 +58,9 @@ pub enum Credentials {
     /// hardcoded credentials after uploading to Momento is for you to write code to
     /// exfiltrate them.
     Hardcoded {
+        /// The AWS access key ID for the IAM user you wish to use
         access_key_id: String,
+        /// The AWS secret access key for the IAM user you wish to use
         secret_access_key: String,
     },
 }

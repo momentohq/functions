@@ -25,6 +25,22 @@ pub struct DynamoDBClient {
 
 impl DynamoDBClient {
     /// Create a new DynamoDB client.
+    ///
+    /// ```rust
+    /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
+    /// # use momento_functions_host::aws::ddb::DynamoDBClient;
+    /// # use momento_functions_host::build_environment_aws_credentials;
+    /// # use momento_functions_host::FunctionResult;
+    /// # fn f() -> FunctionResult<()> {
+    /// let client = DynamoDBClient::new(
+    ///     &AwsCredentialsProvider::new(
+    ///         "us-east-1",
+    ///         build_environment_aws_credentials!()
+    ///     )?
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn new(credentials: &auth::AwsCredentialsProvider) -> Self {
         Self {
             client: host::aws_ddb::Client::new(credentials.resource()),

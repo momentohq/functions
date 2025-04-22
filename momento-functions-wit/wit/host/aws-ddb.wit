@@ -49,6 +49,7 @@ interface aws-ddb {
     }
     variant item {
         /// a json string of dynamodb-formatted json. Something like this:
+        /// ```json
         /// {
         ///   "profile_picture": { "B": "base64 string" },
         ///   "is_valid": { "BOOL": true },
@@ -61,6 +62,7 @@ interface aws-ddb {
         ///   "name": { "S": "arthur" },
         ///   "friends": { "SS": ["bob", "alice"] }
         /// }
+        /// ```
         json(string),
     }
 

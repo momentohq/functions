@@ -12,6 +12,8 @@ categories.workspace = true
 
 [dependencies]
 momento-functions-wit   = { workspace = true }
-serde                   = { workspace = true }
+
+base64                  = { workspace = true }
+serde                   = { workspace = true, features = ["derive"] }
 serde_json              = { workspace = true }
 thiserror               = { workspace = true }

@@ -17,6 +17,17 @@ pub enum Error {
     MessageError(String),
 }
 
+impl From<&str> for Error {
+    fn from(msg: &str) -> Self {
+        Error::MessageError(msg.to_string())
+    }
+}
+impl From<String> for Error {
+    fn from(msg: String) -> Self {
+        Error::MessageError(msg)
+    }
+}
+
 impl From<Error> for InvocationError {
     fn from(e: Error) -> Self {
         match e {

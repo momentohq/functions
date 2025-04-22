@@ -402,7 +402,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "log",
  "momento-functions-host",
@@ -414,7 +414,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-host"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "base64",
  "momento-functions-wit",
@@ -425,7 +425,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-log"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "log",
  "momento-functions-host",
@@ -433,7 +433,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-wit"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "wit-bindgen",
 ]

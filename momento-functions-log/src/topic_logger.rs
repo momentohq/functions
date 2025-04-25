@@ -40,7 +40,7 @@ impl Log for TopicLog {
             let log_message = record.args();
             let _ = write!(&mut buffer, "{level} {module} {file}:{line} {log_message}");
 
-            let _ = momento_functions_host::topics::publish(&self.topic, &buffer);
+            let _ = momento_functions_host::topics::publish(&self.topic, buffer.as_str());
         }
     }
 

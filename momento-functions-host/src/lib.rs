@@ -14,7 +14,10 @@
 
 pub mod aws;
 pub mod cache;
+pub mod encoding;
 mod error;
+mod spawn;
 pub mod topics;
 
 pub use error::{Error, FunctionResult};
+pub use spawn::spawn;

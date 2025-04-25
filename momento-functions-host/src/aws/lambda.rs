@@ -1,7 +1,10 @@
 //! Host interfaces for working with AWS Lambda
 use momento_functions_wit::host::momento::host;
 
-use crate::FunctionResult;
+use crate::{
+    FunctionResult,
+    encoding::{Extract, Payload},
+};
 
 use super::auth;
 
@@ -46,8 +49,9 @@ impl LambdaClient {
     /// Examples:
     /// ________
     /// ```rust
-    /// use momento_functions_host::aws::lambda::{EmptyInvokePayload, InvokePayload, LambdaClient};
+    /// use momento_functions_host::aws::lambda::LambdaClient;
     /// use momento_functions_host::{FunctionResult, Error};
+    /// use momento_functions_host::encoding::Json;;
     ///
     /// # fn f(client: &LambdaClient) -> FunctionResult<()> {
     /// // With a payload
@@ -65,7 +69,7 @@ impl LambdaClient {
     /// // Without a payload
     /// client.invoke(
     ///     "my_lambda_function",
-    ///     EmptyInvokePayload,
+    ///     (),
     /// )?;
     ///
     /// // With literal bytes
@@ -78,8 +82,9 @@ impl LambdaClient {
     /// ________
     /// With json-encoded payloads
     /// ```rust
-    /// use momento_functions_host::aws::lambda::{InvokePayload, Json, LambdaClient};
+    /// use momento_functions_host::aws::lambda::LambdaClient;
     /// use momento_functions_host::{FunctionResult, Error};
+    /// use momento_functions_host::encoding::Json;
     ///
     /// #[derive(serde::Serialize)]
     /// struct MyStruct {
@@ -110,13 +115,13 @@ impl LambdaClient {
     pub fn invoke(
         &self,
         name: impl Into<LambdaName>,
-        payload: impl InvokePayload,
+        payload: impl Payload,
     ) -> FunctionResult<InvokeResponse> {
         let (function_name, qualifier) = name.into().into_inner();
         let request = host::aws_lambda::InvokeRequest {
             function_name,
             qualifier,
-            payload: payload.try_into()?,
+            payload: payload.try_serialize()?.map(Into::into),
             invocation_type: host::aws_lambda::InvocationType::RequestResponse(
                 host::aws_lambda::InvokeSynchronousParameters {
                     log_type: None,
@@ -130,64 +135,6 @@ impl LambdaClient {
             status_code: output.status_code,
             payload: output.payload,
         })
-    }
-}
-
-/// Request payload to a Lambda function
-pub trait InvokePayload {
-    /// Convert the payload to a vector of bytes
-    fn try_into(self) -> FunctionResult<Option<Vec<u8>>>;
-}
-
-impl InvokePayload for Vec<u8> {
-    fn try_into(self) -> FunctionResult<Option<Vec<u8>>> {
-        Ok(Some(self))
-    }
-}
-impl InvokePayload for String {
-    fn try_into(self) -> FunctionResult<Option<Vec<u8>>> {
-        Ok(Some(self.into_bytes()))
-    }
-}
-impl InvokePayload for &str {
-    fn try_into(self) -> FunctionResult<Option<Vec<u8>>> {
-        Ok(Some(self.as_bytes().to_vec()))
-    }
-}
-impl InvokePayload for Option<Vec<u8>> {
-    fn try_into(self) -> FunctionResult<Option<Vec<u8>>> {
-        Ok(self)
-    }
-}
-
-/// No payload to a Lambda function
-pub struct EmptyInvokePayload;
-impl InvokePayload for EmptyInvokePayload {
-    fn try_into(self) -> FunctionResult<Option<Vec<u8>>> {
-        Ok(None)
-    }
-}
-
-/// Payload extractor for encodings
-pub trait Extract: Sized {
-    /// Convert from a payload to a value
-    fn extract(payload: Vec<u8>) -> FunctionResult<Self>;
-}
-
-/// Payload to a Lambda function, to be encoded as JSON
-pub struct Json<T>(pub T);
-impl<T: serde::de::DeserializeOwned> Extract for Json<T> {
-    fn extract(payload: Vec<u8>) -> FunctionResult<Self> {
-        Ok(Json(serde_json::from_slice(&payload).map_err(|e| {
-            crate::Error::MessageError(format!("failed to deserialize json: {e}"))
-        })?))
-    }
-}
-impl<T: serde::Serialize> InvokePayload for Json<T> {
-    fn try_into(self) -> FunctionResult<Option<Vec<u8>>> {
-        let value = serde_json::to_vec(&self.0)
-            .map_err(|e| crate::Error::MessageError(format!("failed to serialize json: {e}")))?;
-        Ok(Some(value))
     }
 }
 

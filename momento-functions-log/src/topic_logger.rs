@@ -14,6 +14,7 @@ impl TopicLog {
         // SAFETY: concurrency requirement is satisfied by the single threaded nature
         // of the Function environment.
         #[allow(static_mut_refs)]
+        #[allow(clippy::expect_used)]
         unsafe {
             LOGGER.replace(TopicLog {
                 level: log_level,

@@ -15,7 +15,7 @@ To see some of what you can do with Functions, you can look at [the examples](./
 ## Getting started
 ### One-time setup
 * Install Rust: https://rustup.rs
-* Add the Momento Functions compile target: `rustup target add wasm32-unknown-unknown`
+* Add the Momento Functions compile target: `rustup target add wasm32-wasip2`
 
 ### Make a project
 
@@ -25,7 +25,7 @@ To see some of what you can do with Functions, you can look at [the examples](./
 Add a file `.cargo/config.toml` that sets the build target, for convenience.
 ```toml
 [build]
-target = "wasm32-unknown-unknown"
+target = "wasm32-wasip2"
 ```
 
 ### Set up `Cargo.toml`
@@ -60,7 +60,7 @@ curl \
   https://api.cache.$MOMENTO_CELL_HOSTNAME/functions/your_cache/ping \
   -H "authorization: $MOMENTO_API_KEY" \
   -XPUT \
-  --data-binary @target/wasm32-unknown-unknown/release/hello.wasm
+  --data-binary @target/wasm32-wasip2/release/hello.wasm
 ```
 
 **Invoke**
@@ -71,6 +71,34 @@ curl \
   -d 'ping'
 ```
 
-## Going further
+### Going further
 From here, you should look at [the examples](./momento-functions/examples/). Momento Functions are a limited environment, but
 the supported feature set is growing.
+
+## Developing a Function
+### Wasi support and standard library
+Using `wasm32-wasip2`, you have access to `std::time`. Most other `std` wasip2 interfaces will panic at runtime.
+
+| `std` wasi interface | status |
+| - | - |
+| time | `SystemTime` and `Instant` supported |
+| environment | supported, but empty |
+| error | supported, but empty; also unavailable due to lack of io interface support |
+| exit | unsupported - it does panic though, which may work well enough for you |
+| filesystem_preopens | unsupported |
+| filesystem_types | unsupported |
+| stderr | unsupported |
+| stdin | unsupported |
+| stdout | unsupported |
+| streams | unsupported |
+
+Other wasi interfaces are not defined and will result in a linking error when you upload your Function.
+
+### Environment details
+You are running under a `wasmtime` host. Unless otherwise specified, the host you're running on is undefined.
+You are effectively running as a stateless web server.
+
+As the ecosystem matures, new limits may be created and execution location semantics may change.
+
+If you hit an error you don't think you should - e.g., you updated Rust locally and now your Functions don't
+link - please reach out to support@momentohq.com

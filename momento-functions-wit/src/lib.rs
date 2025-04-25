@@ -3,7 +3,7 @@
 //! This crate is an internal library for generating Momento Functions webassembly bindings.
 //! It is not intended for use by end users, and may be materially changed at any time.
 //!
-//! Functions use `wasm32-unknown-unknown` as the target architecture.
+//! Functions use `wasm32-wasip2` as the target architecture.
 //! They use the [WIT](https://component-model.bytecodealliance.org/design/wit.html) [Component Model](https://component-model.bytecodealliance.org/)
 //! to describe the ABI.
 //!

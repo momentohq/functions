@@ -3,7 +3,7 @@
 //! This crate adapts [`log`](https://docs.rs/log) to Momento Functions. `log` is a standard logging crate,
 //! used widely across the ecosystem.
 //!
-//! Functions use `wasm32-unknown-unknown` as the target architecture.
+//! Functions use `wasm32-wasip2` as the target architecture.
 //! They use the [WIT](https://component-model.bytecodealliance.org/design/wit.html) [Component Model](https://component-model.bytecodealliance.org/)
 //! to describe the ABI.
 //!

@@ -13,7 +13,7 @@ use momento_functions_wit::host::momento::host::aws_auth;
 /// ```bash
 /// AWS_ACCESS_KEY_ID=$DEVELOPER_KEY_ID \
 /// AWS_SECRET_ACCESS_KEY=$DEVELOPER_SECRET_KEY \
-/// cargo build --target wasm32-unknown-unknown --release
+/// cargo build --target wasm32-wasip2 --release
 /// ```
 ///
 /// If your build environment does not have the variables set, the key and secret

@@ -6,5 +6,4 @@ world imports {
     import aws-lambda;
     import http;
     import spawn;
-    import wall-clock;
 }

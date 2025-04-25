@@ -2,7 +2,7 @@
 //!
 //! This crate generates Momento Functions webassembly bindings.
 //!
-//! Functions use `wasm32-unknown-unknown` as the target architecture.
+//! Functions use `wasm32-wasip2` as the target architecture.
 //! They use the [WIT](https://component-model.bytecodealliance.org/design/wit.html) [Component Model](https://component-model.bytecodealliance.org/)
 //! to describe the ABI.
 //!

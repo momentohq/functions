@@ -3,7 +3,7 @@
 use momento_functions_wit::host::momento::host::http;
 
 use crate::{
-    FunctionResult,
+    FunctionResult, aws,
     encoding::{Extract, Payload},
 };
 
@@ -221,6 +221,236 @@ pub fn delete(
         headers: headers.into_iter().collect(),
         body: Default::default(),
         authorization: http::Authorization::None,
+    });
+    Ok(Response {
+        status,
+        headers,
+        body,
+    })
+}
+
+impl aws::auth::Credentials {
+    fn into_http(
+        self,
+        region: impl Into<String>,
+        service: impl Into<String>,
+    ) -> http::Authorization {
+        match self {
+            aws::auth::Credentials::Hardcoded {
+                access_key_id,
+                secret_access_key,
+            } => http::Authorization::AwsSigv4Secret(http::AwsSigv4Secret {
+                access_key_id,
+                secret_access_key,
+                region: region.into(),
+                service: service.into(),
+            }),
+        }
+    }
+}
+
+/// HTTP GET with AWS SigV4 signing provided by the host
+///
+/// ```rust
+/// # use momento_functions_host::FunctionResult;
+/// # use momento_functions_host::http;
+/// use momento_functions_host::build_environment_aws_credentials;
+///
+/// # fn f() -> FunctionResult<()> {
+/// http::get_aws_sigv4(
+///     "https://bedrock-runtime.us-west-2.amazonaws.com/model/us.amazon.nova-pro-v1:0/invoke",
+///     [],
+///     build_environment_aws_credentials!(),
+///     "us-west-2",
+///     "bedrock",
+/// )?;
+/// http::get_aws_sigv4(
+///     "https://bedrock-runtime.us-west-2.amazonaws.com/model/us.amazon.nova-pro-v1:0/invoke",
+///     [
+///         ("other_header".to_string(), "abc123".to_string()),
+///     ],
+///     build_environment_aws_credentials!(),
+///     "us-west-2",
+///     "bedrock",
+/// )?;
+/// # Ok(()) }
+/// ```
+pub fn get_aws_sigv4(
+    url: impl Into<String>,
+    headers: impl IntoIterator<Item = (String, String)>,
+    aws_credentials: aws::auth::Credentials,
+    region: impl Into<String>,
+    service: impl Into<String>,
+) -> FunctionResult<Response> {
+    let http::Response {
+        status,
+        headers,
+        body,
+    } = http::get(&http::Request {
+        url: url.into(),
+        headers: headers.into_iter().collect(),
+        body: Default::default(),
+        authorization: aws_credentials.into_http(region, service),
+    });
+    Ok(Response {
+        status,
+        headers,
+        body,
+    })
+}
+
+/// HTTP PUT with AWS SigV4 signing provided by the host
+///
+/// ```rust
+/// # use momento_functions_host::FunctionResult;
+/// # use momento_functions_host::http;
+/// use momento_functions_host::encoding::Json;
+/// use momento_functions_host::build_environment_aws_credentials;
+/// # fn f() -> FunctionResult<()> {
+/// #[derive(serde::Serialize)]
+/// struct MyStruct {
+///     message: String
+/// }
+///
+/// http::put_aws_sigv4(
+///     "https://gomomento.com",
+///     [
+///         ("authorization".to_string(), "abc123".to_string()),
+///     ],
+///     build_environment_aws_credentials!(),
+///     "us-west-2",
+///     "bedrock",
+///     Json(MyStruct { message: "hello".to_string() })
+/// )?;
+/// # Ok(()) }
+/// ```
+pub fn put_aws_sigv4(
+    url: impl Into<String>,
+    headers: impl IntoIterator<Item = (String, String)>,
+    aws_credentials: aws::auth::Credentials,
+    region: impl Into<String>,
+    service: impl Into<String>,
+    body: impl Payload,
+) -> FunctionResult<Response> {
+    let http::Response {
+        status,
+        headers,
+        body,
+    } = http::put(&http::Request {
+        url: url.into(),
+        headers: headers.into_iter().collect(),
+        body: body.try_serialize()?.map(Into::into).unwrap_or_default(),
+        authorization: aws_credentials.into_http(region, service),
+    });
+    Ok(Response {
+        status,
+        headers,
+        body,
+    })
+}
+
+/// HTTP POST with AWS SigV4 signing provided by the host
+///
+/// ```rust
+/// # use momento_functions_host::FunctionResult;
+/// # use momento_functions_host::http;
+/// use momento_functions_host::encoding::Json;
+/// use momento_functions_host::build_environment_aws_credentials;
+/// # fn f() -> FunctionResult<()> {
+/// #[derive(serde::Serialize)]
+/// struct MyStruct {
+///     message: String
+/// }
+///
+/// http::post_aws_sigv4(
+///     "https://gomomento.com",
+///     [
+///         ("authorization".to_string(), "abc123".to_string()),
+///     ],
+///     build_environment_aws_credentials!(),
+///     "us-west-2",
+///     "bedrock",
+///     Json(MyStruct { message: "hello".to_string() })
+/// )?;
+/// # Ok(()) }
+/// ```
+pub fn post_aws_sigv4(
+    url: impl Into<String>,
+    headers: impl IntoIterator<Item = (String, String)>,
+    aws_credentials: aws::auth::Credentials,
+    region: impl Into<String>,
+    service: impl Into<String>,
+    body: impl Payload,
+) -> FunctionResult<Response> {
+    let http::Response {
+        status,
+        headers,
+        body,
+    } = http::post(&http::Request {
+        url: url.into(),
+        headers: headers.into_iter().collect(),
+        body: body.try_serialize()?.map(Into::into).unwrap_or_default(),
+        authorization: aws_credentials.into_http(region, service),
+    });
+    Ok(Response {
+        status,
+        headers,
+        body,
+    })
+}
+
+/// HTTP DELETE with AWS SigV4 signing provided by the host
+///
+/// ```rust
+/// # use momento_functions_host::FunctionResult;
+/// # use momento_functions_host::http;
+/// use momento_functions_host::build_environment_aws_credentials;
+///
+/// # fn f() -> FunctionResult<()> {
+/// http::delete_aws_sigv4(
+///     "https://bedrock-runtime.us-west-2.amazonaws.com/model/us.amazon.nova-pro-v1:0/invoke",
+///     [],
+///     build_environment_aws_credentials!(),
+///     "us-west-2",
+///     "bedrock",
+/// )?;
+/// http::delete_aws_sigv4(
+///     "https://bedrock-runtime.us-west-2.amazonaws.com/model/us.amazon.nova-pro-v1:0/invoke",
+///     [
+///         ("other_header".to_string(), "abc123".to_string()),
+///     ],
+///     build_environment_aws_credentials!(),
+///     "us-west-2",
+///     "bedrock",
+/// )?;
+/// # Ok(()) }
+/// ```
+pub fn delete_aws_sigv4(
+    url: impl Into<String>,
+    headers: impl IntoIterator<Item = (String, String)>,
+    aws_credentials: aws::auth::Credentials,
+    region: impl Into<String>,
+    service: impl Into<String>,
+) -> FunctionResult<Response> {
+    let http::Response {
+        status,
+        headers,
+        body,
+    } = http::delete(&http::Request {
+        url: url.into(),
+        headers: headers.into_iter().collect(),
+        body: Default::default(),
+        authorization: match aws_credentials {
+            aws::auth::Credentials::Hardcoded {
+                access_key_id,
+                secret_access_key,
+            } => http::Authorization::AwsSigv4Secret(http::AwsSigv4Secret {
+                access_key_id,
+                secret_access_key,
+                region: region.into(),
+                service: service.into(),
+            }),
+        },
     });
     Ok(Response {
         status,

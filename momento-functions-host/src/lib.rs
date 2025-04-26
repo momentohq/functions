@@ -16,6 +16,7 @@ pub mod aws;
 pub mod cache;
 pub mod encoding;
 mod error;
+pub mod http;
 mod spawn;
 pub mod topics;
 

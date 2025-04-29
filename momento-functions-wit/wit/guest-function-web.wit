@@ -1,6 +1,28 @@
 
 interface guest-function-web {
     use types.{invocation-error};
+    use web-function-support.{header};
+    
+    post: func(payload: list<u8>) -> result<response, invocation-error>;
 
-    post: func(payload: list<u8>) -> result<list<u8>, invocation-error>;
+    record response {
+        status: u16,
+        headers: list<header>,
+        body: list<u8>,
+    }
+}
+
+interface web-function-support {
+    headers: func() -> list<header>;
+    query-parameters: func() -> list<query-parameter>;
+
+    record header {
+        name: string,
+        value: string,
+    }
+
+    record query-parameter {
+        name: string,
+        value: string,
+    }
 }

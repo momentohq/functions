@@ -6,3 +6,11 @@ wit_bindgen::generate!({
     export_macro_name: "export_web_function",
     pub_export_macro: true,
 });
+
+impl From<(String, String)>
+    for crate::function_web::momento::functions::web_function_support::Header
+{
+    fn from((name, value): (String, String)) -> Self {
+        Self { name, value }
+    }
+}

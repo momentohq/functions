@@ -1,3 +1,11 @@
+use momento_functions_host::{
+    FunctionResult,
+    encoding::{Extract, Payload},
+};
+use momento_functions_wit::function_web::exports::momento::functions::guest_function_web;
+
+use crate::response::WebResponse;
+
 /// Create a handler that accepts a post payload and returns a response.
 ///
 /// You can use raw bytes, or json-marshalled types.
@@ -12,6 +20,8 @@
 ///
 /// **Typed JSON:**
 /// ```rust
+/// use momento_functions_host::encoding::Json;
+///
 /// #[derive(serde::Deserialize)]
 /// struct Request {
 ///     name: String,
@@ -21,9 +31,9 @@
 ///     message: String,
 /// }
 ///
-/// momento_functions::post!(greet, Request, Response);
-/// fn greet(request: Request) -> FunctionResult<Response> {
-///     Ok(Response { message: format!("Hello, {}!", request.name) })
+/// momento_functions::post!(greet);
+/// fn greet(Json(request): Json<Request>) -> FunctionResult<Json<Response>> {
+///     Ok(Json(Response { message: format!("Hello, {}!", request.name) }))
 /// }
 /// ```
 #[macro_export]
@@ -35,26 +45,39 @@ macro_rules! post {
 
         #[automatically_derived]
         impl momento_functions_wit::function_web::exports::momento::functions::guest_function_web::Guest for WebFunction {
-            fn post(payload: Vec<u8>) -> Result<Vec<u8>, momento_functions_wit::function_web::momento::functions::types::InvocationError> {
-                $post_handler(payload).map_err(Into::into)
+            fn post(payload: Vec<u8>) -> Result<momento_functions_wit::function_web::exports::momento::functions::guest_function_web::Response, momento_functions_wit::function_web::momento::functions::types::InvocationError> {
+                momento_functions::post_template(payload, $post_handler)
             }
         }
     };
+}
 
-    ($post_handler: ident, $request: ident, $response: ident) => {
-        use momento_functions_host::FunctionResult;
-        struct WebFunction;
-        momento_functions_wit::function_web::export_web_function!(WebFunction);
+/// An internal helper for the post! macro.
+#[doc(hidden)]
+pub fn post_template<TExtract, TResponse>(
+    payload: Vec<u8>,
+    handler: fn(request: TExtract) -> FunctionResult<TResponse>,
+) -> Result<
+    guest_function_web::Response,
+    momento_functions_wit::function_web::momento::functions::types::InvocationError,
+>
+where
+    TExtract: Extract,
+    TResponse: WebResponse,
+{
+    let request = TExtract::extract(payload)?;
+    let mut response = handler(request)?;
 
-        #[automatically_derived]
-        impl momento_functions_wit::function_web::exports::momento::functions::guest_function_web::Guest for WebFunction {
-            fn post(payload: Vec<u8>) -> Result<Vec<u8>, momento_functions_wit::function_web::momento::functions::types::InvocationError> {
-                let payload: $request = serde_json::from_slice(&payload)
-                    .map_err(|e| momento_functions_wit::function_web::momento::functions::types::InvocationError::RequestError(format!("could not deserialize json: {e:?}")))?;
-                let response: $response = $post_handler(payload)?;
-                serde_json::to_vec(&response)
-                    .map_err(|e| momento_functions_wit::function_web::momento::functions::types::InvocationError::RequestError(format!("could not serialize json: {e:?}")))
-            }
-        }
-    }
+    let status = response.status_code();
+    let headers: Vec<(String, String)> = response.take_headers();
+    let body: Vec<u8> = response
+        .take_payload()
+        .try_serialize()?
+        .map(Into::into)
+        .unwrap_or_default();
+    Ok(guest_function_web::Response {
+        status,
+        headers: headers.into_iter().map(Into::into).collect(),
+        body,
+    })
 }

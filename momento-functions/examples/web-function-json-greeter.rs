@@ -1,3 +1,5 @@
+use momento_functions_host::encoding::Json;
+
 #[derive(serde::Deserialize)]
 struct Request {
     name: String,
@@ -8,9 +10,9 @@ struct Response {
     message: String,
 }
 
-momento_functions::post!(greet, Request, Response);
-fn greet(request: Request) -> FunctionResult<Response> {
-    Ok(Response {
+momento_functions::post!(greet);
+fn greet(Json(request): Json<Request>) -> FunctionResult<Json<Response>> {
+    Ok(Json(Response {
         message: format!("Hello, {}!", request.name),
-    })
+    }))
 }

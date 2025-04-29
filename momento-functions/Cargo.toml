@@ -11,6 +11,10 @@ keywords.workspace = true
 categories.workspace = true
 
 [[example]]
+name = "dynamodb-accelerator"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "logging"
 crate-type = ["cdylib"]
 

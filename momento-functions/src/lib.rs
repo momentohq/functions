@@ -10,3 +10,8 @@
 //! * [`momento-functions-host`](https://crates.io/crates/momento-functions-host): Interfaces and tools for calling host interfaces.
 //! * [`momento-functions-log`](https://crates.io/crates/momento-functions-log): Standard `log` adapter.
 mod macros;
+mod response;
+
+pub use macros::post_template;
+pub use response::WebResponse;
+pub use response::WebResponseBuilder;

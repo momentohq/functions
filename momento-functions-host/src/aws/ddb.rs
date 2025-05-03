@@ -250,12 +250,16 @@ pub enum Key {
 }
 
 /// DynamoDB value type for keys
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum KeyValue {
     /// S value
+    #[serde(rename = "S")]
     String(String),
     /// N value
+    #[serde(rename = "N")]
     Number(i64),
     /// B value
+    #[serde(rename = "B")]
     Binary(Vec<u8>),
 }
 

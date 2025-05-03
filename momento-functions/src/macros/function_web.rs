@@ -68,7 +68,7 @@ where
     let request = TExtract::extract(payload)?;
     let mut response = handler(request)?;
 
-    let status = response.status_code();
+    let status = response.get_status_code();
     let headers: Vec<(String, String)> = response.take_headers();
     let body: Vec<u8> = response
         .take_payload()

@@ -19,6 +19,7 @@ mod error;
 pub mod http;
 mod spawn;
 pub mod topics;
+pub mod web_extensions;
 
 pub use error::{Error, FunctionResult};
 pub use spawn::spawn;

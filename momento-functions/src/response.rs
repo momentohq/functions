@@ -3,7 +3,7 @@ use momento_functions_host::{FunctionResult, encoding::Payload};
 /// A response from a web function invocation
 pub trait WebResponse {
     /// Status code of the response
-    fn status_code(&self) -> u16;
+    fn get_status_code(&self) -> u16;
 
     /// Response headers
     ///
@@ -21,7 +21,7 @@ impl<T> WebResponse for T
 where
     T: Payload,
 {
-    fn status_code(&self) -> u16 {
+    fn get_status_code(&self) -> u16 {
         200
     }
 
@@ -94,5 +94,19 @@ impl WebResponseBuilder {
     pub fn payload(mut self, payload: impl Payload) -> FunctionResult<Self> {
         self.payload = payload.try_serialize()?.map(Into::into);
         Ok(self)
+    }
+}
+
+impl WebResponse for WebResponseBuilder {
+    fn get_status_code(&self) -> u16 {
+        self.status_code
+    }
+
+    fn take_headers(&mut self) -> Vec<(String, String)> {
+        self.headers.take().unwrap_or_default()
+    }
+
+    fn take_payload(self) -> impl Payload {
+        self.payload.unwrap_or_default()
     }
 }

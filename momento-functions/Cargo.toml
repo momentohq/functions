@@ -35,11 +35,13 @@ name = "web-function-json-greeter"
 crate-type = ["cdylib"]
 
 [dependencies]
-serde                   = { workspace = true }
-serde_json              = { workspace = true }
 momento-functions-host  = { workspace = true }
 momento-functions-wit   = { workspace = true }
 
+serde                   = { workspace = true }
+serde_json              = { workspace = true }
+
 [dev-dependencies]
-log                     = { workspace = true }
 momento-functions-log   = { workspace = true }
+
+log                     = { workspace = true }

@@ -28,6 +28,7 @@ impl RedisClient {
     ///
     /// ```rust
     /// # use momento_functions_host::redis::RedisClient;
+    /// # use momento_functions_host::FunctionResult;
     /// # fn f() -> FunctionResult<()> {
     /// let client = RedisClient::new("valkey://my.valkey.instance:6379");
     /// # Ok(())
@@ -122,8 +123,8 @@ impl RedisClient {
     ///         .build(),
     /// ]);
     ///
-    /// #    Ok(())
-    /// #}
+    /// #     Ok(())
+    /// # }
     /// ```
     pub fn pipe(&self, commands: Vec<Command>) -> FunctionResult<ResponseStream> {
         let response_stream = self.client.pipe(

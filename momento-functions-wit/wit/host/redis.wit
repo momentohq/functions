@@ -1,0 +1,50 @@
+interface redis {
+    variant redis-error {
+        /// The request failed for some other reason.
+        other(string),
+    }
+
+    // How to connect to the database
+    variant redis-connection-type {
+        basic-connection(string),
+    }
+
+    record command {
+        command: string,
+        // These are pre-serialized. This is to let you send bytes when needed...
+        arguments: list<list<u8>>,
+    }
+
+    resource response-stream {
+        // The next result row of a query
+        //
+        // Returns None if there are no more rows
+        next: func() -> option<value>;
+    }
+
+    variant value {
+        /// A nil response from the server.
+        nil,
+        /// An integer response. Note that there are a few situations
+        /// in which redis actually returns a string for an integer.
+        int(s64),
+        /// Arbitary binary data.
+        data(list<u8>),
+        /// A bulk response of more data. This is generally used by redis
+        /// to express nested structures.
+        bulk(response-stream),
+        /// A status response.
+        status(string),
+        /// An OK from redis.
+        okay,
+    }
+
+    record reply {
+        columns: list<value>,
+    }
+
+    resource client {
+        constructor(connection: redis-connection-type);
+        pipe: func(commands: list<command>) -> result<response-stream, redis-error>;
+    }
+}

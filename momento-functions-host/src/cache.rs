@@ -6,7 +6,7 @@ use momento_functions_wit::host::momento::functions::cache_scalar;
 
 use crate::{
     FunctionResult,
-    encoding::{Extract, Payload},
+    encoding::{Encode, Extract},
 };
 
 /// Get a value from the cache.
@@ -84,10 +84,10 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> FunctionResult<Option<T>> {
 /// )?;
 /// # Ok(()) }
 /// ```
-pub fn set(key: impl AsRef<[u8]>, value: impl Payload, ttl: Duration) -> FunctionResult<()> {
+pub fn set(key: impl AsRef<[u8]>, value: impl Encode, ttl: Duration) -> FunctionResult<()> {
     cache_scalar::set(
         key.as_ref(),
-        &value.try_serialize()?.map(Into::into).unwrap_or_default(),
+        &value.try_serialize()?.into(),
         saturate_ttl(ttl),
     )
     .map_err(Into::into)

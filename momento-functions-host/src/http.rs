@@ -4,7 +4,7 @@ use momento_functions_wit::host::momento::host::http;
 
 use crate::{
     FunctionResult, aws,
-    encoding::{Extract, Payload},
+    encoding::{Encode, Extract},
 };
 
 /// HTTP Get response
@@ -122,7 +122,7 @@ pub fn get(
 pub fn put(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
-    body: impl Payload,
+    body: impl Encode,
 ) -> FunctionResult<Response> {
     let http::Response {
         status,
@@ -131,7 +131,7 @@ pub fn put(
     } = http::put(&http::Request {
         url: url.into(),
         headers: headers.into_iter().collect(),
-        body: body.try_serialize()?.map(Into::into).unwrap_or_default(),
+        body: body.try_serialize()?.into(),
         authorization: http::Authorization::None,
     });
     Ok(Response {
@@ -174,7 +174,7 @@ pub fn put(
 pub fn post(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
-    body: impl Payload,
+    body: impl Encode,
 ) -> FunctionResult<Response> {
     let http::Response {
         status,
@@ -183,7 +183,7 @@ pub fn post(
     } = http::post(&http::Request {
         url: url.into(),
         headers: headers.into_iter().collect(),
-        body: body.try_serialize()?.map(Into::into).unwrap_or_default(),
+        body: body.try_serialize()?.into(),
         authorization: http::Authorization::None,
     });
     Ok(Response {
@@ -331,7 +331,7 @@ pub fn put_aws_sigv4(
     aws_credentials: aws::auth::Credentials,
     region: impl Into<String>,
     service: impl Into<String>,
-    body: impl Payload,
+    body: impl Encode,
 ) -> FunctionResult<Response> {
     let http::Response {
         status,
@@ -340,7 +340,7 @@ pub fn put_aws_sigv4(
     } = http::put(&http::Request {
         url: url.into(),
         headers: headers.into_iter().collect(),
-        body: body.try_serialize()?.map(Into::into).unwrap_or_default(),
+        body: body.try_serialize()?.into(),
         authorization: aws_credentials.into_http(region, service),
     });
     Ok(Response {
@@ -381,7 +381,7 @@ pub fn post_aws_sigv4(
     aws_credentials: aws::auth::Credentials,
     region: impl Into<String>,
     service: impl Into<String>,
-    body: impl Payload,
+    body: impl Encode,
 ) -> FunctionResult<Response> {
     let http::Response {
         status,
@@ -390,7 +390,7 @@ pub fn post_aws_sigv4(
     } = http::post(&http::Request {
         url: url.into(),
         headers: headers.into_iter().collect(),
-        body: body.try_serialize()?.map(Into::into).unwrap_or_default(),
+        body: body.try_serialize()?.into(),
         authorization: aws_credentials.into_http(region, service),
     });
     Ok(Response {

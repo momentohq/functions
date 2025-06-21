@@ -3,39 +3,42 @@
 use crate::FunctionResult;
 
 /// A payload which can be converted to a vector of bytes
-pub trait Payload {
+pub trait Encode {
     /// Convert the payload to a vector of bytes
-    fn try_serialize(self) -> FunctionResult<Option<impl Into<Vec<u8>>>>;
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>>;
 }
 
-impl Payload for Vec<u8> {
-    fn try_serialize(self) -> FunctionResult<Option<impl Into<Vec<u8>>>> {
-        Ok(Some(self))
-    }
-}
-impl Payload for &[u8] {
-    fn try_serialize(self) -> FunctionResult<Option<impl Into<Vec<u8>>>> {
-        Ok(Some(self))
-    }
-}
-impl Payload for String {
-    fn try_serialize(self) -> FunctionResult<Option<impl Into<Vec<u8>>>> {
-        Ok(Some(self.into_bytes()))
-    }
-}
-impl Payload for &str {
-    fn try_serialize(self) -> FunctionResult<Option<impl Into<Vec<u8>>>> {
-        Ok(Some(self.as_bytes()))
-    }
-}
-impl Payload for Option<Vec<u8>> {
-    fn try_serialize(self) -> FunctionResult<Option<impl Into<Vec<u8>>>> {
+impl Encode for Vec<u8> {
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>> {
         Ok(self)
     }
 }
-impl Payload for () {
-    fn try_serialize(self) -> FunctionResult<Option<impl Into<Vec<u8>>>> {
-        Ok(Option::<[u8; 0]>::None)
+impl Encode for &[u8] {
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>> {
+        Ok(self)
+    }
+}
+impl Encode for String {
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>> {
+        Ok(self.into_bytes())
+    }
+}
+impl Encode for &str {
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>> {
+        Ok(self.as_bytes())
+    }
+}
+impl Encode for Option<Vec<u8>> {
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>> {
+        match self {
+            Some(v) => Ok(v),
+            None => Ok(Vec::new()),
+        }
+    }
+}
+impl Encode for () {
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>> {
+        Ok([])
     }
 }
 
@@ -60,10 +63,9 @@ impl<T: serde::de::DeserializeOwned> Extract for Json<T> {
         })?))
     }
 }
-impl<T: serde::Serialize> Payload for Json<T> {
-    fn try_serialize(self) -> FunctionResult<Option<impl Into<Vec<u8>>>> {
-        let value = serde_json::to_vec(&self.0)
-            .map_err(|e| crate::Error::MessageError(format!("failed to serialize json: {e}")))?;
-        Ok(Some(value))
+impl<T: serde::Serialize> Encode for Json<T> {
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>> {
+        serde_json::to_vec(&self.0)
+            .map_err(|e| crate::Error::MessageError(format!("failed to serialize json: {e}")))
     }
 }

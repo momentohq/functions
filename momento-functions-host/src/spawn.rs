@@ -1,6 +1,6 @@
 use momento_functions_wit::host::momento::host::spawn::{self, SpawnError};
 
-use crate::{FunctionResult, encoding::Payload};
+use crate::{FunctionResult, encoding::Encode};
 
 /// Spawn a fire-and-forget Function.
 ///
@@ -12,12 +12,9 @@ use crate::{FunctionResult, encoding::Payload};
 /// spawn("my_function", b"a payload for my_function".as_slice())?;
 /// # Ok(()) }
 /// ```
-pub fn spawn(function_name: impl AsRef<str>, payload: impl Payload) -> FunctionResult<()> {
-    spawn::spawn_function(
-        function_name.as_ref(),
-        &payload.try_serialize()?.map(Into::into).unwrap_or_default(),
-    )
-    .map_err(Into::into)
+pub fn spawn(function_name: impl AsRef<str>, payload: impl Encode) -> FunctionResult<()> {
+    spawn::spawn_function(function_name.as_ref(), &payload.try_serialize()?.into())
+        .map_err(Into::into)
 }
 
 impl From<SpawnError> for crate::Error {

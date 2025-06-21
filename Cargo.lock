@@ -417,6 +417,7 @@ name = "momento-functions-host"
 version = "0.1.9"
 dependencies = [
  "base64",
+ "log",
  "momento-functions-wit",
  "serde",
  "serde_json",

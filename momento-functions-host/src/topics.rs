@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use crate::{
     FunctionResult,
-    encoding::{Json, Payload},
+    encoding::{Encode, Json},
 };
 
 /// Publish a message to a topic in the cache this Function is running within.
@@ -51,10 +51,7 @@ pub fn publish<T: for<'a> PublishKind<'a>>(topic: impl AsRef<str>, value: T) -> 
     match value.as_publish()? {
         Publish::Str(s) => topic::publish(topic.as_ref(), s),
         Publish::String(s) => topic::publish(topic.as_ref(), s.as_str()),
-        Publish::Bytes(b) => topic::publish_bytes(
-            topic.as_ref(),
-            &b.try_serialize()?.map(Into::into).unwrap_or_default(),
-        ),
+        Publish::Bytes(b) => topic::publish_bytes(topic.as_ref(), &b.try_serialize()?.into()),
     }
     .map_err(Into::into)
 }
@@ -62,7 +59,7 @@ pub fn publish<T: for<'a> PublishKind<'a>>(topic: impl AsRef<str>, value: T) -> 
 /// Bind a type to a kind of topic message
 pub trait PublishKind<'a> {
     /// Type of payload to publish
-    type Encoding: Payload;
+    type Encoding: Encode;
 
     /// Convert this type into a publishable message
     fn as_publish(&'a self) -> FunctionResult<Publish<'a, Self::Encoding>>;
@@ -107,7 +104,7 @@ impl<'a, T: Serialize> PublishKind<'a> for Json<T> {
 
 /// Value to publish to a topic.
 /// You can publish a string or bytes.
-pub enum Publish<'a, P: Payload = &'a [u8]> {
+pub enum Publish<'a, P: Encode = &'a [u8]> {
     /// Publish a string to the topic
     Str(&'a str),
     /// Publish a string to the topic

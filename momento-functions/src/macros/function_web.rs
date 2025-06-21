@@ -1,6 +1,6 @@
 use momento_functions_host::{
     FunctionResult,
-    encoding::{Extract, Payload},
+    encoding::{Encode, Extract},
 };
 use momento_functions_wit::function_web::exports::momento::functions::guest_function_web;
 
@@ -70,11 +70,7 @@ where
 
     let status = response.get_status_code();
     let headers: Vec<(String, String)> = response.take_headers();
-    let body: Vec<u8> = response
-        .take_payload()
-        .try_serialize()?
-        .map(Into::into)
-        .unwrap_or_default();
+    let body: Vec<u8> = response.take_payload().try_serialize()?.into();
     Ok(guest_function_web::Response {
         status,
         headers: headers.into_iter().map(Into::into).collect(),

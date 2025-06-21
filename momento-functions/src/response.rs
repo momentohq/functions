@@ -1,4 +1,4 @@
-use momento_functions_host::{FunctionResult, encoding::Payload};
+use momento_functions_host::{FunctionResult, encoding::Encode};
 
 /// A response from a web function invocation
 pub trait WebResponse {
@@ -13,13 +13,13 @@ pub trait WebResponse {
     /// Take the payload of the response
     ///
     /// Called only once, this should consume the internal payload
-    fn take_payload(self) -> impl Payload;
+    fn take_payload(self) -> impl Encode;
 }
 
 /// Just treat a present payload as a 200
 impl<T> WebResponse for T
 where
-    T: Payload,
+    T: Encode,
 {
     fn get_status_code(&self) -> u16 {
         200
@@ -29,7 +29,7 @@ where
         vec![]
     }
 
-    fn take_payload(self) -> impl Payload {
+    fn take_payload(self) -> impl Encode {
         self
     }
 }
@@ -91,8 +91,14 @@ impl WebResponseBuilder {
     }
 
     /// Set the payload of the response
-    pub fn payload(mut self, payload: impl Payload) -> FunctionResult<Self> {
-        self.payload = payload.try_serialize()?.map(Into::into);
+    pub fn payload(mut self, payload: impl Encode) -> FunctionResult<Self> {
+        let payload = payload.try_serialize()?.into();
+        if !payload.is_empty() {
+            self.payload = Some(payload);
+        } else {
+            self.payload = None;
+        }
+
         Ok(self)
     }
 }
@@ -106,7 +112,7 @@ impl WebResponse for WebResponseBuilder {
         self.headers.take().unwrap_or_default()
     }
 
-    fn take_payload(self) -> impl Payload {
+    fn take_payload(self) -> impl Encode {
         self.payload.unwrap_or_default()
     }
 }

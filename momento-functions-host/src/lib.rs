@@ -17,6 +17,7 @@ pub mod cache;
 pub mod encoding;
 mod error;
 pub mod http;
+pub mod redis;
 mod spawn;
 pub mod topics;
 pub mod web_extensions;

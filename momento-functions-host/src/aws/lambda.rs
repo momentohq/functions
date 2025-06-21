@@ -3,7 +3,7 @@ use momento_functions_wit::host::momento::host;
 
 use crate::{
     FunctionResult,
-    encoding::{Extract, Payload},
+    encoding::{Encode, Extract},
 };
 
 use super::auth;
@@ -115,13 +115,13 @@ impl LambdaClient {
     pub fn invoke(
         &self,
         name: impl Into<LambdaName>,
-        payload: impl Payload,
+        payload: impl Encode,
     ) -> FunctionResult<InvokeResponse> {
         let (function_name, qualifier) = name.into().into_inner();
         let request = host::aws_lambda::InvokeRequest {
             function_name,
             qualifier,
-            payload: payload.try_serialize()?.map(Into::into),
+            payload: Some(payload.try_serialize()?.into()),
             invocation_type: host::aws_lambda::InvocationType::RequestResponse(
                 host::aws_lambda::InvokeSynchronousParameters {
                     log_type: None,

@@ -27,6 +27,18 @@ name = "spawn-function-json"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "valkey-vector-embeddings"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "valkey-vector-index"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "valkey-vector-search"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "web-function"
 crate-type = ["cdylib"]
 
@@ -45,3 +57,4 @@ serde_json              = { workspace = true }
 momento-functions-log   = { workspace = true }
 
 log                     = { workspace = true }
+sha2                    = { workspace = true }

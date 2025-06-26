@@ -1,2 +1,7 @@
 [build]
 target = "wasm32-wasip2"
+
+[env]
+# for examples
+REDIS_CONNECTION_STRING = "UNSET"
+OPENAI_KEY = "UNSET"

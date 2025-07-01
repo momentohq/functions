@@ -41,6 +41,12 @@ impl Encode for () {
         Ok([])
     }
 }
+impl Encode for serde_json::Value {
+    fn try_serialize(self) -> FunctionResult<impl Into<Vec<u8>>> {
+        serde_json::to_vec(&self)
+            .map_err(|e| crate::Error::MessageError(format!("failed to serialize json: {e:?}")))
+    }
+}
 
 /// Payload extractor for encodings
 pub trait Extract: Sized {

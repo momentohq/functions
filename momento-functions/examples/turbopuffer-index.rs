@@ -11,14 +11,15 @@ use log::LevelFilter;
 use momento_functions::{WebResponse, WebResponseBuilder};
 use momento_functions_host::{encoding::Json, web_extensions::headers};
 use momento_functions_log::LogMode;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 /// Just like the `fine-foods-embeddings` example, but with
 /// the embedding included.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 struct Document {
-    embedding: Vec<f32>,
+    #[serde(alias = "embedding")]
+    vector: Vec<f32>,
     id: String,
     product_id: String,
     user_id: String,
@@ -37,7 +38,7 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> FunctionResult<impl W
     setup_logging(&headers)?;
 
     let dimensions = match documents.first() {
-        Some(doc) => doc.embedding.len(),
+        Some(doc) => doc.vector.len(),
         None => {
             log::warn!("No documents provided for indexing.");
             return WebResponseBuilder::new()
@@ -55,63 +56,7 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> FunctionResult<impl W
 
     let chunks = documents.into_iter().chunks(2000);
     for chunk in chunks.into_iter() {
-        // This column-oriented destructuring is done because turbopuffer requests bulk loads to
-        // be column-oriented. It's verbose, but it maximizes turbopuffer performance.
-        let (
-            embeddings,
-            ids,
-            product_ids,
-            user_ids,
-            profile_names,
-            helpfulness_numerators,
-            helpfulness_denominators,
-            scores,
-            times,
-            summaries,
-            texts,
-        ): (
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-        ) = chunk
-            .map(
-                |Document {
-                     embedding,
-                     id,
-                     product_id,
-                     user_id,
-                     profile_name,
-                     helpfulness_numerator,
-                     helpfulness_denominator,
-                     score,
-                     time,
-                     summary,
-                     text,
-                 }| {
-                    (
-                        embedding,
-                        id,
-                        product_id,
-                        user_id,
-                        profile_name,
-                        helpfulness_numerator,
-                        helpfulness_denominator,
-                        score,
-                        time,
-                        summary,
-                        text,
-                    )
-                },
-            )
-            .collect();
+        let chunk: Vec<Document> = chunk.collect();
         let result = momento_functions_host::http::post(
             TURBOPUFFER_ENDPOINT,
             [
@@ -124,19 +69,7 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> FunctionResult<impl W
                 ),
             ],
             json!({
-                "upsert_columns": {
-                    "id": ids,
-                    "vector": embeddings.iter().map(|v| v.iter().take(4).cloned().collect::<Vec<_>>()).collect::<Vec<_>>(),
-                    "product_id": product_ids,
-                    "user_id": user_ids,
-                    "profile_name": profile_names,
-                    "helpfulness_numerator": helpfulness_numerators,
-                    "helpfulness_denominator": helpfulness_denominators,
-                    "score": scores,
-                    "time": times,
-                    "summary": summaries,
-                    "text": texts,
-                },
+                "upsert_rows": chunk,
                 "distance_metric": "cosine_distance",
             }),
         );

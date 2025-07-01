@@ -152,25 +152,6 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> FunctionResult<impl W
                         .status_code(response.status)
                         .payload(json!({
                             "message": message,
-                            "request": {
-                                "upsert_columns": {
-                                    "id": ids,
-                                    "vector": embeddings.iter().map(|v| v.iter().take(4).cloned().collect::<Vec<_>>()).collect::<Vec<_>>(),
-                                    "product_id": product_ids,
-                                    "user_id": user_ids,
-                                    "profile_name": profile_names,
-                                    "helpfulness_numerator": helpfulness_numerators,
-                                    "helpfulness_denominator": helpfulness_denominators,
-                                    "score": scores,
-                                    "time": times,
-                                    "summary": summaries,
-                                    "text": texts,
-                                },
-                                "distance_metric": "cosine_distance",
-                            },
-                            "endpoint": TURBOPUFFER_ENDPOINT,
-                            "Authorization": TURBOPUFFER_API_KEY,
-                            "Content-Type": "application/json",
                         }));
                 }
             }

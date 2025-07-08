@@ -3,15 +3,12 @@
 //! It is recommended that you write type bindings for the types in your tables.
 //! See the examples on [Item] for how to do this.
 
-use std::collections::HashMap;
-
+use super::auth;
 use base64::Engine;
 use momento_functions_wit::host::momento::host;
+use momento_functions_wit::host::momento::host::aws_ddb::DdbError;
 use serde::{Deserialize, Serialize};
-
-use crate::FunctionResult;
-
-use super::auth;
+use std::collections::HashMap;
 
 /// Dynamodb client for host interfaces.
 ///
@@ -23,6 +20,38 @@ pub struct DynamoDBClient {
     client: host::aws_ddb::Client,
 }
 
+/// An error returned from a Dynamo call.
+#[derive(Debug, thiserror::Error)]
+pub enum DynamoDBError {
+    /// When calling Dynamo, Items are serialized/deserialized to/from JSON.
+    /// This error indicates that a failure occurred when doing so.
+    #[error("Failed to serialize/deserialize host json: {cause}")]
+    SerDeJson {
+        /// The underlying (de)serialization error.
+        #[from]
+        cause: serde_json::error::Error,
+    },
+    /// An error from the Dynamo host interface.
+    #[error(transparent)]
+    Dynamo(#[from] DdbError),
+}
+
+/// An error occurred while using the extracting get_item wrapper.
+#[derive(Debug, thiserror::Error)]
+pub enum GetItemError<E> {
+    /// An error occurred when calling the provided TryFrom implementation.
+    TryFrom {
+        /// The underlying error.
+        cause: E,
+    },
+    /// An error occurred when calling Dynamo.
+    Dynamo {
+        /// The underlying error.
+        #[from]
+        cause: DynamoDBError,
+    },
+}
+
 impl DynamoDBClient {
     /// Create a new DynamoDB client.
     ///
@@ -30,8 +59,8 @@ impl DynamoDBClient {
     /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// # use momento_functions_host::aws::ddb::DynamoDBClient;
     /// # use momento_functions_host::build_environment_aws_credentials;
-    /// # use momento_functions_host::FunctionResult;
-    /// # fn f() -> FunctionResult<()> {
+    /// # use momento_functions_wit::host::momento::host::aws_auth::AuthError;
+    /// # fn f() -> Result<(), AuthError> {
     /// let client = DynamoDBClient::new(
     ///     &AwsCredentialsProvider::new(
     ///         "us-east-1",
@@ -53,12 +82,11 @@ impl DynamoDBClient {
     /// ________
     /// Custom bound types:
     /// ```rust
-    /// use momento_functions_host::aws::ddb::{AttributeValue, DynamoDBClient, Item};
-    /// use momento_functions_host::{FunctionResult, Error};
+    /// use momento_functions_host::aws::ddb::{AttributeValue, DynamoDBClient, DynamoDBError, GetItemError, Item};
     ///
     /// /// Look up an item from a DynamoDB table and deserialize it into a MyStruct.
     /// /// Returns None if the item does not exist.
-    /// fn get_my_struct(client: &DynamoDBClient, which_one: &str) -> FunctionResult<Option<MyStruct>> {
+    /// fn get_my_struct(client: &DynamoDBClient, which_one: &str) -> Result<Option<MyStruct>, GetItemError<String>> {
     ///     client.get_item("my_table", ("some_attribute", which_one))
     /// }
     ///
@@ -66,18 +94,10 @@ impl DynamoDBClient {
     ///     some_attribute: String,
     /// }
     ///
-    /// // Boilerplate to convert into dynamodb format
-    /// impl From<MyStruct> for Item {
-    ///     fn from(value: MyStruct) -> Self {
-    ///         [
-    ///             ("some_attribute", AttributeValue::from(value.some_attribute)),
-    ///         ].into()
-    ///     }
-    /// }
-    ///
     /// // Boilerplate to convert from dynamodb format
+    ///
     /// impl TryFrom<Item> for MyStruct {
-    ///     type Error = Error;
+    ///     type Error = String;
     ///     fn try_from(mut value: Item) -> Result<Self, Self::Error> {
     ///         Ok(Self {
     ///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into()?,
@@ -88,13 +108,14 @@ impl DynamoDBClient {
         &self,
         table_name: impl Into<String>,
         key: impl Into<Key>,
-    ) -> FunctionResult<Option<V>>
+    ) -> Result<Option<V>, GetItemError<E>>
     where
         V: TryFrom<Item, Error = E>,
-        crate::Error: From<E>,
     {
         match self.get_item_raw(table_name, key)? {
-            Some(item) => Ok(Some(V::try_from(item)?)),
+            Some(item) => Ok(Some(
+                V::try_from(item).map_err(|e| GetItemError::TryFrom { cause: e })?,
+            )),
             None => Ok(None),
         }
     }
@@ -104,11 +125,10 @@ impl DynamoDBClient {
     /// Examples:
     /// ________
     /// ```rust
-    /// use momento_functions_host::aws::ddb::{DynamoDBClient, Item};
-    /// use momento_functions_host::FunctionResult;
+    /// use momento_functions_host::aws::ddb::{DynamoDBClient, DynamoDBError, Item};
     ///
     /// /// Read an item from a DynamoDB table "my_table" with a S key attribute "some_attribute".
-    /// fn get_some_item(client: &DynamoDBClient, which_one: &str) -> FunctionResult<Option<Item>> {
+    /// fn get_some_item(client: &DynamoDBClient, which_one: &str) -> Result<Option<Item>, DynamoDBError> {
     ///     client.get_item_raw("my_table", ("some_attribute", which_one))
     /// }
     /// ```
@@ -116,7 +136,7 @@ impl DynamoDBClient {
         &self,
         table_name: impl Into<String>,
         key: impl Into<Key>,
-    ) -> FunctionResult<Option<Item>> {
+    ) -> Result<Option<Item>, DynamoDBError> {
         let key: Key = key.into();
 
         let output = self.client.get_item(&host::aws_ddb::GetItemRequest {
@@ -143,11 +163,7 @@ impl DynamoDBClient {
                     //   "name": { "S": "arthur" },
                     //   "friends": { "SS": ["bob", "alice"] }
                     // }
-                    host::aws_ddb::Item::Json(j) => serde_json::from_str(&j).map_err(|e| {
-                        crate::Error::MessageError(format!(
-                            "failed to deserialize host json as item: {e}"
-                        ))
-                    }),
+                    host::aws_ddb::Item::Json(j) => Ok(serde_json::from_str(&j)?),
                 }
             }
             None => Ok(None),
@@ -160,10 +176,9 @@ impl DynamoDBClient {
     /// Raw item:
     /// ________
     /// ```rust
-    /// # use momento_functions_host::aws::ddb::DynamoDBClient;
-    /// # use momento_functions_host::FunctionResult;
+    /// # use momento_functions_host::aws::ddb::{DynamoDBClient, DynamoDBError};
     ///
-    /// # fn put_some_item(client: &DynamoDBClient) -> FunctionResult<()> {
+    /// # fn put_some_item(client: &DynamoDBClient) -> Result<(), DynamoDBError> {
     /// client.put_item(
     ///     "my_table",
     ///     [
@@ -176,11 +191,10 @@ impl DynamoDBClient {
     /// ________
     /// Custom bound types:
     /// ```rust
-    /// use momento_functions_host::aws::ddb::{AttributeValue, DynamoDBClient, Item};
-    /// use momento_functions_host::{FunctionResult, Error};
+    /// use momento_functions_host::aws::ddb::{AttributeValue, DynamoDBClient, DynamoDBError, Item};
     ///
     /// /// Store an item in a DynamoDB table by serializing a MyStruct.
-    /// fn put_my_struct(client: &DynamoDBClient, which_one: MyStruct) -> FunctionResult<()> {
+    /// fn put_my_struct(client: &DynamoDBClient, which_one: MyStruct) -> Result<(), DynamoDBError> {
     ///     client.put_item("my_table", which_one)
     /// }
     ///
@@ -196,28 +210,17 @@ impl DynamoDBClient {
     ///         ].into()
     ///     }
     /// }
-    ///
-    /// // Boilerplate to convert from dynamodb format
-    /// impl TryFrom<Item> for MyStruct {
-    ///     type Error = Error;
-    ///     fn try_from(mut value: Item) -> Result<Self, Self::Error> {
-    ///         Ok(Self {
-    ///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into()?,
-    ///         })
-    ///     }
-    /// }
+    /// ```
     pub fn put_item(
         &self,
         table_name: impl Into<String>,
         item: impl Into<Item>,
-    ) -> FunctionResult<()> {
+    ) -> Result<(), DynamoDBError> {
         let item: Item = item.into();
 
         let _output = self.client.put_item(&host::aws_ddb::PutItemRequest {
             table_name: table_name.into(),
-            item: host::aws_ddb::Item::Json(serde_json::to_string(&item).map_err(|e| {
-                crate::Error::MessageError(format!("failed to serialize item as json: {e}"))
-            })?),
+            item: host::aws_ddb::Item::Json(serde_json::to_string(&item)?),
             condition: None,
             return_values: host::aws_ddb::ReturnValues::None,
             return_consumed_capacity: host::aws_ddb::ReturnConsumedCapacity::None,
@@ -339,16 +342,6 @@ impl From<KeyValue> for host::aws_ddb::KeyValue {
     }
 }
 
-impl From<host::aws_ddb::DdbError> for crate::Error {
-    fn from(e: host::aws_ddb::DdbError) -> Self {
-        match e {
-            host::aws_ddb::DdbError::Unauthorized(u) => Self::MessageError(u),
-            host::aws_ddb::DdbError::Malformed(s) => Self::MessageError(s),
-            host::aws_ddb::DdbError::Other(o) => Self::MessageError(o),
-        }
-    }
-}
-
 /// dynamodb-formatted json looks something like this:
 /// ```json
 /// {
@@ -381,7 +374,6 @@ impl From<host::aws_ddb::DdbError> for crate::Error {
 /// Custom bound types:
 /// ```rust
 /// use momento_functions_host::aws::ddb::{AttributeValue, Item};
-/// use momento_functions_host::Error;
 /// struct MyStruct {
 ///     some_attribute: String,
 /// }
@@ -397,7 +389,7 @@ impl From<host::aws_ddb::DdbError> for crate::Error {
 ///
 /// // convert from dynamodb format
 /// impl TryFrom<Item> for MyStruct {
-///     type Error = Error;
+///     type Error = String;
 ///     fn try_from(mut value: Item) -> Result<Self, Self::Error> {
 ///         Ok(Self {
 ///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into()?,
@@ -449,6 +441,76 @@ pub enum AttributeValue {
     StringSet(Vec<String>),
 }
 
+impl AttributeValue {
+    fn type_name(&self) -> String {
+        match self {
+            AttributeValue::Binary(_) => "Binary".to_string(),
+            AttributeValue::Boolean(_) => "Boolean".to_string(),
+            AttributeValue::BinarySet(_) => "BinarySet".to_string(),
+            AttributeValue::List(_) => "List".to_string(),
+            AttributeValue::Map(_) => "Map".to_string(),
+            AttributeValue::Number(_) => "Number".to_string(),
+            AttributeValue::NumberSet(_) => "NumberSet".to_string(),
+            AttributeValue::Null(_) => "Null".to_string(),
+            AttributeValue::String(_) => "String".to_string(),
+            AttributeValue::StringSet(_) => "StringSet".to_string(),
+        }
+    }
+}
+
+/// An error occurred while converting from an AttributeValue.
+#[derive(Debug, thiserror::Error)]
+pub enum ConversionError {
+    /// The AttributeValue was not of the expected type.
+    #[error("Attribute was not of expected type. Expected: {expected}, Actual: {actual}")]
+    WrongType {
+        /// The expected AttributeValue type.
+        expected: String,
+        /// The actual AttributeValue type.
+        actual: String,
+    },
+}
+
+/// An error occurred while converting from an AttributeValue to a numeric type.
+#[derive(Debug, thiserror::Error)]
+pub enum NumericConversionError {
+    /// The AttributeValue was not of the expected type.
+    #[error("Attribute was not of expected type. Expected: {expected}, Actual: {actual}")]
+    WrongType {
+        /// The expected AttributeValue type.
+        expected: String,
+        /// The actual AttributeValue type.
+        actual: String,
+    },
+    /// Failed to parse an integer value.
+    #[error("ParseInt error: {cause}")]
+    ParseInt {
+        /// The underlying parse error.
+        #[from]
+        cause: std::num::ParseIntError,
+    },
+}
+
+/// An error occurred while converting from an AttributeValue to Bytes.
+#[derive(Debug, thiserror::Error)]
+pub enum BinaryConversionError {
+    /// The AttributeValue was not of the expected type.
+    #[error("Attribute was not of expected type. Expected: {expected}, Actual: {actual}")]
+    WrongType {
+        /// The expected AttributeValue type.
+        expected: String,
+        /// The actual AttributeValue type.
+        actual: String,
+    },
+    /// The AttributeValue did not contain valid base64.
+    #[error("Decode error: {cause}")]
+    Decode {
+        /// The underlying decode error.
+        #[from]
+        cause: base64::DecodeError,
+    },
+}
+
 impl From<String> for AttributeValue {
     fn from(value: String) -> Self {
         AttributeValue::String(value)
@@ -487,43 +549,54 @@ impl From<Vec<u8>> for AttributeValue {
         AttributeValue::Binary(base64::engine::general_purpose::STANDARD_NO_PAD.encode(value))
     }
 }
+
 impl TryFrom<AttributeValue> for String {
-    type Error = crate::Error;
-    fn try_from(value: AttributeValue) -> FunctionResult<Self> {
+    type Error = ConversionError;
+    fn try_from(value: AttributeValue) -> Result<Self, Self::Error> {
         match value {
             AttributeValue::String(s) => Ok(s),
-            _ => Err(Self::Error::MessageError("not a string".to_string())),
+            _ => Err(ConversionError::WrongType {
+                actual: value.type_name(),
+                expected: "String".to_string(),
+            }),
         }
     }
 }
 impl TryFrom<AttributeValue> for bool {
-    type Error = crate::Error;
-    fn try_from(value: AttributeValue) -> FunctionResult<Self> {
+    type Error = ConversionError;
+    fn try_from(value: AttributeValue) -> Result<Self, Self::Error> {
         match value {
             AttributeValue::Boolean(b) => Ok(b),
-            _ => Err(Self::Error::MessageError("not a bool".to_string())),
+            _ => Err(ConversionError::WrongType {
+                actual: value.type_name(),
+                expected: "Boolean".to_string(),
+            }),
         }
     }
 }
 impl TryFrom<AttributeValue> for i64 {
-    type Error = crate::Error;
-    fn try_from(value: AttributeValue) -> FunctionResult<Self> {
+    type Error = NumericConversionError;
+    fn try_from(value: AttributeValue) -> Result<Self, Self::Error> {
         match value {
-            AttributeValue::Number(n) => n
-                .parse::<i64>()
-                .map_err(|e| Self::Error::MessageError(format!("invalid number: {e}"))),
-            _ => Err(Self::Error::MessageError("not a number".to_string())),
+            AttributeValue::Number(n) => n.parse::<i64>().map_err(NumericConversionError::from),
+            _ => Err(NumericConversionError::WrongType {
+                actual: value.type_name(),
+                expected: "Number".to_string(),
+            }),
         }
     }
 }
 impl TryFrom<AttributeValue> for Vec<u8> {
-    type Error = crate::Error;
-    fn try_from(value: AttributeValue) -> FunctionResult<Self> {
+    type Error = BinaryConversionError;
+    fn try_from(value: AttributeValue) -> Result<Self, Self::Error> {
         match value {
             AttributeValue::Binary(b) => base64::engine::general_purpose::STANDARD_NO_PAD
                 .decode(b)
-                .map_err(|e| Self::Error::MessageError(format!("invalid base64: {e}"))),
-            _ => Err(Self::Error::MessageError("not a binary".to_string())),
+                .map_err(BinaryConversionError::from),
+            _ => Err(BinaryConversionError::WrongType {
+                actual: value.type_name(),
+                expected: "Binary".to_string(),
+            }),
         }
     }
 }

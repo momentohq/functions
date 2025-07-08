@@ -1,9 +1,10 @@
 //! Host interface utilities for HTTP
 
 use momento_functions_wit::host::momento::host::http;
+use thiserror::Error;
 
 use crate::{
-    FunctionResult, aws,
+    aws,
     encoding::{Encode, Extract},
 };
 
@@ -23,11 +24,10 @@ impl Response {
     /// This consumes the payload; if you call it again, it will return an Error.
     ///
     /// ```rust
-    /// # use momento_functions_host::FunctionResult;
     /// # use momento_functions_host::http;
     /// use momento_functions_host::encoding::Json;
     ///
-    /// # fn f() -> FunctionResult<()> {
+    /// # fn f() -> Result<(), serde_json::error::Error> {
     /// #[derive(serde::Serialize)]
     /// struct Request {
     ///     message: String
@@ -47,23 +47,25 @@ impl Response {
     /// .extract()?;
     /// # Ok(()) }
     /// ```
-    pub fn extract<E: Extract>(&mut self) -> FunctionResult<E> {
-        E::extract(std::mem::take(&mut self.body)).map_err(|e| {
-            crate::Error::MessageError(format!(
-                "status: {status} failed to deserialize json: {e}",
-                status = self.status
-            ))
-        })
+    pub fn extract<E: Extract>(&mut self) -> Result<E, E::Error> {
+        E::extract(std::mem::take(&mut self.body))
     }
+}
+
+/// An error occurred while calling an HTTP Get method.
+#[derive(Debug, Error)]
+pub enum HttpGetError {
+    /// An error occurred while calling the host http function.
+    #[error(transparent)]
+    HttpError(#[from] http::Error),
 }
 
 /// HTTP GET
 ///
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::http;
 ///
-/// # fn f() -> FunctionResult<()> {
+/// # fn f() -> Result<(), http::HttpGetError> {
 /// http::get("https://gomomento.com", [])?;
 /// http::get(
 ///     "https://gomomento.com",
@@ -76,7 +78,7 @@ impl Response {
 pub fn get(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
-) -> FunctionResult<Response> {
+) -> Result<Response, HttpGetError> {
     let http::Response {
         status,
         headers,
@@ -86,7 +88,7 @@ pub fn get(
         headers: headers.into_iter().collect(),
         body: Default::default(),
         authorization: http::Authorization::None,
-    });
+    })?;
     Ok(Response {
         status,
         headers,
@@ -94,22 +96,36 @@ pub fn get(
     })
 }
 
+/// An error occurred while calling an HTTP Put method.
+#[derive(Debug, Error)]
+pub enum HttpPutError<E: Encode> {
+    /// An error occurred while calling the host http function.
+    #[error(transparent)]
+    HttpError(#[from] http::Error),
+    /// An error occurred while encoding the provided body.
+    #[error("Failed to encode body.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E::Error,
+    },
+}
+
 /// HTTP PUT
 ///
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::http;
-///
-/// # fn f() -> FunctionResult<()> {
+/// # use momento_functions_host::http::HttpPutError;
+/// # fn f() -> Result<(), HttpPutError<&'static str>> {
 /// http::put("https://gomomento.com", [], b"hello".as_ref())?;
+/// # Ok(())}
 ///
 /// use momento_functions_host::encoding::Json;
-///
 /// #[derive(serde::Serialize)]
 /// struct MyStruct {
 ///     message: String
 /// }
 ///
+/// # fn g() -> Result<(), HttpPutError<Json<MyStruct>>> {
 /// http::put(
 ///     "https://gomomento.com",
 ///     [
@@ -117,13 +133,13 @@ pub fn get(
 ///     ],
 ///     Json(MyStruct { message: "hello".to_string() })
 /// )?;
-/// # Ok(()) }
+/// # Ok(())}
 /// ```
-pub fn put(
+pub fn put<E: Encode>(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
-    body: impl Encode,
-) -> FunctionResult<Response> {
+    body: E,
+) -> Result<Response, HttpPutError<E>> {
     let http::Response {
         status,
         headers,
@@ -131,9 +147,12 @@ pub fn put(
     } = http::put(&http::Request {
         url: url.into(),
         headers: headers.into_iter().collect(),
-        body: body.try_serialize()?.into(),
+        body: body
+            .try_serialize()
+            .map_err(|e| HttpPutError::EncodeFailed { cause: e })?
+            .into(),
         authorization: http::Authorization::None,
-    });
+    })?;
     Ok(Response {
         status,
         headers,
@@ -141,14 +160,29 @@ pub fn put(
     })
 }
 
+/// An error occurred while calling an HTTP Post method.
+#[derive(Debug, Error)]
+pub enum HttpPostError<E: Encode> {
+    /// An error occurred while calling the host http function.
+    #[error(transparent)]
+    HttpError(#[from] http::Error),
+    /// An error occurred while encoding the provided body.
+    #[error("Failed to encode body.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E::Error,
+    },
+}
+
 /// HTTP POST
 ///
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::http;
+/// # use momento_functions_host::http::HttpPostError;
 ///
-/// # fn f() -> FunctionResult<()> {
+/// # fn f() -> Result<(), HttpPostError<&'static str>> {
 /// http::post("https://gomomento.com", [], b"hello".as_ref())?;
+/// # Ok(())}
 ///
 /// use momento_functions_host::encoding::Json;
 ///
@@ -160,6 +194,7 @@ pub fn put(
 /// struct Reply {
 ///     message: String
 /// }
+/// # fn g() -> Result<(), HttpPostError<Json<Request>>> {
 ///
 /// let Json(reply): Json<Reply> = http::post(
 ///     "https://gomomento.com",
@@ -171,11 +206,11 @@ pub fn put(
 /// .extract()?;
 /// # Ok(()) }
 /// ```
-pub fn post(
+pub fn post<E: Encode>(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
-    body: impl Encode,
-) -> FunctionResult<Response> {
+    body: E,
+) -> Result<Response, HttpPostError<E>> {
     let http::Response {
         status,
         headers,
@@ -183,9 +218,12 @@ pub fn post(
     } = http::post(&http::Request {
         url: url.into(),
         headers: headers.into_iter().collect(),
-        body: body.try_serialize()?.into(),
+        body: body
+            .try_serialize()
+            .map_err(|e| HttpPostError::EncodeFailed { cause: e })?
+            .into(),
         authorization: http::Authorization::None,
-    });
+    })?;
     Ok(Response {
         status,
         headers,
@@ -193,13 +231,21 @@ pub fn post(
     })
 }
 
+/// An error occurred while calling an HTTP Delete method.
+#[derive(Debug, Error)]
+pub enum HttpDeleteError {
+    /// An error occurred while calling the host http function.
+    #[error(transparent)]
+    HttpError(#[from] http::Error),
+}
+
 /// HTTP DELETE
 ///
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::http;
+/// # use momento_functions_host::http::HttpDeleteError;
 ///
-/// # fn f() -> FunctionResult<()> {
+/// fn f() -> Result<(), HttpDeleteError> {
 /// http::delete("https://gomomento.com", [])?;
 /// http::delete(
 ///     "https://gomomento.com",
@@ -212,7 +258,7 @@ pub fn post(
 pub fn delete(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
-) -> FunctionResult<Response> {
+) -> Result<Response, HttpDeleteError> {
     let http::Response {
         status,
         headers,
@@ -222,7 +268,7 @@ pub fn delete(
         headers: headers.into_iter().collect(),
         body: Default::default(),
         authorization: http::Authorization::None,
-    });
+    })?;
     Ok(Response {
         status,
         headers,
@@ -253,11 +299,10 @@ impl aws::auth::Credentials {
 /// HTTP GET with AWS SigV4 signing provided by the host
 ///
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::http;
 /// use momento_functions_host::build_environment_aws_credentials;
 ///
-/// # fn f() -> FunctionResult<()> {
+/// # fn f() -> Result<(), http::HttpGetError> {
 /// http::get_aws_sigv4(
 ///     "https://bedrock-runtime.us-west-2.amazonaws.com/model/us.amazon.nova-pro-v1:0/invoke",
 ///     [],
@@ -282,7 +327,7 @@ pub fn get_aws_sigv4(
     aws_credentials: aws::auth::Credentials,
     region: impl Into<String>,
     service: impl Into<String>,
-) -> FunctionResult<Response> {
+) -> Result<Response, HttpGetError> {
     let http::Response {
         status,
         headers,
@@ -292,7 +337,7 @@ pub fn get_aws_sigv4(
         headers: headers.into_iter().collect(),
         body: Default::default(),
         authorization: aws_credentials.into_http(region, service),
-    });
+    })?;
     Ok(Response {
         status,
         headers,
@@ -303,15 +348,15 @@ pub fn get_aws_sigv4(
 /// HTTP PUT with AWS SigV4 signing provided by the host
 ///
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::http;
 /// use momento_functions_host::encoding::Json;
 /// use momento_functions_host::build_environment_aws_credentials;
-/// # fn f() -> FunctionResult<()> {
+///
 /// #[derive(serde::Serialize)]
 /// struct MyStruct {
 ///     message: String
 /// }
+/// # fn f() -> Result<(), http::HttpPutError<Json<MyStruct>>> {
 ///
 /// http::put_aws_sigv4(
 ///     "https://gomomento.com",
@@ -325,14 +370,14 @@ pub fn get_aws_sigv4(
 /// )?;
 /// # Ok(()) }
 /// ```
-pub fn put_aws_sigv4(
+pub fn put_aws_sigv4<E: Encode>(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
     aws_credentials: aws::auth::Credentials,
     region: impl Into<String>,
     service: impl Into<String>,
-    body: impl Encode,
-) -> FunctionResult<Response> {
+    body: E,
+) -> Result<Response, HttpPutError<E>> {
     let http::Response {
         status,
         headers,
@@ -340,9 +385,12 @@ pub fn put_aws_sigv4(
     } = http::put(&http::Request {
         url: url.into(),
         headers: headers.into_iter().collect(),
-        body: body.try_serialize()?.into(),
+        body: body
+            .try_serialize()
+            .map_err(|e| HttpPutError::EncodeFailed { cause: e })?
+            .into(),
         authorization: aws_credentials.into_http(region, service),
-    });
+    })?;
     Ok(Response {
         status,
         headers,
@@ -353,15 +401,15 @@ pub fn put_aws_sigv4(
 /// HTTP POST with AWS SigV4 signing provided by the host
 ///
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::http;
 /// use momento_functions_host::encoding::Json;
 /// use momento_functions_host::build_environment_aws_credentials;
-/// # fn f() -> FunctionResult<()> {
+///
 /// #[derive(serde::Serialize)]
 /// struct MyStruct {
 ///     message: String
 /// }
+/// # fn f() -> Result<(), http::HttpPostError<Json<MyStruct>>> {
 ///
 /// http::post_aws_sigv4(
 ///     "https://gomomento.com",
@@ -375,14 +423,14 @@ pub fn put_aws_sigv4(
 /// )?;
 /// # Ok(()) }
 /// ```
-pub fn post_aws_sigv4(
+pub fn post_aws_sigv4<E: Encode>(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
     aws_credentials: aws::auth::Credentials,
     region: impl Into<String>,
     service: impl Into<String>,
-    body: impl Encode,
-) -> FunctionResult<Response> {
+    body: E,
+) -> Result<Response, HttpPostError<E>> {
     let http::Response {
         status,
         headers,
@@ -390,9 +438,12 @@ pub fn post_aws_sigv4(
     } = http::post(&http::Request {
         url: url.into(),
         headers: headers.into_iter().collect(),
-        body: body.try_serialize()?.into(),
+        body: body
+            .try_serialize()
+            .map_err(|e| HttpPostError::EncodeFailed { cause: e })?
+            .into(),
         authorization: aws_credentials.into_http(region, service),
-    });
+    })?;
     Ok(Response {
         status,
         headers,
@@ -403,11 +454,10 @@ pub fn post_aws_sigv4(
 /// HTTP DELETE with AWS SigV4 signing provided by the host
 ///
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::http;
 /// use momento_functions_host::build_environment_aws_credentials;
 ///
-/// # fn f() -> FunctionResult<()> {
+/// # fn f() -> Result<(), http::HttpDeleteError> {
 /// http::delete_aws_sigv4(
 ///     "https://bedrock-runtime.us-west-2.amazonaws.com/model/us.amazon.nova-pro-v1:0/invoke",
 ///     [],
@@ -432,7 +482,7 @@ pub fn delete_aws_sigv4(
     aws_credentials: aws::auth::Credentials,
     region: impl Into<String>,
     service: impl Into<String>,
-) -> FunctionResult<Response> {
+) -> Result<Response, HttpDeleteError> {
     let http::Response {
         status,
         headers,
@@ -452,7 +502,7 @@ pub fn delete_aws_sigv4(
                 service: service.into(),
             }),
         },
-    });
+    })?;
     Ok(Response {
         status,
         headers,

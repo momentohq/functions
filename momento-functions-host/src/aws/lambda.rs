@@ -1,10 +1,7 @@
 //! Host interfaces for working with AWS Lambda
+use crate::encoding::{Encode, Extract};
 use momento_functions_wit::host::momento::host;
-
-use crate::{
-    FunctionResult,
-    encoding::{Encode, Extract},
-};
+use momento_functions_wit::host::momento::host::aws_lambda::LambdaError;
 
 use super::auth;
 
@@ -18,15 +15,33 @@ pub struct LambdaClient {
     client: host::aws_lambda::Client,
 }
 
+/// An error occurred while invoking a Lambda function.
+#[derive(Debug, thiserror::Error)]
+pub enum InvokeError<E>
+where
+    E: Encode,
+{
+    /// An error occurred while encoding the provided payload.
+    #[error("Failed to encode payload.")]
+    EncodeFailed {
+        /// The underlying encode error.
+        cause: E::Error,
+    },
+    /// An error occurred when calling the host invoke function.
+    #[error(transparent)]
+    LambdaError(#[from] LambdaError),
+}
+
 impl LambdaClient {
     /// Create a new Lambda client.
     ///
     /// ```rust
     /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// # use momento_functions_host::aws::lambda::LambdaClient;
-    /// # use momento_functions_host::build_environment_aws_credentials;
-    /// # use momento_functions_host::FunctionResult;
-    /// # fn f() -> FunctionResult<()> {
+    /// # use momento_functions_host::build_environment_aws_credentials;    /// #
+    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
+    ///
+    /// fn f() -> Result<(), AuthError> {
     /// let client = LambdaClient::new(
     ///     &AwsCredentialsProvider::new(
     ///         "us-east-1",
@@ -49,11 +64,10 @@ impl LambdaClient {
     /// Examples:
     /// ________
     /// ```rust
-    /// use momento_functions_host::aws::lambda::LambdaClient;
-    /// use momento_functions_host::{FunctionResult, Error};
+    /// use momento_functions_host::aws::lambda::{InvokeError, LambdaClient};
     /// use momento_functions_host::encoding::Json;;
     ///
-    /// # fn f(client: &LambdaClient) -> FunctionResult<()> {
+    /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<&str>> {
     /// // With a payload
     /// client.invoke(
     ///     "my_lambda_function",
@@ -82,8 +96,7 @@ impl LambdaClient {
     /// ________
     /// With json-encoded payloads
     /// ```rust
-    /// use momento_functions_host::aws::lambda::LambdaClient;
-    /// use momento_functions_host::{FunctionResult, Error};
+    /// use momento_functions_host::aws::lambda::{InvokeError, LambdaClient};
     /// use momento_functions_host::encoding::Json;
     ///
     /// #[derive(serde::Serialize)]
@@ -95,7 +108,7 @@ impl LambdaClient {
     ///     message: String
     /// }
     ///
-    /// # fn f(client: &LambdaClient) -> FunctionResult<()> {
+    /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<Json<MyStruct>>> {
     /// // Just a request payload, encoded as JSON
     /// client.invoke(
     ///     "my_lambda_function",
@@ -112,16 +125,21 @@ impl LambdaClient {
     /// let message = reply.message;
     /// # Ok(())}
     /// ```
-    pub fn invoke(
+    pub fn invoke<E: Encode>(
         &self,
         name: impl Into<LambdaName>,
-        payload: impl Encode,
-    ) -> FunctionResult<InvokeResponse> {
+        payload: E,
+    ) -> Result<InvokeResponse, InvokeError<E>> {
         let (function_name, qualifier) = name.into().into_inner();
         let request = host::aws_lambda::InvokeRequest {
             function_name,
             qualifier,
-            payload: Some(payload.try_serialize()?.into()),
+            payload: Some(
+                payload
+                    .try_serialize()
+                    .map_err(|e| InvokeError::EncodeFailed { cause: e })?
+                    .into(),
+            ),
             invocation_type: host::aws_lambda::InvocationType::RequestResponse(
                 host::aws_lambda::InvokeSynchronousParameters {
                     log_type: None,
@@ -145,6 +163,19 @@ pub struct InvokeResponse {
     /// The payload of the response
     payload: Option<Vec<u8>>,
 }
+
+/// An error occurred when extracting the Lambda response.
+#[derive(Debug, thiserror::Error)]
+pub enum ResponseExtractError<E: Extract> {
+    /// An error occurred when calling the provided extract method.
+    Extract {
+        /// The underlying error.
+        cause: E::Error,
+    },
+    /// The response was missing a payload.
+    MissingPayload,
+}
+
 impl InvokeResponse {
     /// Get the status code of the response
     pub fn status_code(&self) -> i32 {
@@ -161,11 +192,11 @@ impl InvokeResponse {
     /// Take the payload of the response and decode it.
     ///
     /// This consumes the payload; if you call it again, it will return an Error.
-    pub fn extract<E: Extract>(&mut self) -> FunctionResult<E> {
+    pub fn extract<E: Extract>(&mut self) -> Result<E, ResponseExtractError<E>> {
         let payload = self
             .take_payload()
-            .ok_or_else(|| crate::Error::MessageError("no payload in response".to_string()))?;
-        E::extract(payload)
+            .ok_or_else(|| ResponseExtractError::MissingPayload)?;
+        E::extract(payload).map_err(|e| ResponseExtractError::Extract { cause: e })
     }
 }
 
@@ -225,16 +256,6 @@ impl From<(&str, &str)> for LambdaName {
         LambdaName::Qualified {
             name: name.to_string(),
             qualifier: qualifier.to_string(),
-        }
-    }
-}
-
-impl From<host::aws_lambda::LambdaError> for crate::Error {
-    fn from(e: host::aws_lambda::LambdaError) -> Self {
-        match e {
-            host::aws_lambda::LambdaError::Unauthorized(u) => Self::MessageError(u),
-            host::aws_lambda::LambdaError::Malformed(s) => Self::MessageError(s),
-            host::aws_lambda::LambdaError::Other(o) => Self::MessageError(o),
         }
     }
 }

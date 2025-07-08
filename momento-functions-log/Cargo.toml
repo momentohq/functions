@@ -13,3 +13,4 @@ categories.workspace = true
 [dependencies]
 log                     = { workspace = true }
 momento-functions-host  = { workspace = true }
+thiserror               = { workspace = true }

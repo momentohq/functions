@@ -2,31 +2,54 @@
 
 use std::time::Duration;
 
+use crate::encoding::{Encode, Extract};
 use momento_functions_wit::host::momento::functions::cache_scalar;
 
-use crate::{
-    FunctionResult,
-    encoding::{Encode, Extract},
-};
+/// An error occurred when setting a value in the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheSetError<E: Encode> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E::Error,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_scalar::Error),
+}
 
+/// An error occurred when getting a value from the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheGetError<E: Extract> {
+    /// The value could not be extracted with the provided implementation.
+    #[error("Failed to extract value.")]
+    ExtractFailed {
+        /// The underlying error.
+        cause: E::Error,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_scalar::Error),
+}
 /// Get a value from the cache.
 ///
 /// Examples:
 /// ________
 /// Bytes:
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::CacheGetError;
 ///
-/// # fn f() -> FunctionResult<()> {
+/// # fn f() -> Result<(), CacheGetError<Vec<u8>>> {
 /// let value: Option<Vec<u8>> = cache::get("my_key")?;
 /// # Ok(()) }
 /// ```
 /// ________
 /// Json:
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::CacheGetError;
 /// use momento_functions_host::encoding::Json;
 ///
 /// #[derive(serde::Deserialize)]
@@ -34,13 +57,15 @@ use crate::{
 ///   message: String
 /// }
 ///
-/// # fn f() -> FunctionResult<()> {
+/// # fn f() -> Result<(), CacheGetError<Json<MyStruct>>> {
 /// let value: Option<Json<MyStruct>> = cache::get("my_key")?;
 /// # Ok(()) }
 /// ```
-pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> FunctionResult<Option<T>> {
-    match cache_scalar::get(key.as_ref()).map_err(crate::Error::from)? {
-        Some(v) => T::extract(v).map(Some),
+pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError<T>> {
+    match cache_scalar::get(key.as_ref())? {
+        Some(v) => T::extract(v)
+            .map(Some)
+            .map_err(|e| CacheGetError::ExtractFailed { cause: e }),
         None => Ok(None),
     }
 }
@@ -51,11 +76,11 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> FunctionResult<Option<T>> {
 /// ________
 /// Bytes:
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::CacheSetError;
 /// # use std::time::Duration;
 ///
-/// # fn f() -> FunctionResult<()> {
+/// # fn f() -> Result<(), CacheSetError<&'static str>> {
 /// cache::set(
 ///     "my_key",
 ///     b"hello".to_vec(),
@@ -66,8 +91,8 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> FunctionResult<Option<T>> {
 /// ________
 /// Json:
 /// ```rust
-/// # use momento_functions_host::FunctionResult;
 /// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::CacheSetError;
 /// # use std::time::Duration;
 /// use momento_functions_host::encoding::Json;
 ///
@@ -76,7 +101,7 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> FunctionResult<Option<T>> {
 ///    hello: String
 /// }
 ///
-/// # fn f() -> FunctionResult<()> {
+/// # fn f() -> Result<(), CacheSetError<Json<MyStruct>>> {
 /// cache::set(
 ///     "my_key",
 ///     Json(MyStruct { hello: "hello".to_string() }),
@@ -84,10 +109,17 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> FunctionResult<Option<T>> {
 /// )?;
 /// # Ok(()) }
 /// ```
-pub fn set(key: impl AsRef<[u8]>, value: impl Encode, ttl: Duration) -> FunctionResult<()> {
+pub fn set<E: Encode>(
+    key: impl AsRef<[u8]>,
+    value: E,
+    ttl: Duration,
+) -> Result<(), CacheSetError<E>> {
     cache_scalar::set(
         key.as_ref(),
-        &value.try_serialize()?.into(),
+        &value
+            .try_serialize()
+            .map_err(|e| CacheSetError::EncodeFailed { cause: e })?
+            .into(),
         saturate_ttl(ttl),
     )
     .map_err(Into::into)

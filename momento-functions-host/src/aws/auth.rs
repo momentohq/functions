@@ -1,7 +1,7 @@
 //! Host interfaces for working with AWS credentials
 
-use crate::FunctionResult;
 use momento_functions_wit::host::momento::host::aws_auth;
+use momento_functions_wit::host::momento::host::aws_auth::AuthError;
 
 /// Reads AWS credentials from the environment variables
 /// `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` at build time.
@@ -83,7 +83,7 @@ impl AwsCredentialsProvider {
     pub fn new(
         region: impl AsRef<str>,
         credentials: Credentials,
-    ) -> FunctionResult<AwsCredentialsProvider> {
+    ) -> Result<AwsCredentialsProvider, AuthError> {
         let wit_authorization = match credentials {
             Credentials::Hardcoded {
                 access_key_id,
@@ -94,12 +94,7 @@ impl AwsCredentialsProvider {
             }),
         };
 
-        let resource =
-            aws_auth::provider(&wit_authorization, region.as_ref()).map_err(|e| match e {
-                aws_auth::AuthError::Unauthorized(e) => {
-                    crate::Error::MessageError(format!("unauthorized: {e}"))
-                }
-            })?;
+        let resource = aws_auth::provider(&wit_authorization, region.as_ref())?;
 
         momento_functions_wit::host::momento::host::aws_ddb::Client::new(&resource);
 

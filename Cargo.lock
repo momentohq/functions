@@ -501,6 +501,7 @@ version = "0.2.1"
 dependencies = [
  "log",
  "momento-functions-host",
+ "thiserror",
 ]
 
 [[package]]

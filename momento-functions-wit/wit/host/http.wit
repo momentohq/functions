@@ -7,10 +7,40 @@ interface http {
         authorization: authorization,
     }
 
+    /// A response returned from the server.
     record response {
         status: u16,
         headers: list<tuple<string, string>>,
         body: list<u8>,
+    }
+
+    record invalid-url {
+        url: string,
+        error: string,
+    }
+
+    record invalid-header-name {
+        header: string,
+        error: string,
+    }
+
+    record invalid-header-value {
+        value: string,
+        error: string,
+    }
+
+    /// An error while trying to make an http call.
+    variant error {
+        /// An internal error occurred within Momento.
+        internal-error,
+        /// An error while making a request. Under construction, may become structured errors in the future.
+        request-error(string),
+        /// The provided URL was not valid.
+        invalid-url(invalid-url),
+        /// A provided header name was not valid.
+        invalid-header-name(invalid-header-name),
+        /// A provided header value was not valid.
+        invalid-header-value(invalid-header-value),
     }
 
     variant authorization {
@@ -28,11 +58,11 @@ interface http {
     }
 
     /// Send a GET request
-    get: func(request: request) -> response;
+    get: func(request: request) -> result<response, error>;
     /// Send a PUT request
-    put: func(request: request) -> response;
+    put: func(request: request) -> result<response, error>;
     /// Send a POST request
-    post: func(request: request) -> response;
+    post: func(request: request) -> result<response, error>;
     /// Send a DELETE request
-    delete: func(request: request) -> response;
+    delete: func(request: request) -> result<response, error>;
 }

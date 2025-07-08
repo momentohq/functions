@@ -3,7 +3,7 @@
 use std::convert::Infallible;
 
 /// Required to be implemented by encode error types.
-pub trait EncodeError {}
+pub trait EncodeError: std::error::Error + 'static {}
 
 impl EncodeError for Infallible {}
 
@@ -64,7 +64,7 @@ impl Encode for serde_json::Value {
 }
 
 /// Required to be implemented by extract error types.
-pub trait ExtractError {}
+pub trait ExtractError: std::error::Error + 'static {}
 
 impl ExtractError for Infallible {}
 

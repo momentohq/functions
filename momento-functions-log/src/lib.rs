@@ -11,6 +11,7 @@
 //! * [`momento-functions`](https://crates.io/crates/momento-functions): Code generators for Functions.
 //! * [`momento-functions-host`](https://crates.io/crates/momento-functions-host): Interfaces and tools for calling host interfaces.
 
+use log::SetLoggerError;
 use thiserror::Error;
 
 mod topic_logger;
@@ -29,8 +30,8 @@ pub enum LogMode {
 
 #[derive(Debug, Error)]
 pub enum LogConfigError {
-    #[error("Failed to initialize topics logger.")]
-    TopicsInit
+    #[error("Failed to initialize topics logger: {cause}")]
+    TopicsInit { cause: SetLoggerError },
 }
 
 /// Initializes the logging system with the specified log level and mode.
@@ -38,8 +39,7 @@ pub enum LogConfigError {
 /// You **must** only call this function once.
 pub fn configure_logging(level: log::LevelFilter, mode: LogMode) -> Result<(), LogConfigError> {
     match mode {
-        LogMode::Topic { topic } => topic_logger::TopicLog::init(level, topic).map_err(|e| {
-            LogConfigError::TopicsInit
-        }),
+        LogMode::Topic { topic } => topic_logger::TopicLog::init(level, topic)
+            .map_err(|e| LogConfigError::TopicsInit { cause: e }),
     }
 }

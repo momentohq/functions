@@ -2,7 +2,7 @@
 
 use momento_functions_wit::host::momento::host;
 
-use crate::encoding::{Encode, Extract};
+use crate::encoding::{Encode, EncodeError, Extract, ExtractError};
 use crate::redis::RedisSetError::UnexpectedValueResponse;
 
 /// Redis client for Function host interfaces.
@@ -17,7 +17,7 @@ pub struct RedisClient {
 
 /// An error occurred while getting a redis value.
 #[derive(Debug, thiserror::Error)]
-pub enum RedisGetError<E: Extract> {
+pub enum RedisGetError<E: ExtractError> {
     /// An error occurred while calling the host redis function.
     #[error(transparent)]
     RedisError(#[from] host::redis::RedisError),
@@ -25,7 +25,7 @@ pub enum RedisGetError<E: Extract> {
     #[error("Failed to extract value.")]
     ExtractFailed {
         /// The underlying extraction error.
-        cause: E::Error,
+        cause: E,
     },
     /// Redis returned a status message.
     #[error("Status message returned from redis: {status}")]
@@ -46,7 +46,7 @@ pub enum RedisGetError<E: Extract> {
 
 /// An error occurred while setting a redis value.
 #[derive(Debug, thiserror::Error)]
-pub enum RedisSetError<E: Encode> {
+pub enum RedisSetError<E: EncodeError> {
     /// An error occurred while calling the host redis function.
     #[error(transparent)]
     RedisError(#[from] host::redis::RedisError),
@@ -54,7 +54,7 @@ pub enum RedisSetError<E: Encode> {
     #[error("Failed to encode value.")]
     EncodeError {
         /// The underlying encoding error.
-        cause: E::Error,
+        cause: E,
     },
     /// Redis returned a status message.
     #[error("Status message returned from redis: {status}")]
@@ -114,7 +114,10 @@ impl RedisClient {
     }
 
     /// Get a value from Redis by key.
-    pub fn get<T: Extract>(&self, key: impl Into<Vec<u8>>) -> Result<Option<T>, RedisGetError<T>> {
+    pub fn get<T: Extract>(
+        &self,
+        key: impl Into<Vec<u8>>,
+    ) -> Result<Option<T>, RedisGetError<T::Error>> {
         let response = self.client.pipe(&[host::redis::Command {
             command: "get".to_string(),
             arguments: vec![key.into()],
@@ -153,7 +156,7 @@ impl RedisClient {
         &self,
         key: impl Into<Vec<u8>>,
         value: T,
-    ) -> Result<(), RedisSetError<T>> {
+    ) -> Result<(), RedisSetError<T::Error>> {
         let serialized_value = value
             .try_serialize()
             .map_err(|e| RedisSetError::EncodeError { cause: e })?
@@ -267,12 +270,12 @@ impl Iterator for ResponseStream {
 
 /// An error occurred when extracting a value.
 #[derive(Debug, thiserror::Error)]
-pub enum ValueError<E: Extract> {
+pub enum ValueError<E: ExtractError> {
     /// The provided extraction implementation produced an error.
     #[error("Failed to extract value.")]
     ExtractFailed {
         /// The underlying extraction error.
-        cause: E::Error,
+        cause: E,
     },
     /// The redis value could not be extracted from.
     #[error("Value cannot be extracted from {value:?}")]
@@ -304,7 +307,7 @@ impl RedisValue {
     /// try to extract the value as a specific type
     ///
     /// Only works for Data responses.
-    pub fn extract<T: Extract>(self) -> Result<T, ValueError<T>> {
+    pub fn extract<T: Extract>(self) -> Result<T, ValueError<T::Error>> {
         match self {
             RedisValue::Data(data) => {
                 T::extract(data).map_err(|e| ValueError::ExtractFailed { cause: e })

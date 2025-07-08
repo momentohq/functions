@@ -1,10 +1,10 @@
 use momento_functions_wit::host::momento::host::spawn;
 
-use crate::encoding::Encode;
+use crate::encoding::{Encode, EncodeError};
 
 /// An error occurred while spawning a function.
 #[derive(Debug, thiserror::Error)]
-pub enum FunctionSpawnError<E: Encode> {
+pub enum FunctionSpawnError<E: EncodeError> {
     /// An error occurred while calling the host interface function.
     #[error(transparent)]
     FunctionSpawnError(#[from] spawn::SpawnError),
@@ -12,7 +12,7 @@ pub enum FunctionSpawnError<E: Encode> {
     #[error("Failed to encode payload")]
     EncodeFailed {
         /// The underlying encoding error.
-        cause: E::Error,
+        cause: E,
     },
 }
 
@@ -28,7 +28,7 @@ pub enum FunctionSpawnError<E: Encode> {
 pub fn spawn<E: Encode>(
     function_name: impl AsRef<str>,
     payload: E,
-) -> Result<(), FunctionSpawnError<E>> {
+) -> Result<(), FunctionSpawnError<E::Error>> {
     spawn::spawn_function(
         function_name.as_ref(),
         &payload

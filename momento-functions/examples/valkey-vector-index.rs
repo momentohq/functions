@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use log::LevelFilter;
 use momento_functions::{WebResponse, WebResponseBuilder};
 use momento_functions_host::{
@@ -10,6 +8,9 @@ use momento_functions_host::{
 use momento_functions_log::LogMode;
 use serde::Deserialize;
 use serde_json::json;
+use std::collections::HashMap;
+use std::convert::Infallible;
+use std::error::Error;
 
 #[derive(Deserialize, Debug)]
 struct Request {
@@ -23,7 +24,7 @@ struct Document {
 }
 
 momento_functions::post!(index_document);
-fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse> {
+fn index_document(Json(body): Json<Request>) -> Result<impl WebResponse, Box<dyn Error>> {
     let headers = headers();
     setup_logging(&headers)?;
 
@@ -34,9 +35,9 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
         Some(doc) => doc.embedding.len(),
         None => {
             log::warn!("No documents provided for indexing.");
-            return WebResponseBuilder::new()
+            return Ok(WebResponseBuilder::new()
                 .status_code(400)
-                .payload("No documents provided");
+                .payload("No documents provided")?);
         }
     };
 
@@ -45,23 +46,23 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
     let redis = RedisClient::new(CONNECTION_STRING);
     if let Err(e) = ensure_index_exists(dimensions, &redis) {
         log::error!("Failed to ensure index exists: {e:?}");
-        return e;
+        return Ok(e?);
     }
 
     let length = documents.len();
     let commands = convert_into_hset_commands(documents);
     match redis.pipe(commands) {
-        Ok(_) => WebResponseBuilder::new()
+        Ok(_) => Ok(WebResponseBuilder::new()
             .status_code(200)
             .payload(Json(json!({
                 "message": "Documents indexed successfully",
                 "indexed_count": length,
-            }))),
-        Err(e) => WebResponseBuilder::new()
+            })))?),
+        Err(e) => Ok(WebResponseBuilder::new()
             .status_code(500)
             .payload(Json(json!({
                 "message": e.to_string(),
-            }))),
+            })))?),
     }
 }
 
@@ -86,7 +87,7 @@ fn convert_into_hset_commands(documents: Vec<Document>) -> Vec<Command> {
 fn ensure_index_exists(
     dimensions: usize,
     redis: &RedisClient,
-) -> Result<(), FunctionResult<WebResponseBuilder>> {
+) -> Result<(), Result<WebResponseBuilder, Infallible>> {
     match redis.pipe(vec![
         Command::builder()
             .any("FT.INFO")
@@ -145,7 +146,7 @@ fn ensure_index_exists(
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> Result<(), momento_functions_host::Error> {
+fn setup_logging(headers: &[(String, String)]) -> Result<(), Box<dyn Error>> {
     let log_level = headers.iter().find_map(|(name, value)| {
         if name == "x-momento-log" {
             Some(value)

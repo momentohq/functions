@@ -1,4 +1,4 @@
 momento_functions::spawn!(spawned);
-fn spawned(_payload: Vec<u8>) -> FunctionResult<()> {
-    Ok(())
+fn spawned(_payload: Vec<u8>) {
+    ()
 }

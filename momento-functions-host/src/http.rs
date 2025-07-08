@@ -3,6 +3,7 @@
 use momento_functions_wit::host::momento::host::http;
 use thiserror::Error;
 
+use crate::encoding::EncodeError;
 use crate::{
     aws,
     encoding::{Encode, Extract},
@@ -98,7 +99,7 @@ pub fn get(
 
 /// An error occurred while calling an HTTP Put method.
 #[derive(Debug, Error)]
-pub enum HttpPutError<E: Encode> {
+pub enum HttpPutError<E: EncodeError> {
     /// An error occurred while calling the host http function.
     #[error(transparent)]
     HttpError(#[from] http::Error),
@@ -106,7 +107,7 @@ pub enum HttpPutError<E: Encode> {
     #[error("Failed to encode body.")]
     EncodeFailed {
         /// The underlying encoding error.
-        cause: E::Error,
+        cause: E,
     },
 }
 
@@ -139,7 +140,7 @@ pub fn put<E: Encode>(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
     body: E,
-) -> Result<Response, HttpPutError<E>> {
+) -> Result<Response, HttpPutError<E::Error>> {
     let http::Response {
         status,
         headers,
@@ -162,7 +163,7 @@ pub fn put<E: Encode>(
 
 /// An error occurred while calling an HTTP Post method.
 #[derive(Debug, Error)]
-pub enum HttpPostError<E: Encode> {
+pub enum HttpPostError<E: EncodeError> {
     /// An error occurred while calling the host http function.
     #[error(transparent)]
     HttpError(#[from] http::Error),
@@ -170,7 +171,7 @@ pub enum HttpPostError<E: Encode> {
     #[error("Failed to encode body.")]
     EncodeFailed {
         /// The underlying encoding error.
-        cause: E::Error,
+        cause: E,
     },
 }
 
@@ -210,7 +211,7 @@ pub fn post<E: Encode>(
     url: impl Into<String>,
     headers: impl IntoIterator<Item = (String, String)>,
     body: E,
-) -> Result<Response, HttpPostError<E>> {
+) -> Result<Response, HttpPostError<E::Error>> {
     let http::Response {
         status,
         headers,
@@ -377,7 +378,7 @@ pub fn put_aws_sigv4<E: Encode>(
     region: impl Into<String>,
     service: impl Into<String>,
     body: E,
-) -> Result<Response, HttpPutError<E>> {
+) -> Result<Response, HttpPutError<E::Error>> {
     let http::Response {
         status,
         headers,
@@ -430,7 +431,7 @@ pub fn post_aws_sigv4<E: Encode>(
     region: impl Into<String>,
     service: impl Into<String>,
     body: E,
-) -> Result<Response, HttpPostError<E>> {
+) -> Result<Response, HttpPostError<E::Error>> {
     let http::Response {
         status,
         headers,

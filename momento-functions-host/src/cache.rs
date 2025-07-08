@@ -2,17 +2,17 @@
 
 use std::time::Duration;
 
-use crate::encoding::{Encode, Extract};
+use crate::encoding::{Encode, EncodeError, Extract, ExtractError};
 use momento_functions_wit::host::momento::functions::cache_scalar;
 
 /// An error occurred when setting a value in the cache.
 #[derive(thiserror::Error, Debug)]
-pub enum CacheSetError<E: Encode> {
+pub enum CacheSetError<E: EncodeError> {
     /// The provided value could not be encoded.
     #[error("Failed to encode value.")]
     EncodeFailed {
         /// The underlying encoding error.
-        cause: E::Error,
+        cause: E,
     },
     /// An error occurred when calling the host cache function.
     #[error(transparent)]
@@ -21,12 +21,12 @@ pub enum CacheSetError<E: Encode> {
 
 /// An error occurred when getting a value from the cache.
 #[derive(thiserror::Error, Debug)]
-pub enum CacheGetError<E: Extract> {
+pub enum CacheGetError<E: ExtractError> {
     /// The value could not be extracted with the provided implementation.
     #[error("Failed to extract value.")]
     ExtractFailed {
         /// The underlying error.
-        cause: E::Error,
+        cause: E,
     },
     /// An error occurred when calling the host cache function.
     #[error(transparent)]
@@ -61,7 +61,7 @@ pub enum CacheGetError<E: Extract> {
 /// let value: Option<Json<MyStruct>> = cache::get("my_key")?;
 /// # Ok(()) }
 /// ```
-pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError<T>> {
+pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError<T::Error>> {
     match cache_scalar::get(key.as_ref())? {
         Some(v) => T::extract(v)
             .map(Some)
@@ -113,7 +113,7 @@ pub fn set<E: Encode>(
     key: impl AsRef<[u8]>,
     value: E,
     ttl: Duration,
-) -> Result<(), CacheSetError<E>> {
+) -> Result<(), CacheSetError<E::Error>> {
     cache_scalar::set(
         key.as_ref(),
         &value

@@ -3,16 +3,16 @@
 use momento_functions_wit::host::momento::functions::topic;
 use serde::Serialize;
 
-use crate::encoding::{Encode, Json};
+use crate::encoding::{Encode, EncodeError, Json};
 
 /// An error occurred while publihsing to a topic.
 #[derive(Debug, thiserror::Error)]
-pub enum PublishError<E: Encode> {
+pub enum PublishError<E: EncodeError> {
     /// An error occurred while encoding the provided message.
     #[error("Failed to encode message")]
     EncodeFailed {
         /// The underlying encoding error.
-        cause: E::Error,
+        cause: E,
     },
     /// An error occurred while calling the host publish function.
     #[error(transparent)]
@@ -64,7 +64,7 @@ pub enum PublishError<E: Encode> {
 pub fn publish<T: PublishKind>(
     topic: impl AsRef<str>,
     value: T,
-) -> Result<(), PublishError<<T as PublishKind>::Encoding>> {
+) -> Result<(), PublishError<<<T as PublishKind>::Encoding as Encode>::Error>> {
     match value
         .as_publish()
         .map_err(|e| PublishError::EncodeFailed { cause: e })?

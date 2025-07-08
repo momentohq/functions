@@ -1,5 +1,3 @@
-use std::{collections::HashMap, time::Duration};
-
 use log::LevelFilter;
 use momento_functions::{WebResponse, WebResponseBuilder};
 use momento_functions_host::{
@@ -10,9 +8,12 @@ use momento_functions_host::{
     web_extensions::headers,
 };
 use momento_functions_log::LogMode;
+use std::convert::Infallible;
+use std::error::Error;
+use std::{collections::HashMap, time::Duration};
 
 momento_functions::post!(accelerate_get_item);
-fn accelerate_get_item(body: Vec<u8>) -> FunctionResult<impl WebResponse> {
+fn accelerate_get_item(body: Vec<u8>) -> Result<impl WebResponse, Box<dyn Error>> {
     let headers = headers();
     setup_logging(&headers)?;
 
@@ -21,13 +22,13 @@ fn accelerate_get_item(body: Vec<u8>) -> FunctionResult<impl WebResponse> {
     // The target header comes from the AWS SDK and is the api call being made.
     let action = match require_header("X-Amz-Target", &headers) {
         Ok(value) => value,
-        Err(value) => return value,
+        Err(value) => return Ok(value?),
     };
     // The x-uri header is the custom header we added to the request _after it was signed_,
     // as we changed the request's target uri to _this Function_.
     let proxy_uri = match require_header("x-uri", &headers) {
         Ok(value) => value,
-        Err(value) => return value,
+        Err(value) => return Ok(value?),
     };
 
     let http::Response {
@@ -42,10 +43,10 @@ fn accelerate_get_item(body: Vec<u8>) -> FunctionResult<impl WebResponse> {
         }
     };
 
-    WebResponseBuilder::new()
+    Ok(WebResponseBuilder::new()
         .status_code(status)
         .headers(headers)
-        .payload(body)
+        .payload(body)?)
 }
 
 // ------------------------------------------------------
@@ -56,7 +57,7 @@ fn handle_get_item(
     body: Vec<u8>,
     headers: Vec<(String, String)>,
     proxy_uri: &str,
-) -> Result<http::Response, momento_functions_host::Error> {
+) -> Result<http::Response, Box<dyn Error>> {
     #[derive(serde::Deserialize, serde::Serialize, Debug)]
     struct GetItemRequest {
         #[serde(rename = "TableName")]
@@ -67,9 +68,7 @@ fn handle_get_item(
 
     let Json(request) = Json::<GetItemRequest>::extract(body.clone())?;
     log::info!("GetItem {request:?}");
-    let cache_key: String = serde_json::to_string(&request).map_err(|e| {
-        momento_functions_host::Error::MessageError(format!("failed serializing key: {e:?}"))
-    })?;
+    let cache_key: String = serde_json::to_string(&request)?;
 
     Ok(match cache::get::<Json<http::Response>>(&cache_key)? {
         Some(Json(hit)) => {
@@ -90,9 +89,9 @@ fn handle_all_other_ddb_calls(
     body: Vec<u8>,
     headers: Vec<(String, String)>,
     proxy_uri: &str,
-) -> Result<http::Response, momento_functions_host::Error> {
+) -> Result<http::Response, Box<dyn Error>> {
     log::info!("other action: {action} -> {proxy_uri}");
-    http::post(proxy_uri, headers, body)
+    Ok(http::post(proxy_uri, headers, body)?)
 }
 
 // ------------------------------------------------------
@@ -102,7 +101,7 @@ fn handle_all_other_ddb_calls(
 fn require_header(
     header: &str,
     headers: &[(String, String)],
-) -> Result<String, Result<WebResponseBuilder, momento_functions_host::Error>> {
+) -> Result<String, Result<WebResponseBuilder, Infallible>> {
     let action = match headers.iter().find_map(|(name, value)| {
         if name.eq_ignore_ascii_case(header) {
             Some(value)
@@ -121,7 +120,7 @@ fn require_header(
     Ok(action.to_string())
 }
 
-fn setup_logging(headers: &[(String, String)]) -> Result<(), momento_functions_host::Error> {
+fn setup_logging(headers: &[(String, String)]) -> Result<(), Box<dyn Error>> {
     let log_level = headers.iter().find_map(|(name, value)| {
         if name == "x-momento-log" {
             Some(value)

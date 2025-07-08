@@ -1,6 +1,7 @@
 use log::LevelFilter;
 use momento_functions_host::encoding::Json;
 use momento_functions_log::LogMode;
+use std::error::Error;
 
 #[derive(serde::Deserialize, Debug)]
 struct Request {
@@ -13,7 +14,7 @@ struct Response {
 }
 
 momento_functions::post!(greet);
-fn greet(Json(request): Json<Request>) -> FunctionResult<Json<Response>> {
+fn greet(Json(request): Json<Request>) -> Result<Json<Response>, Box<dyn Error>> {
     momento_functions_log::configure_logging(
         LevelFilter::Info,
         LogMode::Topic {

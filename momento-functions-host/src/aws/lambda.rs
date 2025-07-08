@@ -1,5 +1,5 @@
 //! Host interfaces for working with AWS Lambda
-use crate::encoding::{Encode, Extract};
+use crate::encoding::{Encode, EncodeError, Extract, ExtractError};
 use momento_functions_wit::host::momento::host;
 use momento_functions_wit::host::momento::host::aws_lambda::LambdaError;
 
@@ -19,13 +19,13 @@ pub struct LambdaClient {
 #[derive(Debug, thiserror::Error)]
 pub enum InvokeError<E>
 where
-    E: Encode,
+    E: EncodeError,
 {
     /// An error occurred while encoding the provided payload.
     #[error("Failed to encode payload.")]
     EncodeFailed {
         /// The underlying encode error.
-        cause: E::Error,
+        cause: E,
     },
     /// An error occurred when calling the host invoke function.
     #[error(transparent)]
@@ -129,7 +129,7 @@ impl LambdaClient {
         &self,
         name: impl Into<LambdaName>,
         payload: E,
-    ) -> Result<InvokeResponse, InvokeError<E>> {
+    ) -> Result<InvokeResponse, InvokeError<E::Error>> {
         let (function_name, qualifier) = name.into().into_inner();
         let request = host::aws_lambda::InvokeRequest {
             function_name,
@@ -166,11 +166,11 @@ pub struct InvokeResponse {
 
 /// An error occurred when extracting the Lambda response.
 #[derive(Debug, thiserror::Error)]
-pub enum ResponseExtractError<E: Extract> {
+pub enum ResponseExtractError<E: ExtractError> {
     /// An error occurred when calling the provided extract method.
     Extract {
         /// The underlying error.
-        cause: E::Error,
+        cause: E,
     },
     /// The response was missing a payload.
     MissingPayload,
@@ -192,7 +192,7 @@ impl InvokeResponse {
     /// Take the payload of the response and decode it.
     ///
     /// This consumes the payload; if you call it again, it will return an Error.
-    pub fn extract<E: Extract>(&mut self) -> Result<E, ResponseExtractError<E>> {
+    pub fn extract<E: Extract>(&mut self) -> Result<E, ResponseExtractError<E::Error>> {
         let payload = self
             .take_payload()
             .ok_or_else(|| ResponseExtractError::MissingPayload)?;

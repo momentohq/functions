@@ -1,4 +1,4 @@
-use momento_functions_host::{FunctionResult, encoding::Encode};
+use momento_functions_host::encoding::Encode;
 
 /// A response from a web function invocation
 pub trait WebResponse {
@@ -91,7 +91,7 @@ impl WebResponseBuilder {
     }
 
     /// Set the payload of the response
-    pub fn payload(mut self, payload: impl Encode) -> FunctionResult<Self> {
+    pub fn payload<E: Encode>(mut self, payload: E) -> Result<Self, E::Error> {
         let payload = payload.try_serialize()?.into();
         if !payload.is_empty() {
             self.payload = Some(payload);

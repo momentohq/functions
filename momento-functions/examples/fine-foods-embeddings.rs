@@ -28,6 +28,7 @@ use momento_functions::{WebResponse, WebResponseBuilder};
 use momento_functions_host::{encoding::Json, web_extensions::headers};
 use momento_functions_log::LogMode;
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 
 #[derive(Deserialize, Debug)]
 struct DocumentInput {
@@ -87,7 +88,7 @@ struct DocumentOutput {
 momento_functions::post!(generate_embeddings);
 fn generate_embeddings(
     Json(documents): Json<Vec<DocumentInput>>,
-) -> FunctionResult<impl WebResponse> {
+) -> Result<impl WebResponse, Box<dyn Error>> {
     let headers = headers();
     setup_logging(&headers)?;
 
@@ -115,16 +116,16 @@ fn generate_embeddings(
         }));
     }
 
-    WebResponseBuilder::new()
+    Ok(WebResponseBuilder::new()
         .status_code(200)
-        .payload(Json(response))
+        .payload(Json(response))?)
 }
 
 // ------------------------------------------------------
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> Result<(), momento_functions_host::Error> {
+fn setup_logging(headers: &[(String, String)]) -> Result<(), Box<dyn Error>> {
     let log_level = headers.iter().find_map(|(name, value)| {
         if name == "x-momento-log" {
             Some(value)
@@ -146,9 +147,7 @@ fn setup_logging(headers: &[(String, String)]) -> Result<(), momento_functions_h
     Ok(())
 }
 
-fn get_embeddings(
-    mut documents: Vec<String>,
-) -> Result<Vec<Vec<f32>>, momento_functions_host::Error> {
+fn get_embeddings(mut documents: Vec<String>) -> Result<Vec<Vec<f32>>, Box<dyn Error>> {
     log::debug!("getting embeddings for document with content: {documents:?}");
     for document in &mut documents {
         if document.contains("\n") {

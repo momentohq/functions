@@ -121,10 +121,11 @@ fn get_cached_query_embedding(query: String) -> WebResult<Vec<f32>> {
             // Convert raw bytes back into our Vec<f32> type
             hit.chunks_exact(4)
                 .map(|chunk| {
-                    let arr = <[u8; 4]>::try_from(chunk).expect("Chunk length should be 4");
-                    f32::from_le_bytes(arr)
+                    let arr = <[u8; 4]>::try_from(chunk)
+                        .map_err(|_| WebError::message("Chunk length should be 4"))?;
+                    Ok(f32::from_le_bytes(arr))
                 })
-                .collect()
+                .collect::<Result<Vec<f32>, WebError>>()?
         }
         None => {
             log::debug!("cache miss, querying embeddings from open ai");

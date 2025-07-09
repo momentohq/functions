@@ -2,10 +2,8 @@
 
 use momento_functions_wit::host::momento::host;
 
-use crate::{
-    FunctionResult,
-    encoding::{Encode, Extract},
-};
+use crate::encoding::{Encode, EncodeError, Extract, ExtractError};
+use crate::redis::RedisSetError::UnexpectedValueResponse;
 
 /// Redis client for Function host interfaces.
 ///
@@ -15,6 +13,81 @@ use crate::{
 /// alive across invocations of your Function for reuse.
 pub struct RedisClient {
     client: host::redis::Client,
+}
+
+/// An error occurred while getting a redis value.
+#[derive(Debug, thiserror::Error)]
+pub enum RedisGetError<E: ExtractError> {
+    /// An error occurred while calling the host redis function.
+    #[error(transparent)]
+    RedisError(#[from] host::redis::RedisError),
+    /// An error occurred when trying to extract the value using the provided implementation.
+    #[error("Failed to extract value.")]
+    ExtractFailed {
+        /// The underlying extraction error.
+        cause: E,
+    },
+    /// Redis returned a status message.
+    #[error("Status message returned from redis: {status}")]
+    StatusMessage {
+        /// The message from Redis.
+        status: String,
+    },
+    /// A bulk response was returned by Redis.
+    #[error("Unexpected bulk response: {response:?}")]
+    UnexpectedBulkResponse {
+        /// The bulk response.
+        response: host::redis::ResponseStream,
+    },
+    /// An 'okay' response was returned by Redis. (Get expects a value response)
+    #[error("Unexpected okay response.")]
+    UnexpectedOkayResponse,
+}
+
+/// An error occurred while setting a redis value.
+#[derive(Debug, thiserror::Error)]
+pub enum RedisSetError<E: EncodeError> {
+    /// An error occurred while calling the host redis function.
+    #[error(transparent)]
+    RedisError(#[from] host::redis::RedisError),
+    /// An error occurred when encoding the provided value.
+    #[error("Failed to encode value.")]
+    EncodeError {
+        /// The underlying encoding error.
+        cause: E,
+    },
+    /// Redis returned a status message.
+    #[error("Status message returned from redis: {status}")]
+    StatusMessage {
+        /// The message from Redis.
+        status: String,
+    },
+    /// Redis returned a value in response. (Set expects an "okay" response)
+    #[error("Unexpected value response: {value:?}")]
+    UnexpectedValueResponse {
+        /// The value Redis returned.
+        value: Option<host::redis::Value>,
+    },
+}
+
+/// An error occurred while deleting a redis value.
+#[derive(Debug, thiserror::Error)]
+pub enum RedisDeleteError {
+    /// An error occurred while calling the host redis function.
+    #[error(transparent)]
+    RedisError(#[from] host::redis::RedisError),
+    /// Redis returned a status message.
+    #[error("Status message returned from redis: {status}")]
+    StatusMessage {
+        /// The message from Redis.
+        status: String,
+    },
+    /// Redis returned a value in response. (Delete expects an "okay" response)
+    #[error("Unexpected value response: {value:?}")]
+    UnexpectedValueResponse {
+        /// The value Redis returned.
+        value: Option<host::redis::Value>,
+    },
 }
 
 impl RedisClient {
@@ -28,10 +101,8 @@ impl RedisClient {
     ///
     /// ```rust
     /// # use momento_functions_host::redis::RedisClient;
-    /// # use momento_functions_host::FunctionResult;
-    /// # fn f() -> FunctionResult<()> {
+    /// # fn f() {
     /// let client = RedisClient::new("valkey://my.valkey.instance:6379");
-    /// # Ok(())
     /// # }
     /// ```
     pub fn new(connection_string: impl Into<String>) -> Self {
@@ -43,7 +114,10 @@ impl RedisClient {
     }
 
     /// Get a value from Redis by key.
-    pub fn get<T: Extract>(&self, key: impl Into<Vec<u8>>) -> FunctionResult<Option<T>> {
+    pub fn get<T: Extract>(
+        &self,
+        key: impl Into<Vec<u8>>,
+    ) -> Result<Option<T>, RedisGetError<T::Error>> {
         let response = self.client.pipe(&[host::redis::Command {
             command: "get".to_string(),
             arguments: vec![key.into()],
@@ -53,20 +127,23 @@ impl RedisClient {
                 log::debug!("Redis get response: {value:?}");
                 match value {
                     host::redis::Value::Nil => None,
-                    host::redis::Value::Int(i) => Some(T::extract(i.to_string().into_bytes())?),
-                    host::redis::Value::Data(value) => Some(T::extract(value)?),
+                    host::redis::Value::Int(i) => Some(
+                        T::extract(i.to_string().into_bytes())
+                            .map_err(|e| RedisGetError::ExtractFailed { cause: e })?,
+                    ),
+                    host::redis::Value::Data(value) => Some(
+                        T::extract(value).map_err(|e| RedisGetError::ExtractFailed { cause: e })?,
+                    ),
                     host::redis::Value::Bulk(response_stream) => {
-                        return Err(crate::Error::MessageError(format!(
-                            "Bulk response not supported in this context {response_stream:?}"
-                        )));
+                        return Err(RedisGetError::UnexpectedBulkResponse {
+                            response: response_stream,
+                        });
                     }
                     host::redis::Value::Status(status) => {
-                        return Err(crate::Error::MessageError(status));
+                        return Err(RedisGetError::StatusMessage { status });
                     }
                     host::redis::Value::Okay => {
-                        return Err(crate::Error::MessageError(
-                            "Okay response not supported in this context".into(),
-                        ));
+                        return Err(RedisGetError::UnexpectedOkayResponse);
                     }
                 }
             }
@@ -75,23 +152,30 @@ impl RedisClient {
     }
 
     /// Set a value in Redis with a key.
-    pub fn set<T: Encode>(&self, key: impl Into<Vec<u8>>, value: T) -> FunctionResult<()> {
-        let serialized_value = value.try_serialize()?.into();
+    pub fn set<T: Encode>(
+        &self,
+        key: impl Into<Vec<u8>>,
+        value: T,
+    ) -> Result<(), RedisSetError<T::Error>> {
+        let serialized_value = value
+            .try_serialize()
+            .map_err(|e| RedisSetError::EncodeError { cause: e })?
+            .into();
         let response = self.client.pipe(&[host::redis::Command {
             command: "set".to_string(),
             arguments: vec![key.into(), serialized_value],
         }])?;
         match response.next() {
             Some(host::redis::Value::Okay) => Ok(()),
-            Some(host::redis::Value::Status(status)) => Err(crate::Error::MessageError(status)),
-            e => Err(crate::Error::MessageError(format!(
-                "unexpected response: {e:?}"
-            ))),
+            Some(host::redis::Value::Status(status)) => {
+                Err(RedisSetError::StatusMessage { status })
+            }
+            e => Err(UnexpectedValueResponse { value: e }),
         }
     }
 
     /// Delete a key from Redis.
-    pub fn delete(&self, key: impl Into<Vec<u8>>) -> FunctionResult<()> {
+    pub fn delete(&self, key: impl Into<Vec<u8>>) -> Result<(), RedisDeleteError> {
         let response = self.client.pipe(&[host::redis::Command {
             command: "del".to_string(),
             arguments: vec![key.into()],
@@ -101,10 +185,10 @@ impl RedisClient {
                 log::debug!("delete response: {count}");
                 Ok(())
             }
-            Some(host::redis::Value::Status(status)) => Err(crate::Error::MessageError(status)),
-            e => Err(crate::Error::MessageError(format!(
-                "unexpected response: {e:?}"
-            ))),
+            Some(host::redis::Value::Status(status)) => {
+                Err(RedisDeleteError::StatusMessage { status })
+            }
+            e => Err(RedisDeleteError::UnexpectedValueResponse { value: e }),
         }
     }
 
@@ -112,8 +196,8 @@ impl RedisClient {
     ///
     /// ```rust
     /// # use momento_functions_host::redis::{RedisClient, Command};
-    /// # use momento_functions_host::FunctionResult;
-    /// # fn f(client: &RedisClient) -> FunctionResult<()> {
+    /// # use momento_functions_wit::host::momento::host;
+    /// # fn f(client: &RedisClient) -> Result<(), host::redis::RedisError> {
     /// let response_stream = client.pipe(vec![
     ///     Command::builder().set("my_key", "my_value")?.build(),
     ///     Command::builder().get("my_key").build(),
@@ -126,7 +210,7 @@ impl RedisClient {
     /// #     Ok(())
     /// # }
     /// ```
-    pub fn pipe(&self, commands: Vec<Command>) -> FunctionResult<ResponseStream> {
+    pub fn pipe(&self, commands: Vec<Command>) -> Result<ResponseStream, host::redis::RedisError> {
         let response_stream = self.client.pipe(
             &commands
                 .into_iter()
@@ -137,12 +221,6 @@ impl RedisClient {
         Ok(ResponseStream {
             inner: response_stream,
         })
-    }
-}
-
-impl From<host::redis::RedisError> for crate::Error {
-    fn from(e: host::redis::RedisError) -> Self {
-        crate::Error::MessageError(format!("Redis error: {e:?}"))
     }
 }
 
@@ -190,6 +268,23 @@ impl Iterator for ResponseStream {
     }
 }
 
+/// An error occurred when extracting a value.
+#[derive(Debug, thiserror::Error)]
+pub enum ValueError<E: ExtractError> {
+    /// The provided extraction implementation produced an error.
+    #[error("Failed to extract value.")]
+    ExtractFailed {
+        /// The underlying extraction error.
+        cause: E,
+    },
+    /// The redis value could not be extracted from.
+    #[error("Value cannot be extracted from {value:?}")]
+    UnextractableValue {
+        /// The unextractable value in question.
+        value: RedisValue,
+    },
+}
+
 /// A value returned from a redis command
 #[derive(Debug)]
 pub enum RedisValue {
@@ -212,12 +307,12 @@ impl RedisValue {
     /// try to extract the value as a specific type
     ///
     /// Only works for Data responses.
-    pub fn extract<T: Extract>(self) -> FunctionResult<T> {
+    pub fn extract<T: Extract>(self) -> Result<T, ValueError<T::Error>> {
         match self {
-            RedisValue::Data(data) => T::extract(data),
-            v => Err(crate::Error::MessageError(format!(
-                "cannot extract value from {v:?}"
-            ))),
+            RedisValue::Data(data) => {
+                T::extract(data).map_err(|e| ValueError::ExtractFailed { cause: e })
+            }
+            v => Err(ValueError::UnextractableValue { value: v }),
         }
     }
 }
@@ -243,7 +338,7 @@ impl CommandBuilder<SelectCommand> {
         self,
         key: impl Into<Vec<u8>>,
         value: T,
-    ) -> FunctionResult<CommandBuilder<Set>> {
+    ) -> Result<CommandBuilder<Set>, T::Error> {
         Ok(CommandBuilder {
             command: Set {
                 key: key.into(),
@@ -324,7 +419,7 @@ pub struct Any {
 }
 impl CommandBuilder<Any> {
     /// Add an argument to the command
-    pub fn value<T: Encode>(mut self, arg: T) -> FunctionResult<Self> {
+    pub fn value<T: Encode>(mut self, arg: T) -> Result<Self, T::Error> {
         self.command.arguments.push(arg.try_serialize()?.into());
         Ok(self)
     }

@@ -11,8 +11,8 @@ struct Response {
 }
 
 momento_functions::post!(greet);
-fn greet(Json(request): Json<Request>) -> FunctionResult<Json<Response>> {
-    Ok(Json(Response {
+fn greet(Json(request): Json<Request>) -> Json<Response> {
+    Json(Response {
         message: format!("Hello, {}!", request.name),
-    }))
+    })
 }

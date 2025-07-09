@@ -1,7 +1,5 @@
-use std::{collections::HashMap, time::Duration};
-
 use log::LevelFilter;
-use momento_functions::{WebResponse, WebResponseBuilder};
+use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     aws::ddb::KeyValue,
     cache,
@@ -10,9 +8,10 @@ use momento_functions_host::{
     web_extensions::headers,
 };
 use momento_functions_log::LogMode;
+use std::{collections::HashMap, time::Duration};
 
 momento_functions::post!(accelerate_get_item);
-fn accelerate_get_item(body: Vec<u8>) -> FunctionResult<impl WebResponse> {
+fn accelerate_get_item(body: Vec<u8>) -> WebResult<WebResponse> {
     let headers = headers();
     setup_logging(&headers)?;
 
@@ -42,10 +41,10 @@ fn accelerate_get_item(body: Vec<u8>) -> FunctionResult<impl WebResponse> {
         }
     };
 
-    WebResponseBuilder::new()
-        .status_code(status)
-        .headers(headers)
-        .payload(body)
+    Ok(WebResponse::new()
+        .with_status(status)
+        .with_headers(headers)
+        .with_body(body)?)
 }
 
 // ------------------------------------------------------
@@ -56,7 +55,7 @@ fn handle_get_item(
     body: Vec<u8>,
     headers: Vec<(String, String)>,
     proxy_uri: &str,
-) -> Result<http::Response, momento_functions_host::Error> {
+) -> WebResult<http::Response> {
     #[derive(serde::Deserialize, serde::Serialize, Debug)]
     struct GetItemRequest {
         #[serde(rename = "TableName")]
@@ -67,9 +66,7 @@ fn handle_get_item(
 
     let Json(request) = Json::<GetItemRequest>::extract(body.clone())?;
     log::info!("GetItem {request:?}");
-    let cache_key: String = serde_json::to_string(&request).map_err(|e| {
-        momento_functions_host::Error::MessageError(format!("failed serializing key: {e:?}"))
-    })?;
+    let cache_key: String = serde_json::to_string(&request)?;
 
     Ok(match cache::get::<Json<http::Response>>(&cache_key)? {
         Some(Json(hit)) => {
@@ -90,9 +87,9 @@ fn handle_all_other_ddb_calls(
     body: Vec<u8>,
     headers: Vec<(String, String)>,
     proxy_uri: &str,
-) -> Result<http::Response, momento_functions_host::Error> {
+) -> WebResult<http::Response> {
     log::info!("other action: {action} -> {proxy_uri}");
-    http::post(proxy_uri, headers, body)
+    Ok(http::post(proxy_uri, headers, body)?)
 }
 
 // ------------------------------------------------------
@@ -102,7 +99,7 @@ fn handle_all_other_ddb_calls(
 fn require_header(
     header: &str,
     headers: &[(String, String)],
-) -> Result<String, Result<WebResponseBuilder, momento_functions_host::Error>> {
+) -> Result<String, WebResult<WebResponse>> {
     let action = match headers.iter().find_map(|(name, value)| {
         if name.eq_ignore_ascii_case(header) {
             Some(value)
@@ -113,15 +110,16 @@ fn require_header(
         Some(action) => action,
         None => {
             log::error!("Missing {header} header");
-            return Err(WebResponseBuilder::new()
-                .status_code(400)
-                .payload(format!("Missing {header} header")));
+            return Err(WebResponse::new()
+                .with_status(400)
+                .with_body(format!("Missing {header} header"))
+                .map_err(WebError::from));
         }
     };
     Ok(action.to_string())
 }
 
-fn setup_logging(headers: &[(String, String)]) -> Result<(), momento_functions_host::Error> {
+fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
     let log_level = headers.iter().find_map(|(name, value)| {
         if name == "x-momento-log" {
             Some(value)

@@ -4,7 +4,7 @@ interface spawn {
         /// The function does not exist.
         function-not-found,
         /// The function failed to spawn.
-        spawn-failed(string),
+        internal-error,
         /// The function failed to spawn due to a limit error.
         limit(string),
     }

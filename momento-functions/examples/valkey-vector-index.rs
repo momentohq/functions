@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use log::LevelFilter;
-use momento_functions::{WebResponse, WebResponseBuilder};
+use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     encoding::Json,
     redis::{Command, RedisClient, RedisValue},
@@ -10,6 +8,7 @@ use momento_functions_host::{
 use momento_functions_log::LogMode;
 use serde::Deserialize;
 use serde_json::json;
+use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
 struct Request {
@@ -23,7 +22,7 @@ struct Document {
 }
 
 momento_functions::post!(index_document);
-fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse> {
+fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
     let headers = headers();
     setup_logging(&headers)?;
 
@@ -34,9 +33,9 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
         Some(doc) => doc.embedding.len(),
         None => {
             log::warn!("No documents provided for indexing.");
-            return WebResponseBuilder::new()
-                .status_code(400)
-                .payload("No documents provided");
+            return Ok(WebResponse::new()
+                .with_status(400)
+                .with_body("No documents provided")?);
         }
     };
 
@@ -51,17 +50,13 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
     let length = documents.len();
     let commands = convert_into_hset_commands(documents);
     match redis.pipe(commands) {
-        Ok(_) => WebResponseBuilder::new()
-            .status_code(200)
-            .payload(Json(json!({
-                "message": "Documents indexed successfully",
-                "indexed_count": length,
-            }))),
-        Err(e) => WebResponseBuilder::new()
-            .status_code(500)
-            .payload(Json(json!({
-                "message": e.to_string(),
-            }))),
+        Ok(_) => Ok(WebResponse::new().with_status(200).with_body(Json(json!({
+            "message": "Documents indexed successfully",
+            "indexed_count": length,
+        })))?),
+        Err(e) => Ok(WebResponse::new().with_status(500).with_body(Json(json!({
+            "message": e.to_string(),
+        })))?),
     }
 }
 
@@ -86,7 +81,7 @@ fn convert_into_hset_commands(documents: Vec<Document>) -> Vec<Command> {
 fn ensure_index_exists(
     dimensions: usize,
     redis: &RedisClient,
-) -> Result<(), FunctionResult<WebResponseBuilder>> {
+) -> Result<(), Result<WebResponse, WebError>> {
     match redis.pipe(vec![
         Command::builder()
             .any("FT.INFO")
@@ -100,16 +95,18 @@ fn ensure_index_exists(
                     log::debug!("Redis index info: {values:?}");
                 } else {
                     log::warn!("Unexpected response type from Redis FT.INFO: {definition:?}");
-                    return Err(WebResponseBuilder::new()
-                        .status_code(500)
-                        .payload("Unexpected response from Redis FT.INFO"));
+                    return Err(WebResponse::new()
+                        .with_status(500)
+                        .with_body("Unexpected response from Redis FT.INFO")
+                        .map_err(WebError::from));
                 }
             }
             None => {
                 log::info!("redis did not return an answer for index info");
-                return Err(WebResponseBuilder::new()
-                    .status_code(400)
-                    .payload("redis is not answering index info"));
+                return Err(WebResponse::new()
+                    .with_status(400)
+                    .with_body("redis is not answering index info")
+                    .map_err(WebError::from));
             }
         },
         Err(e) => {
@@ -131,9 +128,10 @@ fn ensure_index_exists(
                 Ok(_) => log::info!("Index created successfully"),
                 Err(e) => {
                     log::error!("Failed to create index: {e:?}");
-                    return Err(WebResponseBuilder::new()
-                        .status_code(500)
-                        .payload("Failed to create index"));
+                    return Err(WebResponse::new()
+                        .with_status(500)
+                        .with_body("Failed to create index")
+                        .map_err(WebError::from));
                 }
             }
         }
@@ -145,7 +143,7 @@ fn ensure_index_exists(
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> Result<(), momento_functions_host::Error> {
+fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
     let log_level = headers.iter().find_map(|(name, value)| {
         if name == "x-momento-log" {
             Some(value)

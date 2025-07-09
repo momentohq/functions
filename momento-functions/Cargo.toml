@@ -54,6 +54,10 @@ crate-type = ["cdylib"]
 name = "web-function-json-greeter"
 crate-type = ["cdylib"]
 
+[[example]]
+name = "environment-variables"
+crate-type = ["cdylib"]
+
 [dependencies]
 momento-functions-host  = { workspace = true }
 momento-functions-wit   = { workspace = true }

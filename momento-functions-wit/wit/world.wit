@@ -11,6 +11,7 @@ world web-function {
     include host;
 
     export guest-function-web;
+    import web-function-support;
 }
 
 world spawn-function {

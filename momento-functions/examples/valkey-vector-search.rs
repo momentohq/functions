@@ -1,7 +1,5 @@
-use std::{collections::HashMap, mem::take};
-
 use log::LevelFilter;
-use momento_functions::{WebResponse, WebResponseBuilder};
+use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     encoding::Json,
     redis::{Command, RedisClient, RedisValue},
@@ -10,6 +8,7 @@ use momento_functions_host::{
 use momento_functions_log::LogMode;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
+use std::{collections::HashMap, mem::take};
 
 #[derive(Deserialize, Debug)]
 struct Request {
@@ -26,7 +25,7 @@ struct Document {
 }
 
 momento_functions::post!(index_document);
-fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse> {
+fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
     let headers = headers();
     setup_logging(&headers)?;
 
@@ -53,33 +52,30 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
             .build(),
     ])?;
 
-    let responses: RedisValue = response.into_iter().next().ok_or_else(|| {
-        momento_functions_host::Error::MessageError("No response from Redis".to_string())
-    })?;
+    let responses: RedisValue = response
+        .into_iter()
+        .next()
+        .ok_or_else(|| WebError::message("No response from Redis"))?;
     let mut responses = match responses {
         RedisValue::Bulk(items) => items.into_iter(),
         RedisValue::Status(e) => {
             log::error!("Redis error: {e}");
-            return Err(momento_functions_host::Error::MessageError(format!(
-                "Redis error: {e}"
-            )));
+            return Err(WebError::message(format!("Redis error: {e}")));
         }
         other => {
             log::error!("Unexpected Redis response: {other:?}");
-            return Err(momento_functions_host::Error::MessageError(
-                "Unexpected Redis response".to_string(),
-            ));
+            return Err(WebError::message("Unexpected Redis response"));
         }
     };
-    let topk_actual = responses.next().ok_or_else(|| {
-        momento_functions_host::Error::MessageError("No results returned from Redis".to_string())
-    })?;
+    let topk_actual = responses
+        .next()
+        .ok_or_else(|| WebError::message("No results returned from Redis"))?;
     let topk_actual = match topk_actual {
         RedisValue::Int(count) => count as usize,
         other => {
             log::error!("Expected an integer for the number of results, got: {other:?}");
-            return Err(momento_functions_host::Error::MessageError(
-                "Expected an integer for the number of results".to_string(),
+            return Err(WebError::message(
+                "Expected an integer for the number of results",
             ));
         }
     };
@@ -100,15 +96,11 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
             }
             RedisValue::Status(e) => {
                 log::error!("Redis error: {e}");
-                return Err(momento_functions_host::Error::MessageError(format!(
-                    "Redis error: {e}"
-                )));
+                return Err(WebError::message(format!("Redis error: {e}")));
             }
             other => {
                 log::error!("Unexpected Redis response: {other:?}");
-                return Err(momento_functions_host::Error::MessageError(
-                    "Unexpected Redis response".to_string(),
-                ));
+                return Err(WebError::message("Unexpected Redis response"));
             }
         }
 
@@ -116,8 +108,8 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
             Some(value) => value,
             None => {
                 log::error!("Unexpected end of response after document ID");
-                return Err(momento_functions_host::Error::MessageError(
-                    "Unexpected end of response after document ID".to_string(),
+                return Err(WebError::message(
+                    "Unexpected end of response after document ID",
                 ));
             }
         };
@@ -134,15 +126,11 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
             }
             RedisValue::Status(e) => {
                 log::error!("Redis error: {e}");
-                return Err(momento_functions_host::Error::MessageError(format!(
-                    "Redis error: {e}"
-                )));
+                return Err(WebError::message(format!("Redis error: {e}")));
             }
             other => {
                 log::error!("Unexpected Redis response: {other:?}");
-                return Err(momento_functions_host::Error::MessageError(
-                    "Unexpected Redis response".to_string(),
-                ));
+                return Err(WebError::message("Unexpected Redis response"));
             }
         }
         match search_result_parser {
@@ -159,20 +147,18 @@ fn index_document(Json(body): Json<Request>) -> FunctionResult<impl WebResponse>
             }
             other => {
                 log::error!("Unexpected terminal parser state: {other:?}");
-                return Err(momento_functions_host::Error::MessageError(
-                    "Unexpected parser state".to_string(),
-                ));
+                return Err(WebError::message("Unexpected parser state".to_string()));
             }
         }
     }
 
-    WebResponseBuilder::new()
-        .status_code(200)
-        .headers(vec![(
+    Ok(WebResponse::new()
+        .with_status(200)
+        .with_headers(vec![(
             "content-type".to_string(),
             "application/json".to_string(),
         )])
-        .payload(Json(documents))
+        .with_body(Json(documents))?)
 }
 
 #[derive(Debug)]
@@ -194,41 +180,33 @@ enum FtSearchParserExpect {
     },
 }
 impl FtSearchParserExpect {
-    fn try_parse(&mut self, value: RedisValue) -> FunctionResult<usize> {
+    fn try_parse(&mut self, value: RedisValue) -> WebResult<usize> {
         match self {
             FtSearchParserExpect::DocumentId => {
                 if let RedisValue::Data(data) = value {
                     *self = FtSearchParserExpect::VectorScore {
                         id: String::from_utf8(data).map_err(|e| {
-                            momento_functions_host::Error::MessageError(format!(
-                                "Failed to parse document ID: {e}"
-                            ))
+                            WebError::message(format!("Failed to parse document ID: {e}"))
                         })?,
                     };
                     log::debug!("parsed document ID");
                     Ok(0)
                 } else {
                     log::error!("Expected Data type for document ID, got: {value:?}");
-                    Err(momento_functions_host::Error::MessageError(
-                        "Expected Data type for document ID".to_string(),
-                    ))
+                    Err(WebError::message("Expected Data type for document ID"))
                 }
             }
             FtSearchParserExpect::VectorScore { id } => {
                 if let RedisValue::Data(data) = value {
                     let vector_score = String::from_utf8(data).map_err(|e| {
-                        momento_functions_host::Error::MessageError(format!(
-                            "failed to parse vector score as utf8: {e:?}"
-                        ))
+                        WebError::message(format!("failed to parse vector score as utf8: {e:?}"))
                     })?;
                     if vector_score == "__vector_score" {
                         log::debug!("found vector score field");
                         return Ok(0);
                     }
                     let vector_score = vector_score.parse().map_err(|e| {
-                        momento_functions_host::Error::MessageError(format!(
-                            "Failed to parse vector score: {e:?}"
-                        ))
+                        WebError::message(format!("Failed to parse vector score: {e:?}"))
                     })?;
                     *self = FtSearchParserExpect::FieldName {
                         id: take(id),
@@ -239,9 +217,7 @@ impl FtSearchParserExpect {
                     Ok(0)
                 } else {
                     log::error!("Expected Data type for vector score, got: {value:?}");
-                    Err(momento_functions_host::Error::MessageError(
-                        "Expected Data type for vector score".to_string(),
-                    ))
+                    Err(WebError::message("Expected Data type for vector score"))
                 }
             }
             FtSearchParserExpect::FieldName {
@@ -251,9 +227,7 @@ impl FtSearchParserExpect {
             } => {
                 if let RedisValue::Data(data) = value {
                     let field_name = String::from_utf8(data).map_err(|e| {
-                        momento_functions_host::Error::MessageError(format!(
-                            "Failed to parse field name: {e}"
-                        ))
+                        WebError::message(format!("Failed to parse field name: {e}"))
                     })?;
                     if field_name == "vector" {
                         log::debug!("found vector field");
@@ -269,9 +243,7 @@ impl FtSearchParserExpect {
                     Ok(0)
                 } else {
                     log::error!("Expected Data type for field name, got: {value:?}");
-                    Err(momento_functions_host::Error::MessageError(
-                        "Expected Data type for field name".to_string(),
-                    ))
+                    Err(WebError::message("Expected Data type for field name"))
                 }
             }
             FtSearchParserExpect::FieldValue {
@@ -282,9 +254,7 @@ impl FtSearchParserExpect {
             } => {
                 if let RedisValue::Data(data) = value {
                     let field_value = String::from_utf8(data).map_err(|e| {
-                        momento_functions_host::Error::MessageError(format!(
-                            "Failed to parse field value: {e}"
-                        ))
+                        WebError::message(format!("Failed to parse field value: {e}"))
                     })?;
                     fields.insert(name.clone(), field_value);
                     *self = FtSearchParserExpect::FieldName {
@@ -296,9 +266,7 @@ impl FtSearchParserExpect {
                     Ok(0)
                 } else {
                     log::error!("Expected Data type for field value, got: {value:?}");
-                    Err(momento_functions_host::Error::MessageError(
-                        "Expected Data type for field value".to_string(),
-                    ))
+                    Err(WebError::message("Expected Data type for field value"))
                 }
             }
         }
@@ -309,7 +277,7 @@ fn get_cached_query_embedding(
     query: String,
     query_hash: [u8; 32],
     redis: &RedisClient,
-) -> Result<Vec<u8>, momento_functions_host::Error> {
+) -> WebResult<Vec<u8>> {
     Ok(match redis.get::<Vec<u8>>(&query_hash)? {
         Some(hit) => hit,
         None => match get_embeddings(vec![query.clone()])?.into_iter().next() {
@@ -324,9 +292,7 @@ fn get_cached_query_embedding(
             }
             None => {
                 log::error!("Failed to get embedding for query: {query}");
-                return Err(momento_functions_host::Error::MessageError(
-                    "Failed to get embedding for query".to_string(),
-                ));
+                return Err(WebError::message("Failed to get embedding for query"));
             }
         },
     })
@@ -336,7 +302,7 @@ fn get_cached_query_embedding(
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> Result<(), momento_functions_host::Error> {
+fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
     let log_level = headers.iter().find_map(|(name, value)| {
         if name == "x-momento-log" {
             Some(value)
@@ -363,9 +329,7 @@ struct EmbeddingData {
     embedding: Vec<f32>,
     index: usize,
 }
-fn get_embeddings(
-    mut documents: Vec<String>,
-) -> Result<Vec<EmbeddingData>, momento_functions_host::Error> {
+fn get_embeddings(mut documents: Vec<String>) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for document with content: {documents:?}");
     for document in &mut documents {
         if document.contains("\n") {

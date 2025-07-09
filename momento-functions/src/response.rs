@@ -1,118 +1,144 @@
-use momento_functions_host::{FunctionResult, encoding::Encode};
+use momento_functions_host::encoding::Encode;
+use momento_functions_host::http;
+use momento_functions_wit::function_web::exports::momento::functions::guest_function_web::Response;
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 
-/// A response from a web function invocation
-pub trait WebResponse {
-    /// Status code of the response
-    fn get_status_code(&self) -> u16;
-
-    /// Response headers
-    ///
-    /// Called only once, this should consume the internal vector
-    fn take_headers(&mut self) -> Vec<(String, String)>;
-
-    /// Take the payload of the response
-    ///
-    /// Called only once, this should consume the internal payload
-    fn take_payload(self) -> impl Encode;
+/// Values returned by a function implemented with the [crate::post!] macro must implement this trait.
+pub trait IntoWebResponse {
+    fn response(self) -> Response;
 }
 
-/// Just treat a present payload as a 200
-impl<T> WebResponse for T
-where
-    T: Encode,
-{
-    fn get_status_code(&self) -> u16 {
-        200
-    }
-
-    fn take_headers(&mut self) -> Vec<(String, String)> {
-        vec![]
-    }
-
-    fn take_payload(self) -> impl Encode {
-        self
-    }
-}
-
-/// A builder for a web response
-///
-/// ________
-/// Bytes:
-/// ```rust
-/// momento_functions::WebResponseBuilder::new()
-///     .status_code(200)
-///     .headers(vec![("Content-Type".to_string(), "application/json".to_string())])
-///     .payload(b"{\"some\": \"json\"}".to_vec());
-/// ```
-///
-/// ________
-/// Typed JSON:
-/// ```rust
-/// use momento_functions::WebResponseBuilder;
-/// use momento_functions_host::encoding::Json;
-///
-/// #[derive(serde::Serialize)]
-/// struct MyStruct {
-///     hello: String
-/// }
-///
-/// WebResponseBuilder::new()
-///     .status_code(200)
-///     .headers(vec![("Content-Type".to_string(), "application/json".to_string())])
-///     .payload(Json(MyStruct { hello: "hello".to_string() }));
-/// ```
+/// A WebError represents an error result produced by a function execution.
+/// Functionally, it is also just an HTTP response - however, this allows for writing
+/// functions with a return signature of `WebResult` if you are okay with all errors
+/// being converted to 500s and returned in the body.
 #[derive(Debug)]
-pub struct WebResponseBuilder {
-    status_code: u16,
-    headers: Option<Vec<(String, String)>>,
-    payload: Option<Vec<u8>>,
+pub struct WebError {
+    source: Option<Box<dyn Error>>,
+    response: WebResponse,
 }
-impl WebResponseBuilder {
-    /// Create a new web response builder
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> WebResponseBuilder {
-        WebResponseBuilder {
-            status_code: 200,
-            headers: None,
-            payload: None,
+
+impl WebError {
+    pub fn message(message: impl Into<String>) -> Self {
+        let message = message.into();
+        let response = WebResponse {
+            status: 500,
+            headers: vec![],
+            body: message.as_bytes().to_vec(),
+        };
+        Self {
+            source: None,
+            response,
         }
     }
+}
 
-    /// Set the status code of the response
-    pub fn status_code(mut self, status_code: u16) -> Self {
-        self.status_code = status_code;
+impl<E: Error + 'static> From<E> for WebError {
+    fn from(e: E) -> Self {
+        let body = format!("An error occurred during function invocation: {e}");
+        Self {
+            source: Some(Box::new(e)),
+            response: WebResponse {
+                status: 500,
+                headers: vec![],
+                body: body.into_bytes(),
+            },
+        }
+    }
+}
+
+impl Display for WebError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "WebError(Source: {:?})", self.source)
+    }
+}
+
+/// A Result type for implementing functions. Allows you to use `?` within your function body
+/// to return a 500 with the error details.
+pub type WebResult<T> = Result<T, WebError>;
+
+impl<R> IntoWebResponse for Result<R, WebError>
+where
+    R: IntoWebResponse,
+{
+    fn response(self) -> Response {
+        match self {
+            Ok(r) => r.response(),
+            Err(e) => e.response.response(),
+        }
+    }
+}
+
+impl IntoWebResponse for http::Response {
+    fn response(self) -> Response {
+        Response {
+            status: self.status,
+            headers: self.headers.into_iter().map(Into::into).collect(),
+            body: self.body,
+        }
+    }
+}
+
+/// This represents a response from a web function.
+/// When constructed, it's a 200 response with no headers or body.
+/// You can set the status, headers, and body via [WebResponse::with_status], [WebResponse::with_headers],
+/// and [WebResponse::with_body] respectfully.
+#[derive(Debug)]
+pub struct WebResponse {
+    status: u16,
+    headers: Vec<(String, String)>,
+    body: Vec<u8>,
+}
+
+impl Default for WebResponse {
+    fn default() -> Self {
+        Self {
+            status: 200,
+            headers: vec![],
+            body: vec![],
+        }
+    }
+}
+
+impl WebResponse {
+    /// Creates a new default response.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the response status.
+    pub fn with_status(mut self, status: u16) -> Self {
+        self.status = status;
         self
     }
 
-    /// Set the headers of the response
-    pub fn headers(mut self, headers: Vec<(String, String)>) -> Self {
-        self.headers = Some(headers);
+    /// Adds a header to the response.
+    pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers.push((key.into(), value.into()));
         self
     }
 
-    /// Set the payload of the response
-    pub fn payload(mut self, payload: impl Encode) -> FunctionResult<Self> {
-        let payload = payload.try_serialize()?.into();
-        if !payload.is_empty() {
-            self.payload = Some(payload);
-        } else {
-            self.payload = None;
-        }
+    /// Overrides the collection of headers for the response.
+    pub fn with_headers(mut self, headers: Vec<(String, String)>) -> Self {
+        self.headers = headers;
+        self
+    }
 
+    /// Sets the response body. If encoding the body fails, returns an error.
+    pub fn with_body<E: Encode>(mut self, body: E) -> Result<Self, E::Error> {
+        let body = body.try_serialize().map(Into::into)?;
+        self.body = body;
         Ok(self)
     }
 }
 
-impl WebResponse for WebResponseBuilder {
-    fn get_status_code(&self) -> u16 {
-        self.status_code
-    }
-
-    fn take_headers(&mut self) -> Vec<(String, String)> {
-        self.headers.take().unwrap_or_default()
-    }
-
-    fn take_payload(self) -> impl Encode {
-        self.payload.unwrap_or_default()
+impl IntoWebResponse for WebResponse {
+    fn response(self) -> Response {
+        Response {
+            status: self.status,
+            headers: self.headers.into_iter().map(Into::into).collect(),
+            body: self.body,
+        }
     }
 }

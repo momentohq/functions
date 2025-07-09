@@ -4,6 +4,4 @@ struct Request {
 }
 
 momento_functions::spawn!(spawned, Request);
-fn spawned(_payload: Request) -> FunctionResult<()> {
-    Ok(())
-}
+fn spawned(_payload: Request) {}

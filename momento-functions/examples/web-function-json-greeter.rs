@@ -1,5 +1,5 @@
+use momento_functions::WebResponse;
 use momento_functions_host::encoding::Json;
-use std::error::Error;
 
 #[derive(serde::Deserialize)]
 struct Request {
@@ -12,8 +12,9 @@ struct Response {
 }
 
 momento_functions::post!(greet);
-fn greet(Json(request): Json<Request>) -> Result<Json<Response>, Box<dyn Error>> {
-    Ok(Json(Response {
+fn greet(Json(request): Json<Request>) -> WebResponse {
+    Json(Response {
         message: format!("Hello, {}!", request.name),
-    }))
+    })
+    .into()
 }

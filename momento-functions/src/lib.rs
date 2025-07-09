@@ -13,5 +13,7 @@ mod macros;
 mod response;
 
 pub use macros::post_template;
+pub use response::IntoWebResponse;
+pub use response::WebError;
 pub use response::WebResponse;
-pub use response::WebResponseBuilder;
+pub use response::WebResult;

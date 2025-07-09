@@ -1,9 +1,8 @@
 use log::LevelFilter;
-use momento_functions::{WebResponse, WebResponseBuilder};
+use momento_functions::{WebResponse, WebResult};
 use momento_functions_host::{encoding::Json, web_extensions::headers};
 use momento_functions_log::LogMode;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 
 #[derive(Deserialize, Debug)]
 struct Request {
@@ -21,19 +20,17 @@ struct EmbeddingData {
 }
 
 momento_functions::post!(get_document_embeddings);
-fn get_document_embeddings(Json(body): Json<Request>) -> Result<impl WebResponse, Box<dyn Error>> {
+fn get_document_embeddings(Json(body): Json<Request>) -> WebResult<WebResponse> {
     let headers = headers();
     setup_logging(&headers)?;
 
     let Request { documents } = body;
     let data = get_embeddings(documents)?;
 
-    Ok(WebResponseBuilder::new()
-        .status_code(200)
-        .payload(Json(data))?)
+    Ok(WebResponse::new().with_status(200).with_body(Json(data))?)
 }
 
-fn get_embeddings(mut documents: Vec<String>) -> Result<Vec<EmbeddingData>, Box<dyn Error>> {
+fn get_embeddings(mut documents: Vec<String>) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for document with content: {documents:?}");
     for document in &mut documents {
         if document.contains("\n") {
@@ -70,7 +67,7 @@ fn get_embeddings(mut documents: Vec<String>) -> Result<Vec<EmbeddingData>, Box<
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> Result<(), Box<dyn Error>> {
+fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
     let log_level = headers.iter().find_map(|(name, value)| {
         if name == "x-momento-log" {
             Some(value)

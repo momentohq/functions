@@ -8,12 +8,11 @@
 
 use itertools::Itertools;
 use log::LevelFilter;
-use momento_functions::{WebResponse, WebResponseBuilder};
+use momento_functions::{WebResponse, WebResult};
 use momento_functions_host::{encoding::Json, web_extensions::headers};
 use momento_functions_log::LogMode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::error::Error;
 
 /// Just like the `fine-foods-embeddings` example, but with
 /// the embedding included.
@@ -34,9 +33,7 @@ struct Document {
 }
 
 momento_functions::post!(index_document);
-fn index_document(
-    Json(documents): Json<Vec<Document>>,
-) -> Result<impl WebResponse, Box<dyn Error>> {
+fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse> {
     let headers = headers();
     setup_logging(&headers)?;
 
@@ -44,9 +41,9 @@ fn index_document(
         Some(doc) => doc.vector.len(),
         None => {
             log::warn!("No documents provided for indexing.");
-            return Ok(WebResponseBuilder::new()
-                .status_code(400)
-                .payload("No documents provided")?);
+            return Ok(WebResponse::new()
+                .with_status(400)
+                .with_body("No documents provided")?);
         }
     };
     log::debug!(
@@ -84,23 +81,23 @@ fn index_document(
                         "Failed to index documents: {}",
                         String::from_utf8(response.body).unwrap_or_default(),
                     );
-                    return Ok(WebResponseBuilder::new()
-                        .status_code(response.status)
-                        .payload(json!({
+                    return Ok(WebResponse::new().with_status(response.status).with_body(
+                        json!({
                             "message": message,
-                        }))?);
+                        }),
+                    )?);
                 }
             }
             Err(e) => {
                 log::error!("Failed to index documents: {e:?}");
-                return Ok(WebResponseBuilder::new().status_code(500).payload(json!({
+                return Ok(WebResponse::new().with_status(500).with_body(json!({
                     "message": e.to_string(),
                 }))?);
             }
         }
     }
 
-    Ok(WebResponseBuilder::new().status_code(200).payload(json!({
+    Ok(WebResponse::new().with_status(200).with_body(json!({
         "message": "Documents indexed successfully",
     }))?)
 }
@@ -109,7 +106,7 @@ fn index_document(
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> Result<(), Box<dyn Error>> {
+fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
     let log_level = headers.iter().find_map(|(name, value)| {
         if name == "x-momento-log" {
             Some(value)

@@ -1,6 +1,6 @@
-use std::error::Error;
+use momento_functions::WebResponse;
 
 momento_functions::post!(ping);
-fn ping(_payload: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
-    Ok(b"pong".to_vec())
+fn ping(_payload: Vec<u8>) -> WebResponse {
+    "pong".into()
 }

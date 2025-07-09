@@ -1,5 +1,5 @@
 use log::LevelFilter;
-use momento_functions::{WebResponse, WebResult};
+use momento_functions::WebResult;
 use momento_functions_host::encoding::Json;
 use momento_functions_log::LogMode;
 
@@ -14,7 +14,7 @@ struct Response {
 }
 
 momento_functions::post!(greet);
-fn greet(Json(request): Json<Request>) -> WebResult<WebResponse> {
+fn greet(Json(request): Json<Request>) -> WebResult<Json<Response>> {
     momento_functions_log::configure_logging(
         LevelFilter::Info,
         LogMode::Topic {
@@ -26,6 +26,5 @@ fn greet(Json(request): Json<Request>) -> WebResult<WebResponse> {
 
     Ok(Json(Response {
         message: format!("Hello, {}!", request.name),
-    })
-    .into())
+    }))
 }

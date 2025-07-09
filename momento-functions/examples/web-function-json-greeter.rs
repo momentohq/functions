@@ -1,4 +1,3 @@
-use momento_functions::WebResponse;
 use momento_functions_host::encoding::Json;
 
 #[derive(serde::Deserialize)]
@@ -12,9 +11,8 @@ struct Response {
 }
 
 momento_functions::post!(greet);
-fn greet(Json(request): Json<Request>) -> WebResponse {
+fn greet(Json(request): Json<Request>) -> Json<Response> {
     Json(Response {
         message: format!("Hello, {}!", request.name),
     })
-    .into()
 }

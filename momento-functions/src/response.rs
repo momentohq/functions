@@ -142,14 +142,3 @@ impl IntoWebResponse for WebResponse {
         }
     }
 }
-
-impl<E: Encode> From<E> for WebResponse {
-    fn from(value: E) -> Self {
-        WebResponse::default().with_body(value).unwrap_or_else(|e| {
-            WebResponse::default()
-                .with_status(500)
-                .with_body(format!("Failed to encode response body: {e}"))
-                .expect("String encoding is infallible")
-        })
-    }
-}

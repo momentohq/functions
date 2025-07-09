@@ -9,6 +9,7 @@
 //! You are likely to be interested in the sibling crates:
 //! * [`momento-functions-host`](https://crates.io/crates/momento-functions-host): Interfaces and tools for calling host interfaces.
 //! * [`momento-functions-log`](https://crates.io/crates/momento-functions-log): Standard `log` adapter.
+mod encode_response_bridge;
 mod macros;
 mod response;
 

@@ -12,7 +12,7 @@ use crate::response::IntoWebResponse;
 ///
 /// Your implementation function must return a value which implements the [IntoWebResponse] trait.
 ///
-/// Provided implementations are [WebResponse] and [WebResult<WebResponse>], though you may also implement your own.
+/// Provided implementations are [WebResponse] and [WebResult<impl IntoWebResponse>], though you may also implement your own.
 ///
 /// Any type which implements [Encode] will automatically have an implementation for being converted [Into] a [WebResponse].
 ///

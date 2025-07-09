@@ -54,6 +54,8 @@ impl Display for WebError {
     }
 }
 
+/// A Result type for implementing functions. Allows you to use `?` within your function body
+/// to return a 500 with the error details.
 pub type WebResult<T> = Result<T, WebError>;
 
 impl<R> IntoWebResponse for Result<R, WebError>
@@ -79,6 +81,9 @@ impl IntoWebResponse for http::Response {
 }
 
 /// This represents a response from a web function.
+/// When constructed, it's a 200 response with no headers or body.
+/// You can set the status, headers, and body via [WebResponse::with_status], [WebResponse::with_headers],
+/// and [WebResponse::with_body] respectfully.
 #[derive(Debug)]
 pub struct WebResponse {
     status: u16,
@@ -97,25 +102,30 @@ impl Default for WebResponse {
 }
 
 impl WebResponse {
+    /// Creates a new default response.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets the response status.
     pub fn with_status(mut self, status: u16) -> Self {
         self.status = status;
         self
     }
 
+    /// Adds a header to the response.
     pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.push((key.into(), value.into()));
         self
     }
 
+    /// Overrides the collection of headers for the response.
     pub fn with_headers(mut self, headers: Vec<(String, String)>) -> Self {
         self.headers = headers;
         self
     }
 
+    /// Sets the response body. If encoding the body fails, returns an error.
     pub fn with_body<E: Encode>(mut self, body: E) -> Result<Self, E::Error> {
         let body = body.try_serialize().map(Into::into)?;
         self.body = body;

@@ -54,16 +54,20 @@ crate-type = ["cdylib"]
 name = "web-function-json-greeter"
 crate-type = ["cdylib"]
 
-[dependencies]
-momento-functions-host  = { workspace = true }
-momento-functions-wit   = { workspace = true }
+[[example]]
+name = "environment-variables"
+crate-type = ["cdylib"]
 
-serde                   = { workspace = true }
-serde_json              = { workspace = true }
+[dependencies]
+momento-functions-host = { workspace = true }
+momento-functions-wit = { workspace = true }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
-momento-functions-log   = { workspace = true }
+momento-functions-log = { workspace = true }
 
-itertools               = { workspace = true }
-log                     = { workspace = true }
-sha2                    = { workspace = true }
+itertools = { workspace = true }
+log = { workspace = true }
+sha2 = { workspace = true }

@@ -42,6 +42,18 @@ struct EmbeddingData {
     index: usize,
 }
 
+#[derive(Deserialize, Debug)]
+struct QueryResponse {
+    rows: Vec<QueryRow>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct QueryRow {
+    #[serde(alias = "$dist")]
+    dist: f32,
+    id: String,
+}
+
 // Default to 30 second caching time for queries in Momento
 const DEFAULT_TTL_SECONDS: u64 = 30;
 
@@ -88,7 +100,7 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
     );
     log::debug!("Turbopuffer response: {result:?}");
     match result {
-        Ok(response) => {
+        Ok(mut response) => {
             if response.status != 200 {
                 let message = format!(
                     "Failed to search documents: {}",
@@ -100,9 +112,16 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
                         "message": message,
                     }))?);
             }
+            // Just get the data we care about, no need to report back Turbopuffer timings/billing info
+            let Json(QueryResponse { rows }) = response.extract()?;
+            let response_body = serde_json::to_vec(&rows)?;
             Ok(WebResponse::new()
                 .with_status(200)
-                .with_body(Json(response))?)
+                .with_headers(vec![(
+                    "Content-Type".to_string(),
+                    "application/json".to_string(),
+                )])
+                .with_body(response_body)?)
         }
         Err(e) => {
             log::error!("Failed to search documents: {e:?}");

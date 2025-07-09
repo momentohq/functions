@@ -11,24 +11,30 @@ use crate::response::IntoWebResponse;
 /// and perform extraction yourself.
 ///
 /// Your implementation function must return a value which implements the [IntoWebResponse] trait.
+/// Implementations of this trait are provided for
+/// - [WebResponse]: A basic response representation and builder
+/// - `WebResult<impl IntoWebResponse>`: Allows you to return results where errors will be converted
+///   to 500 responses.
+/// - [()]: Results in an empty 204.
+/// - [String] and [&str]: Results in a 200 with the string body.
+/// - `Vec<u8>` and `&[u8]`: Results in a 200 with the binary body.
+/// - [Json]: Results in a 200 with the Json body, or a 500 if the Json could not be serialized.
 ///
-/// Provided implementations are [WebResponse] and [WebResult<impl IntoWebResponse>], though you may also implement your own.
+/// You may also implement [IntoWebResponse] for your own types.
 ///
-/// Any type which implements [Encode] will automatically have an implementation for being converted [Into] a [WebResponse].
-///
-/// **Raw:**
+/// **Raw Bytes Input:**
 /// ```rust
 /// use std::error::Error;///
 ///
 /// use momento_functions::WebResponse;
 ///
 /// momento_functions::post!(ping);
-/// fn ping(payload: Vec<u8>) -> WebResponse {
-///     "pong".into()
+/// fn ping(payload: Vec<u8>) -> &'static str {
+///     "pong"
 /// }
 /// ```
 ///
-/// **Typed JSON:**
+/// **Typed JSON Input:**
 /// ```rust
 /// use std::error::Error;
 /// use momento_functions::WebResponse;
@@ -44,8 +50,8 @@ use crate::response::IntoWebResponse;
 /// }
 ///
 /// momento_functions::post!(greet);
-/// fn greet(Json(request): Json<Request>) -> WebResponse {
-///     Json(Response { message: format!("Hello, {}!", request.name) }).into()
+/// fn greet(Json(request): Json<Request>) -> Json<Response> {
+///     Json(Response { message: format!("Hello, {}!", request.name) })
 /// }
 /// ```
 #[macro_export]

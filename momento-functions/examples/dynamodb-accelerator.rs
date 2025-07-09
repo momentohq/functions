@@ -20,13 +20,13 @@ fn accelerate_get_item(body: Vec<u8>) -> WebResult<WebResponse> {
     // The target header comes from the AWS SDK and is the api call being made.
     let action = match require_header("X-Amz-Target", &headers) {
         Ok(value) => value,
-        Err(value) => return Ok(value?),
+        Err(value) => return value,
     };
     // The x-uri header is the custom header we added to the request _after it was signed_,
     // as we changed the request's target uri to _this Function_.
     let proxy_uri = match require_header("x-uri", &headers) {
         Ok(value) => value,
-        Err(value) => return Ok(value?),
+        Err(value) => return value,
     };
 
     let http::Response {

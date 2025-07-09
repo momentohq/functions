@@ -44,7 +44,7 @@ fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
     let redis = RedisClient::new(CONNECTION_STRING);
     if let Err(e) = ensure_index_exists(dimensions, &redis) {
         log::error!("Failed to ensure index exists: {e:?}");
-        return Ok(e?);
+        return e;
     }
 
     let length = documents.len();

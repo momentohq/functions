@@ -35,6 +35,10 @@ name = "turbopuffer-index"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "turbopuffer-search"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "valkey-vector-embeddings"
 crate-type = ["cdylib"]
 

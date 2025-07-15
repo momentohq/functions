@@ -189,8 +189,7 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
     let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
 
     log::debug!(
-        "querying turbopuffer with (topk={topk}), (include_attributes={:?})",
-        include_attributes
+        "querying turbopuffer with (topk={topk}), (include_attributes={include_attributes:?})",
     );
     let result = momento_functions_host::http::post(
         turbopuffer_endpoint,
@@ -226,7 +225,7 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
             }
             let raw = String::from_utf8(response.body.clone()).unwrap_or_default();
             // You can set this to debug if you'd like to see what Turbopuffer is sending back
-            log::trace!("Turbopuffer response body: {:?}", raw);
+            log::trace!("Turbopuffer response body: {raw:?}");
             // Just get the data we care about, no need to report back Turbopuffer timings/billing info
             let Json(QueryResponse { rows }) = response.extract()?;
             let response_body = serde_json::to_vec(&rows)?;

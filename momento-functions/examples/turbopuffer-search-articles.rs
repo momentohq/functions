@@ -189,7 +189,8 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
     let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
 
     log::debug!(
-        "querying turbopuffer with (topk={topk}), (include_attributes={include_attributes:?})",
+        "querying turbopuffer with (topk={topk}), (include_attributes={:?})",
+        include_attributes
     );
     let result = momento_functions_host::http::post(
         turbopuffer_endpoint,
@@ -211,11 +212,7 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
     );
     match result {
         Ok(mut response) => {
-            log::debug!(
-                "Turbopuffer response: {} - {:?}",
-                response.status,
-                response.headers
-            );
+            log::debug!("Turbopuffer response: {:?}", response.headers);
             if response.status != 200 {
                 let message = format!(
                     "Failed to search documents: {}",
@@ -229,7 +226,7 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
             }
             let raw = String::from_utf8(response.body.clone()).unwrap_or_default();
             // You can set this to debug if you'd like to see what Turbopuffer is sending back
-            log::trace!("Turbopuffer response body: {raw:?}");
+            log::trace!("Turbopuffer response body: {:?}", raw);
             // Just get the data we care about, no need to report back Turbopuffer timings/billing info
             let Json(QueryResponse { rows }) = response.extract()?;
             let response_body = serde_json::to_vec(&rows)?;
@@ -297,6 +294,13 @@ fn get_cached_query_embedding(query: String) -> WebResult<Vec<f32>> {
 
 fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for document with content: {query:?}");
+    let query = if query.contains("\n") {
+        // openai guide currently says to replace newlines with spaces. This, then, must be how you get the cargo to come.
+        // https://platform.openai.com/docs/guides/embeddings
+        query.replace("\n", " ")
+    } else {
+        query
+    };
 
     // Required to be set as an environment variable when creating the function
     let openapi_key = std::env::var("OPENAI_KEY").unwrap_or_default();
@@ -315,11 +319,7 @@ fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
         .to_string(),
     );
     let mut response = result?;
-    log::debug!(
-        "OpenAI response: {} - {:?}",
-        response.status,
-        response.headers
-    );
+    log::debug!("OpenAI response: {:?}", response.headers);
     let Json(EmbeddingResponse { mut data }) = response.extract()?;
     data.sort_by_key(|d| d.index);
     log::trace!("OpenAI extracted data: {data:?}");

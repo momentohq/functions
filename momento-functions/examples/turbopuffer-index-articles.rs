@@ -169,7 +169,8 @@ fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRes
             )?;
             turbopuffer_inputs.push(document.into_turbopuffer_document(embedding));
         }
-        log::debug!("sending to turbopuffer: {}", json!(turbopuffer_inputs));
+        // Set to debug if you need to see what is being sent
+        log::trace!("sending to turbopuffer: {}", json!(turbopuffer_inputs));
         // Send off our transformed data to Turbopuffer, complete with embeddings
         let result = momento_functions_host::http::post(
             turbopuffer_endpoint.clone(),

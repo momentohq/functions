@@ -142,7 +142,7 @@ fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRes
     let openai_key = std::env::var("OPENAI_KEY").unwrap_or_default();
 
     // When embedding lots of text (like we are doing here), we should split this up into a small chunk size
-    // so we remian within OpenAI's limits. 100 is a sweet spot between throughput and speed.
+    // so we remain within OpenAI's limits. 100 is a sweet spot between throughput and speed.
     let chunks = documents.into_iter().chunks(100);
     for chunk in chunks.into_iter() {
         let chunk: Vec<DocumentInput> = chunk.collect();

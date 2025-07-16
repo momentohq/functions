@@ -141,7 +141,9 @@ fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRes
     let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
     let openai_key = std::env::var("OPENAI_KEY").unwrap_or_default();
 
-    let chunks = documents.into_iter().chunks(2000);
+    // When embedding lots of text (like we are doing here), we should split this up into a small chunk size
+    // so we remian within OpenAI's limits. 100 is a sweet spot between throughput and speed.
+    let chunks = documents.into_iter().chunks(100);
     for chunk in chunks.into_iter() {
         let chunk: Vec<DocumentInput> = chunk.collect();
         let page_contents = chunk
@@ -178,7 +180,11 @@ fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRes
         );
         match result {
             Ok(response) => {
-                log::debug!("turbopuffer response: {:?}", response.headers);
+                log::debug!(
+                    "turbopuffer response: {} - {:?}",
+                    response.status,
+                    response.headers
+                );
                 if response.status != 200 {
                     let message = format!(
                         "Failed to index documents: {}",
@@ -237,7 +243,18 @@ fn get_embeddings(mut documents: Vec<String>, openai_key: String) -> WebResult<V
         .to_string(),
     );
     let mut response = result?;
-    log::debug!("OpenAI response: {:?}", response.headers);
+    log::debug!(
+        "OpenAI response: {} - {:?}",
+        response.status,
+        response.headers
+    );
+    if response.status != 200 {
+        let message = format!(
+            "Failed to get embeddings for input: {}",
+            String::from_utf8(response.body.clone()).unwrap_or_default()
+        );
+        log::error!("{message}");
+    }
     let Json(EmbeddingResponse { mut data }) = response.extract()?;
     data.sort_by_key(|d| d.index);
     Ok(data)

@@ -211,7 +211,11 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
     );
     match result {
         Ok(mut response) => {
-            log::debug!("Turbopuffer response: {:?}", response.headers);
+            log::debug!(
+                "Turbopuffer response: {} - {:?}",
+                response.status,
+                response.headers
+            );
             if response.status != 200 {
                 let message = format!(
                     "Failed to search documents: {}",
@@ -318,7 +322,11 @@ fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
         .to_string(),
     );
     let mut response = result?;
-    log::debug!("OpenAI response: {:?}", response.headers);
+    log::debug!(
+        "OpenAI response: {} - {:?}",
+        response.status,
+        response.headers
+    );
     let Json(EmbeddingResponse { mut data }) = response.extract()?;
     data.sort_by_key(|d| d.index);
     log::trace!("OpenAI extracted data: {data:?}");

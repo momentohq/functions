@@ -1,16 +1,12 @@
 //! Using input data from CBS Sports articles, this function will
 //! query OpenAI to generate embeddings for each document, then index it
-//! within Turbopuffer so we can search through it. To make things even faster,
-//! we'll use Momento in-host caching for the embedding queries.
+//! within Turbopuffer so we can search through it.
 //!
 //! You need to provide `OPENAI_KEY`, `TURBOPUFFER_ENDPOINT`, and `TURBOPUFFER_API_KEY`
 //! environment variables when creating this function:
 //! * `OPENAI_KEY`              -> The API key for accessing OpenAI, shoud just be the key itself.
 //! * `TURBOPUFFER_ENDPOINT`    -> The endpoint contains the namespace.
 //! * `TURBOPUFFER_API_KEY`     -> The API key should just be the key itself.
-//!
-//! You can also provide the `TTL_SECONDS` environment variable to override the default
-//! ttl used to store embeddings in your Momento cache.
 //!
 //! To demo this, you can pipe a subset of the data and feed it into a cURL command
 //! to invoke your function:
@@ -45,12 +41,10 @@
 //!   -d @-   
 //! ```
 
-use std::time::Duration;
-
 use itertools::Itertools;
 use log::LevelFilter;
-use momento_functions::{WebError, WebResponse, WebResult};
-use momento_functions_host::{cache, encoding::Json, web_extensions::headers};
+use momento_functions::{WebResponse, WebResult};
+use momento_functions_host::{encoding::Json, web_extensions::headers};
 use momento_functions_log::LogMode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -93,16 +87,16 @@ struct DocumentInput {
 impl DocumentInput {
     pub fn into_turbopuffer_document(self, vector: Vec<f32>) -> TurbopufferDocument {
         TurbopufferDocument {
-            id: self.id,
-            page_content: self.page_content,
+            id: self.id.clone(),
+            page_content: self.page_content.clone(),
             vector,
             // Flatten out the dimensions
-            metadata_title: self.document_metadata.title,
-            metadata_link: self.document_metadata.link,
-            metadata_authors: self.document_metadata.authors,
-            metadata_language: self.document_metadata.language,
-            metadata_description: self.document_metadata.description,
-            metadata_feed: self.document_metadata.feed,
+            metadata_title: self.document_metadata.title.clone(),
+            metadata_link: self.document_metadata.link.clone(),
+            metadata_authors: self.document_metadata.authors.clone(),
+            metadata_language: self.document_metadata.language.clone(),
+            metadata_description: self.document_metadata.description.clone(),
+            metadata_feed: self.document_metadata.feed.clone(),
         }
     }
 }
@@ -127,8 +121,6 @@ struct TurbopufferDocument {
     metadata_feed: String,
 }
 
-const DEFAULT_TTL_SECONDS: u64 = 30;
-
 momento_functions::post!(index_document);
 fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebResponse> {
     let headers = headers();
@@ -147,27 +139,23 @@ fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRes
         std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
     );
     let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
-    let openapi_key = std::env::var("OPENAI_KEY").unwrap_or_default();
-
-    // Not required, but can be overridden
-    let ttl_seconds = std::env::var("TTL_SECONDS")
-        .unwrap_or_default()
-        .parse::<u64>()
-        .unwrap_or(DEFAULT_TTL_SECONDS);
+    let openai_key = std::env::var("OPENAI_KEY").unwrap_or_default();
 
     let chunks = documents.into_iter().chunks(2000);
     for chunk in chunks.into_iter() {
         let chunk: Vec<DocumentInput> = chunk.collect();
-        // Queries OpenAI to generate an embedding for this document so we can ship it off to Turbopuffer
+        let page_contents = chunk
+            .iter()
+            .map(|document| document.page_content.clone())
+            .collect();
+        // Queries OpenAI to generate an embedding for these documents so we can ship them off to Turbopuffer
+        let embedding_data = get_embeddings(page_contents, openai_key.clone())?;
+
         let mut turbopuffer_inputs = Vec::new();
-        for document in chunk {
-            log::debug!("getting embedding for id {}", document.id);
-            let embedding = get_cached_query_embedding(
-                document.page_content.clone(),
-                ttl_seconds,
-                openapi_key.clone(),
-            )?;
-            turbopuffer_inputs.push(document.into_turbopuffer_document(embedding));
+        // The response from OpenAI is sorted by index, so we can safely zip together the responses
+        // to reconstruct the embeddings for our documents
+        for (document, embedding) in chunk.into_iter().zip(embedding_data) {
+            turbopuffer_inputs.push(document.into_turbopuffer_document(embedding.embedding));
         }
         // Set to debug if you need to see what is being sent
         log::trace!("sending to turbopuffer: {}", json!(turbopuffer_inputs));
@@ -220,71 +208,19 @@ fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRes
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn get_cached_query_embedding(
-    query: String,
-    ttl_seconds: u64,
-    openai_key: String,
-) -> WebResult<Vec<f32>> {
-    log::debug!("Checking if embeddings are already cached for input");
-    Ok(match cache::get::<Vec<u8>>(query.clone())? {
-        Some(hit) => {
-            log::debug!("cache hit");
-            // Convert raw bytes back into our Vec<f32> type
-            hit.chunks_exact(4)
-                .map(|chunk| {
-                    let arr = <[u8; 4]>::try_from(chunk)
-                        .map_err(|_| WebError::message("Chunk length should be 4"))?;
-                    Ok(f32::from_le_bytes(arr))
-                })
-                .collect::<Result<Vec<f32>, WebError>>()?
-        }
-        None => {
-            log::debug!("cache miss, querying embeddings from open ai");
-            match get_embeddings(query.clone(), openai_key)?
-                .into_iter()
-                .next()
-            {
-                Some(embedding) => {
-                    // Convert to raw bytes before storing in cache
-                    let new_query_embedding = embedding
-                        .embedding
-                        .clone()
-                        .into_iter()
-                        .flat_map(f32::to_le_bytes)
-                        .collect::<Vec<u8>>();
-                    log::debug!("setting embeddings in cache");
-                    cache::set(
-                        query,
-                        new_query_embedding.clone(),
-                        Duration::from_secs(ttl_seconds),
-                    )?;
-                    embedding.embedding
-                }
-                None => {
-                    log::error!("Failed to get embedding for query: {query}");
-                    return Err(WebError::message("Failed to get embedding for query"));
-                }
-            }
-        }
-    })
-}
-
-fn get_embeddings(query: String, openai_key: String) -> WebResult<Vec<EmbeddingData>> {
+fn get_embeddings(mut documents: Vec<String>, openai_key: String) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for input");
-    let query = if query.contains("\n") {
-        // openai guide currently says to replace newlines with spaces. This, then, must be how you get the cargo to come.
-        // https://platform.openai.com/docs/guides/embeddings
-        query.replace("\n", " ")
-    } else {
-        query
-    };
-
-    // openai will fail to generate an embedding if no content is provided
-    let query = if query.is_empty() {
-        "no content".to_string()
-    } else {
-        query
-    };
+    for document in &mut documents {
+        if document.contains("\n") {
+            // openai guide currently says to replace newlines with spaces. This, then, must be how you get the cargo to come.
+            // https://platform.openai.com/docs/guides/embeddings
+            *document = document.replace("\n", " ");
+        }
+        if document.is_empty() {
+            // openai will fail to generate an embedding if no content is provided
+            *document = "no_content".to_string();
+        }
+    }
 
     let result = momento_functions_host::http::post(
         "https://api.openai.com/v1/embeddings",
@@ -296,7 +232,7 @@ fn get_embeddings(query: String, openai_key: String) -> WebResult<Vec<EmbeddingD
         serde_json::json!({
             "model": "text-embedding-3-small",
             "encoding_format": "float",
-            "input": [query],
+            "input": documents,
         })
         .to_string(),
     );

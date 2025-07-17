@@ -39,6 +39,10 @@ name = "turbopuffer-index-articles"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "turbopuffer-recommended-articles"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "turbopuffer-search"
 crate-type = ["cdylib"]
 

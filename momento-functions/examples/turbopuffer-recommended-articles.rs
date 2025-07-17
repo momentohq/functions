@@ -334,7 +334,7 @@ fn get_similar_articles_from_turbopuffer(
 
 /// For this demo (and to keep the compiled WASM small), we're going to use our own
 /// implementation for calculating the mean vector. We can speed up a lot of the calculations
-/// using a little bit of loop  
+/// using a little bit of loop optimization
 fn mean_vector(vectors: &[Vec<f32>]) -> Option<Vec<f32>> {
     let total_vectors = vectors.len();
     if total_vectors == 0 {
@@ -346,7 +346,7 @@ fn mean_vector(vectors: &[Vec<f32>]) -> Option<Vec<f32>> {
     let mut result = vec![0.0f32; dimension_size];
 
     for v in vectors {
-        // Better than returning an error, we'll just return None for now
+        // Better than panicking, we'll just return None for now
         if v.len() != dimension_size {
             log::error!(
                 "Failed to calculate mean vector! Expected a vector with dimension size {dimension_size} but was {}",
@@ -398,7 +398,9 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
 // ---------------------------------------------------------------------------
 
 // Recursive struct without any validation, Turbopuffer will let you know
-// if the filter is invalid.
+// if the filter is invalid. Although these are largely uncessary, we've provded this
+// here for more filter building/allowing for filter overrides via request parameters
+// if you so choose.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Filter {

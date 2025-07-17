@@ -43,11 +43,15 @@
 
 use itertools::Itertools;
 use log::LevelFilter;
-use momento_functions::{WebResponse, WebResult};
+use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{encoding::Json, web_extensions::headers};
 use momento_functions_log::LogMode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+
+const OPENAI_URL: &str = "https://api.openai.com/v1/embeddings";
+// 1536 float32 for text-embedding-3-small
+const EMBEDDING_MODEL: &str = "text-embedding-3-small";
 
 #[derive(Deserialize, Debug)]
 struct EmbeddingResponse {
@@ -121,8 +125,8 @@ struct TurbopufferDocument {
     metadata_feed: String,
 }
 
-momento_functions::post!(index_document);
-fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebResponse> {
+momento_functions::post!(index_documents);
+fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebResponse> {
     let headers = headers();
     setup_logging(&headers)?;
 
@@ -159,51 +163,12 @@ fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRes
         for (document, embedding) in chunk.into_iter().zip(embedding_data) {
             turbopuffer_inputs.push(document.into_turbopuffer_document(embedding.embedding));
         }
-        // Set to debug if you need to see what is being sent
-        log::trace!("sending to turbopuffer: {}", json!(turbopuffer_inputs));
-        // Send off our transformed data to Turbopuffer, complete with embeddings
-        let result = momento_functions_host::http::post(
-            turbopuffer_endpoint.clone(),
-            [
-                ("Authorization".to_string(), turbopuffer_api_key.clone()),
-                ("Content-Type".to_string(), "application/json".to_string()),
-                ("Accept".to_string(), "*/*".to_string()),
-                (
-                    "User-Agent".to_string(),
-                    "momento-turbobuffer-example".to_string(),
-                ),
-            ],
-            json!({
-                "upsert_rows": turbopuffer_inputs,
-                "distance_metric": "cosine_distance",
-            }),
-        );
-        match result {
-            Ok(response) => {
-                log::debug!(
-                    "turbopuffer response: {} - {:?}",
-                    response.status,
-                    response.headers
-                );
-                if response.status != 200 {
-                    let message = format!(
-                        "Failed to index documents: {}",
-                        String::from_utf8(response.body).unwrap_or_default(),
-                    );
-                    return Ok(WebResponse::new().with_status(response.status).with_body(
-                        json!({
-                            "message": message,
-                        }),
-                    )?);
-                }
-            }
-            Err(e) => {
-                log::error!("Failed to index documents: {e:?}");
-                return Ok(WebResponse::new().with_status(500).with_body(json!({
-                    "message": e.to_string(),
-                }))?);
-            }
-        }
+
+        index_documents_in_turbopuffer(
+            turbopuffer_inputs,
+            &turbopuffer_endpoint,
+            &turbopuffer_api_key,
+        )?;
     }
     Ok(WebResponse::new().with_status(200).with_body(json!({
         "message": "Documents indexed successfully",
@@ -214,12 +179,57 @@ fn index_document(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRes
 // | Utility functions for convenience
 // ------------------------------------------------------
 
+fn index_documents_in_turbopuffer(
+    turbopuffer_inputs: Vec<TurbopufferDocument>,
+    turbopuffer_endpoint: &str,
+    turbopuffer_api_key: &str,
+) -> WebResult<()> {
+    // Set to debug if you need to see what is being sent
+    log::trace!("sending to turbopuffer: {}", json!(turbopuffer_inputs));
+    // Send off our transformed data to Turbopuffer, complete with embeddings
+    let result = momento_functions_host::http::post(
+        turbopuffer_endpoint.to_owned(),
+        [
+            ("Authorization".to_string(), turbopuffer_api_key.to_owned()),
+            ("Content-Type".to_string(), "application/json".to_string()),
+            ("Accept".to_string(), "*/*".to_string()),
+            (
+                "User-Agent".to_string(),
+                "momento-turbobuffer-example".to_string(),
+            ),
+        ],
+        json!({
+            "upsert_rows": turbopuffer_inputs,
+            "distance_metric": "cosine_distance",
+        }),
+    );
+    match result {
+        Ok(response) => {
+            log::debug!(
+                "turbopuffer response: {} - {:?}",
+                response.status,
+                response.headers
+            );
+            if response.status != 200 {
+                let message = format!(
+                    "Failed to index documents: {}",
+                    String::from_utf8(response.body).unwrap_or_default(),
+                );
+                return Err(WebError::message(message));
+            }
+        }
+        Err(e) => {
+            log::error!("Failed to index documents: {e:?}");
+            return Err(WebError::message(e.to_string()));
+        }
+    }
+    Ok(())
+}
+
 fn get_embeddings(mut documents: Vec<String>, openai_key: String) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for input");
     for document in &mut documents {
         if document.contains("\n") {
-            // openai guide currently says to replace newlines with spaces. This, then, must be how you get the cargo to come.
-            // https://platform.openai.com/docs/guides/embeddings
             *document = document.replace("\n", " ");
         }
         if document.is_empty() {
@@ -229,14 +239,13 @@ fn get_embeddings(mut documents: Vec<String>, openai_key: String) -> WebResult<V
     }
 
     let result = momento_functions_host::http::post(
-        "https://api.openai.com/v1/embeddings",
+        OPENAI_URL,
         [
             ("authorization".to_string(), format!("Bearer {openai_key}")),
             ("content-type".to_string(), "application/json".to_string()),
         ],
-        // 1536 float32 for text-embedding-3-small
         serde_json::json!({
-            "model": "text-embedding-3-small",
+            "model": EMBEDDING_MODEL,
             "encoding_format": "float",
             "input": documents,
         })

@@ -148,7 +148,7 @@ fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRe
     } else {
         turbopuffer_endpoint
     };
-    let OPENAI_API_KEY = std::env::var("OPENAI_API_KEY").unwrap_or_default();
+    let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
 
     // When embedding lots of text (like we are doing here), we should split this up into a small chunk size
     // so we remain within OpenAI's limits. 100 is a sweet spot between throughput and speed.
@@ -160,7 +160,7 @@ fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRe
             .map(|document| document.page_content.clone())
             .collect();
         // Queries OpenAI to generate an embedding for these documents so we can ship them off to Turbopuffer
-        let embedding_data = get_embeddings(page_contents, OPENAI_API_KEY.clone())?;
+        let embedding_data = get_embeddings(page_contents, openai_api_key.clone())?;
 
         let mut turbopuffer_inputs = Vec::new();
         // The response from OpenAI is sorted by index, so we can safely zip together the responses
@@ -231,7 +231,10 @@ fn index_documents_in_turbopuffer(
     Ok(())
 }
 
-fn get_embeddings(mut documents: Vec<String>, OPENAI_API_KEY: String) -> WebResult<Vec<EmbeddingData>> {
+fn get_embeddings(
+    mut documents: Vec<String>,
+    openai_api_key: String,
+) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for input");
     for document in &mut documents {
         if document.contains("\n") {
@@ -246,7 +249,10 @@ fn get_embeddings(mut documents: Vec<String>, OPENAI_API_KEY: String) -> WebResu
     let result = momento_functions_host::http::post(
         OPENAI_URL,
         [
-            ("authorization".to_string(), format!("Bearer {OPENAI_API_KEY}")),
+            (
+                "authorization".to_string(),
+                format!("Bearer {openai_api_key}"),
+            ),
             ("content-type".to_string(), "application/json".to_string()),
         ],
         serde_json::json!({

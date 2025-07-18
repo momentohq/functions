@@ -154,9 +154,10 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
     // Calculate the mean vector from our Vector of Vectors
     let mean_vector = match mean_vector(&embeddings) {
         Some(result) => result,
-        None => return Ok(WebResponse::new().with_status(500).with_body(json!({
-            "message": "Failed to calculate mean vector of embeddings, this is a bug!".to_string(),
-        }))?),
+        None => {
+            // We know which model we are using, so we can return an empty Vec of size 1536 initialized to 0.
+            vec![0.0f32; 1536]
+        }
     };
 
     // We have our mean vector, now query Turbopuffer to find similar articles close to our mean vector,

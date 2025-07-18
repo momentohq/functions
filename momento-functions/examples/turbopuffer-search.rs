@@ -1,7 +1,7 @@
 //! Using the embeddings from the fine-foods-embeddings example, this
 //! example performs a nearest-neighbor query through the documents in the Turbopuffer namespace.
 //!
-//! You need to provide `OPENAI_KEY`, `TURBOPUFFER_ENDPOINT` and `TURBOPUFFER_API_KEY`
+//! You need to provide `OPENAI_API_KEY`, `TURBOPUFFER_ENDPOINT` and `TURBOPUFFER_API_KEY`
 //! environment variables upon creating the function. If you'd like to store queries for longer,
 //! pass along the `TTL` environment variable upon creating the function.
 //!
@@ -188,7 +188,7 @@ fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
     };
 
     // Required to be set as an environment variable when creating the function
-    let openapi_key = std::env::var("OPENAI_KEY").unwrap_or_default();
+    let openapi_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
     let result = momento_functions_host::http::post(
         "https://api.openai.com/v1/embeddings",
         [

@@ -30,7 +30,7 @@
 //!   --cache-name "$MOMENTO_CACHE_NAME" \
 //!   --name turbopuffer-recommended-articles \
 //!   --wasm-file /path/to/this/compiled/turbopuffer_search_articles.wasm \
-//!   -E OPENAI_KEY="$OPENAI_KEY" \
+//!   -E OPENAI_API_KEY="$OPENAI_API_KEY" \
 //!   -E TURBOPUFFER_ENDPOINT="$TURBOPUFFER_ENDPOINT" \
 //!   -E TURBOPUFFER_API_KEY="$TURBOPUFFER_API_KEY"
 //!

@@ -3,9 +3,9 @@
 //! Turbopuffer namespace using a nearest-neighbor search. To speed things up,
 //! we'll use Momento in-host caching for the embedding queries.
 //!
-//! You need to provide `OPENAI_KEY`, `TURBOPUFFER_ENDPOINT`, and `TURBOPUFFER_API_KEY`
+//! You need to provide `OPENAI_API_KEY`, `TURBOPUFFER_ENDPOINT`, and `TURBOPUFFER_API_KEY`
 //! environment variables when creating this function:
-//! * `OPENAI_KEY`              -> The API key for accessing OpenAI, shoud just be the key itself.
+//! * `OPENAI_API_KEY`              -> The API key for accessing OpenAI, shoud just be the key itself.
 //! * `TURBOPUFFER_ENDPOINT`    -> The endpoint contains the namespace. Ensure it ends with `/query`
 //! * `TURBOPUFFER_API_KEY`     -> The API key should just be the key itself.
 //!
@@ -22,7 +22,7 @@
 //! export MOMENTO_CACHE_NAME=my-functions-cache
 //! export MOMENTO_API_KEY=<your api key>
 //!
-//! export OPENAI_KEY=<openai api key>
+//! export OPENAI_API_KEY=<openai api key>
 //! export TURBOPUFFER_ENDPOINT=<Should be v2 namespace>
 //! export TURBOPUFFER_API_KEY=<turbopuffer api key>
 //!
@@ -34,7 +34,7 @@
 //!   --cache-name "$MOMENTO_CACHE_NAME" \
 //!   --name turbopuffer-search-articles \
 //!   --wasm-file /path/to/this/compiled/turbopuffer_search_articles.wasm \
-//!   -E OPENAI_KEY="$OPENAI_KEY" \
+//!   -E OPENAI_API_KEY="$OPENAI_API_KEY" \
 //!   -E TURBOPUFFER_ENDPOINT="$TURBOPUFFER_ENDPOINT" \
 //!   -E TURBOPUFFER_API_KEY="$TURBOPUFFER_API_KEY"
 //!
@@ -311,7 +311,7 @@ fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
     };
 
     // Required to be set as an environment variable when creating the function
-    let openapi_key = std::env::var("OPENAI_KEY").unwrap_or_default();
+    let openapi_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
     let result = momento_functions_host::http::post(
         "https://api.openai.com/v1/embeddings",
         [

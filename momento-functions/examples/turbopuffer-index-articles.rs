@@ -229,9 +229,6 @@ fn index_documents_in_turbopuffer(
 fn get_embeddings(mut documents: Vec<String>, openai_key: String) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for input");
     for document in &mut documents {
-        if document.contains("\n") {
-            *document = document.replace("\n", " ");
-        }
         if document.is_empty() {
             // openai will fail to generate an embedding if no content is provided
             *document = "no_content".to_string();

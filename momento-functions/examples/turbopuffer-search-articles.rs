@@ -297,13 +297,6 @@ fn get_cached_query_embedding(query: String) -> WebResult<Vec<f32>> {
 
 fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for document with content: {query:?}");
-    let query = if query.contains("\n") {
-        // openai guide currently says to replace newlines with spaces. This, then, must be how you get the cargo to come.
-        // https://platform.openai.com/docs/guides/embeddings
-        query.replace("\n", " ")
-    } else {
-        query
-    };
 
     // Required to be set as an environment variable when creating the function
     let openapi_key = std::env::var("OPENAI_KEY").unwrap_or_default();

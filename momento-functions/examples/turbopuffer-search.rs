@@ -188,11 +188,14 @@ fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
     };
 
     // Required to be set as an environment variable when creating the function
-    let openapi_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
+    let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
     let result = momento_functions_host::http::post(
         "https://api.openai.com/v1/embeddings",
         [
-            ("authorization".to_string(), format!("Bearer {openapi_key}")),
+            (
+                "authorization".to_string(),
+                format!("Bearer {openai_api_key}"),
+            ),
             ("content-type".to_string(), "application/json".to_string()),
         ],
         // 1536 float32 for text-embedding-3-small

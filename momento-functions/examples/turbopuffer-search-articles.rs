@@ -23,7 +23,7 @@
 //! export MOMENTO_API_KEY=<your api key>
 //!
 //! export OPENAI_KEY=<openai api key>
-//! export TURBOPUFFER_ENDPOINT=<Should be v2 namespace suffixed by `/query`>
+//! export TURBOPUFFER_ENDPOINT=<Should be v2 namespace>
 //! export TURBOPUFFER_API_KEY=<turbopuffer api key>
 //!
 //! # Create your Momento cache
@@ -187,6 +187,11 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
         std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
     );
     let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
+    let turbopuffer_endpoint = if !turbopuffer_endpoint.starts_with("https://") {
+        format!("https://{turbopuffer_endpoint}/query")
+    } else {
+        format!("{turbopuffer_endpoint}/query")
+    };
 
     log::debug!(
         "querying turbopuffer with (topk={topk}), (include_attributes={include_attributes:?})",

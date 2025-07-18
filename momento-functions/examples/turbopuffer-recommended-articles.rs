@@ -95,6 +95,11 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
         std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
     );
     let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
+    let turbopuffer_endpoint = if !turbopuffer_endpoint.starts_with("https://") {
+        format!("https://{turbopuffer_endpoint}/query")
+    } else {
+        format!("{turbopuffer_endpoint}/query")
+    };
     let ttl_seconds = std::env::var("TTL_SECONDS")
         .unwrap_or(DEFAULT_TTL_SECONDS.to_string())
         .parse::<u64>()

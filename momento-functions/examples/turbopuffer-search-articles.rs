@@ -23,7 +23,7 @@
 //! export MOMENTO_API_KEY=<your api key>
 //!
 //! export OPENAI_KEY=<openai api key>
-//! export TURBOPUFFER_ENDPOINT=<Should be v2 namespace>
+//! export TURBOPUFFER_ENDPOINT=<Should be v2 namespace suffixed by `/query`>
 //! export TURBOPUFFER_API_KEY=<turbopuffer api key>
 //!
 //! # Create your Momento cache
@@ -279,8 +279,8 @@ fn get_cached_query_embedding(query: String) -> WebResult<Vec<f32>> {
                         .into_iter()
                         .flat_map(f32::to_le_bytes)
                         .collect::<Vec<u8>>();
-                    let ttl: u64 = std::env::var("TTL")
-                        .unwrap_or("".to_string())
+                    let ttl: u64 = std::env::var("TTL_SECONDS")
+                        .unwrap_or(DEFAULT_TTL_SECONDS.to_string())
                         .parse::<u64>()
                         .unwrap_or(DEFAULT_TTL_SECONDS);
                     cache::set(query, new_query_embedding.clone(), Duration::from_secs(ttl))?;
@@ -297,6 +297,13 @@ fn get_cached_query_embedding(query: String) -> WebResult<Vec<f32>> {
 
 fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for document with content: {query:?}");
+    let query = if query.contains("\n") {
+        // openai guide currently says to replace newlines with spaces. This, then, must be how you get the cargo to come.
+        // https://platform.openai.com/docs/guides/embeddings
+        query.replace("\n", " ")
+    } else {
+        query
+    };
 
     // Required to be set as an environment variable when creating the function
     let openapi_key = std::env::var("OPENAI_KEY").unwrap_or_default();

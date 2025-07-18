@@ -99,7 +99,6 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
         .unwrap_or(DEFAULT_TTL_SECONDS.to_string())
         .parse::<u64>()
         .unwrap_or(DEFAULT_TTL_SECONDS);
-    // Default to top 5 results if not provided
     let ttl = Duration::from_secs(ttl_seconds);
 
     let Request { article_ids, topk } = request;
@@ -108,7 +107,7 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
     let topk = topk.unwrap_or(10);
 
     // Get the embeddings from our provided articles
-    let embeddings = get_cached_article_embeddings(
+    let embeddings = get_article_embeddings(
         article_ids.clone(),
         &turbopuffer_endpoint,
         &turbopuffer_api_key,
@@ -149,7 +148,7 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
 
 /// Gets existing article vector embeddings from our momento cache first,
 /// then queries (and caches) any misses from Turbopuffer itself
-fn get_cached_article_embeddings(
+fn get_article_embeddings(
     article_ids: Vec<String>,
     turbopuffer_endpoint: &String,
     turbopuffer_api_key: &String,
@@ -160,24 +159,9 @@ fn get_cached_article_embeddings(
         let mut embeddings = Vec::new();
         let mut cache_misses = Vec::new();
         for article_id in article_ids {
-            match cache::get::<Vec<u8>>(article_id.clone())? {
-                Some(hit) => {
-                    log::debug!("cache hit for key '{article_id}'");
-                    // Convert raw bytes back into our Vec<f32> type
-                    let embedding = hit
-                        .chunks_exact(4)
-                        .map(|chunk| {
-                            let arr = <[u8; 4]>::try_from(chunk)
-                                .map_err(|_| WebError::message("Chunk length should be 4"))?;
-                            Ok(f32::from_le_bytes(arr))
-                        })
-                        .collect::<Result<Vec<f32>, WebError>>()?;
-                    embeddings.push(embedding);
-                }
-                None => {
-                    log::debug!("cache miss for key '{article_id}'");
-                    cache_misses.push(article_id);
-                }
+            match get_article_embeddings_from_cache(article_id.clone())? {
+                Some(embedding) => embeddings.push(embedding),
+                None => cache_misses.push(article_id),
             }
         }
         // For all the misses, get their associated embeddings from our Turbopuffer namespace since
@@ -193,6 +177,29 @@ fn get_cached_article_embeddings(
         }
         embeddings
     })
+}
+
+/// Gets the cached embeddings from our Momento cache, if they exist
+fn get_article_embeddings_from_cache(article_id: String) -> WebResult<Option<Vec<f32>>> {
+    match cache::get::<Vec<u8>>(article_id.clone())? {
+        Some(hit) => {
+            log::debug!("cache hit for key '{article_id}'");
+            // Convert raw bytes back into our Vec<f32> type
+            let embedding = hit
+                .chunks_exact(4)
+                .map(|chunk| {
+                    let arr = <[u8; 4]>::try_from(chunk)
+                        .map_err(|_| WebError::message("Chunk length should be 4"))?;
+                    Ok(f32::from_le_bytes(arr))
+                })
+                .collect::<Result<Vec<f32>, WebError>>()?;
+            Ok(Some(embedding))
+        }
+        None => {
+            log::debug!("cache miss for key '{article_id}'");
+            Ok(None)
+        }
+    }
 }
 
 /// Gets the actual embeddings from Turbopuffer, caching the vector embeddings in

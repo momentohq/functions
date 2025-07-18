@@ -2,9 +2,10 @@
 //! From there, we can provide an input of article IDs to simulate a user's "preferred"
 //! content to recommend similar articles.
 //!
-//! You need to provide `TURBOPUFFER_ENDPOINT` and `TURBOPUFFER_API_KEY`
+//! You need to provide `TURBOPUFFER_REGION`, `TURBOPUFFER_NAMESPACE` and `TURBOPUFFER_API_KEY`
 //! environment variables when creating this function:
-//! * `TURBOPUFFER_ENDPOINT`    -> The endpoint contains the namespace. Ensure it ends with `/query`
+//! * `TURBOPUFFER_REGION`      -> Region your namespace resides. E.g. gcp-us-central1
+//! * `TURBOPUFFER_NAMESPACE`   -> Namespace within your turbopuffer account
 //! * `TURBOPUFFER_API_KEY`     -> The API key should just be the key itself.
 //!
 //! You can also provide the `TTL_SECONDS` environment variable to override the default
@@ -19,7 +20,8 @@
 //! export MOMENTO_CACHE_NAME=my-functions-cache
 //! export MOMENTO_API_KEY=<your api key>
 //!
-//! export TURBOPUFFER_ENDPOINT=<Should be v2 namespace suffixed by `/query`>
+//! export TURBOPUFFER_REGION=<turbopuffer region>
+//! export TURBOPUFFER_NAMESPACE=<turbopuffer namespace>
 //! export TURBOPUFFER_API_KEY=<turbopuffer api key>
 //!
 //! # Create your Momento cache
@@ -30,8 +32,8 @@
 //!   --cache-name "$MOMENTO_CACHE_NAME" \
 //!   --name turbopuffer-recommended-articles \
 //!   --wasm-file /path/to/this/compiled/turbopuffer_search_articles.wasm \
-//!   -E OPENAI_KEY="$OPENAI_KEY" \
-//!   -E TURBOPUFFER_ENDPOINT="$TURBOPUFFER_ENDPOINT" \
+//!   -E OPENAI_API_KEY="$OPENAI_API_KEY" \
+//!   -E TURBOPUFFER_NAMESPACE="$TURBOPUFFER_NAMESPACE" \
 //!   -E TURBOPUFFER_API_KEY="$TURBOPUFFER_API_KEY"
 //!
 //! # Find some recommended articles!
@@ -94,7 +96,10 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
         "Bearer {}",
         std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
     );
-    let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
+    let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
+    let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
+    let turbopuffer_endpoint =
+        format!("https://{turbopuffer_region}.com/v2/{turbopuffer_namespace}/query");
     let ttl_seconds = std::env::var("TTL_SECONDS")
         .unwrap_or(DEFAULT_TTL_SECONDS.to_string())
         .parse::<u64>()
@@ -149,9 +154,10 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
     // Calculate the mean vector from our Vector of Vectors
     let mean_vector = match mean_vector(&embeddings) {
         Some(result) => result,
-        None => return Ok(WebResponse::new().with_status(500).with_body(json!({
-            "message": "Failed to calculate mean vector of embeddings, this is a bug!".to_string(),
-        }))?),
+        None => {
+            // We know which model we are using, so we can return an empty Vec of size 1536 initialized to 0.
+            vec![0.0f32; 1536]
+        }
     };
 
     // We have our mean vector, now query Turbopuffer to find similar articles close to our mean vector,

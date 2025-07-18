@@ -1,7 +1,7 @@
 //! Using the embeddings from the fine-foods-embeddings example, this
 //! example performs a nearest-neighbor query through the documents in the Turbopuffer namespace.
 //!
-//! You need to provide `OPENAI_KEY`, `TURBOPUFFER_ENDPOINT` and `TURBOPUFFER_API_KEY`
+//! You need to provide `OPENAI_API_KEY`, `TURBOPUFFER_REGION`, `TURBOPUFFER_NAMESPACE` and `TURBOPUFFER_API_KEY`
 //! environment variables upon creating the function. If you'd like to store queries for longer,
 //! pass along the `TTL` environment variable upon creating the function.
 //!
@@ -79,7 +79,10 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
         "Bearer {}",
         std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
     );
-    let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
+    let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
+    let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
+    let turbopuffer_endpoint =
+        format!("https://{turbopuffer_region}.com/v2/{turbopuffer_namespace}/query");
 
     let result = momento_functions_host::http::post(
         turbopuffer_endpoint,
@@ -188,11 +191,14 @@ fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
     };
 
     // Required to be set as an environment variable when creating the function
-    let openapi_key = std::env::var("OPENAI_KEY").unwrap_or_default();
+    let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
     let result = momento_functions_host::http::post(
         "https://api.openai.com/v1/embeddings",
         [
-            ("authorization".to_string(), format!("Bearer {openapi_key}")),
+            (
+                "authorization".to_string(),
+                format!("Bearer {openai_api_key}"),
+            ),
             ("content-type".to_string(), "application/json".to_string()),
         ],
         // 1536 float32 for text-embedding-3-small

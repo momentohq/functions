@@ -2,10 +2,11 @@
 //! query OpenAI to generate embeddings for each document, then index it
 //! within Turbopuffer so we can search through it.
 //!
-//! You need to provide `OPENAI_KEY`, `TURBOPUFFER_ENDPOINT`, and `TURBOPUFFER_API_KEY`
+//! You need to provide `OPENAI_API_KEY`, `TURBOPUFFER_REGION`, `TURBOPUFFER_NAMESPACE`, and `TURBOPUFFER_API_KEY`
 //! environment variables when creating this function:
-//! * `OPENAI_KEY`              -> The API key for accessing OpenAI, shoud just be the key itself.
-//! * `TURBOPUFFER_ENDPOINT`    -> The endpoint contains the namespace.
+//! * `OPENAI_API_KEY`          -> The API key for accessing OpenAI, shoud just be the key itself.
+//! * `TURBOPUFFER_REGION`      -> Region your namespace resides. E.g. gcp-us-central1
+//! * `TURBOPUFFER_NAMESPACE`   -> Namespace within your turbopuffer account
 //! * `TURBOPUFFER_API_KEY`     -> The API key should just be the key itself.
 //!
 //! To demo this, you can pipe a subset of the data and feed it into a cURL command
@@ -16,8 +17,9 @@
 //! export MOMENTO_CACHE_NAME=my-functions-cache
 //! export MOMENTO_API_KEY=<your api key>
 //!
-//! export OPENAI_KEY=<openai api key>
-//! export TURBOPUFFER_ENDPOINT=<Should be v2 namespace>
+//! export OPENAI_API_KEY=<openai api key>
+//! export TURBOPUFFER_REGION=<turbopuffer region>
+//! export TURBOPUFFER_NAMESPACE=<turbopuffer namespace>
 //! export TURBOPUFFER_API_KEY=<turbopuffer api key>
 //!
 //! # Create your Momento cache
@@ -28,8 +30,9 @@
 //!   --cache-name "$MOMENTO_CACHE_NAME" \
 //!   --name turbopuffer-index-articles \
 //!   --wasm-file /path/to/this/compiled/turbopuffer_index_articles.wasm \
-//!   -E OPENAI_KEY="$OPENAI_KEY" \
-//!   -E TURBOPUFFER_ENDPOINT="$TURBOPUFFER_ENDPOINT" \
+//!   -E OPENAI_API_KEY="$OPENAI_API_KEY" \
+//!   -E TURBOPUFFER_REGION="$TURBOPUFFER_REGION" \
+//!   -E TURBOPUFFER_NAMESPACE="$TURBOPUFFER_NAMESPACE" \
 //!   -E TURBOPUFFER_API_KEY="$TURBOPUFFER_API_KEY"
 //!
 //! # Send subset of articles for indexing via our uploaded function
@@ -142,8 +145,11 @@ fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRe
         "Bearer {}",
         std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
     );
-    let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
-    let openai_key = std::env::var("OPENAI_KEY").unwrap_or_default();
+    let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
+    let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
+    let turbopuffer_endpoint =
+        format!("https://{turbopuffer_region}.com/v2/{turbopuffer_namespace}");
+    let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
 
     // When embedding lots of text (like we are doing here), we should split this up into a small chunk size
     // so we remain within OpenAI's limits. 100 is a sweet spot between throughput and speed.
@@ -155,7 +161,7 @@ fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRe
             .map(|document| document.page_content.clone())
             .collect();
         // Queries OpenAI to generate an embedding for these documents so we can ship them off to Turbopuffer
-        let embedding_data = get_embeddings(page_contents, openai_key.clone())?;
+        let embedding_data = get_embeddings(page_contents, openai_api_key.clone())?;
 
         let mut turbopuffer_inputs = Vec::new();
         // The response from OpenAI is sorted by index, so we can safely zip together the responses
@@ -226,7 +232,10 @@ fn index_documents_in_turbopuffer(
     Ok(())
 }
 
-fn get_embeddings(mut documents: Vec<String>, openai_key: String) -> WebResult<Vec<EmbeddingData>> {
+fn get_embeddings(
+    mut documents: Vec<String>,
+    openai_api_key: String,
+) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for input");
     for document in &mut documents {
         if document.contains("\n") {
@@ -241,7 +250,10 @@ fn get_embeddings(mut documents: Vec<String>, openai_key: String) -> WebResult<V
     let result = momento_functions_host::http::post(
         OPENAI_URL,
         [
-            ("authorization".to_string(), format!("Bearer {openai_key}")),
+            (
+                "authorization".to_string(),
+                format!("Bearer {openai_api_key}"),
+            ),
             ("content-type".to_string(), "application/json".to_string()),
         ],
         serde_json::json!({

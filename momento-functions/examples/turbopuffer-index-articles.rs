@@ -2,10 +2,11 @@
 //! query OpenAI to generate embeddings for each document, then index it
 //! within Turbopuffer so we can search through it.
 //!
-//! You need to provide `OPENAI_API_KEY`, `TURBOPUFFER_ENDPOINT`, and `TURBOPUFFER_API_KEY`
+//! You need to provide `OPENAI_API_KEY`, `TURBOPUFFER_REGION`, `TURBOPUFFER_NAMESPACE`, and `TURBOPUFFER_API_KEY`
 //! environment variables when creating this function:
-//! * `OPENAI_API_KEY`              -> The API key for accessing OpenAI, shoud just be the key itself.
-//! * `TURBOPUFFER_ENDPOINT`    -> The endpoint contains the namespace.
+//! * `OPENAI_API_KEY`          -> The API key for accessing OpenAI, shoud just be the key itself.
+//! * `TURBOPUFFER_REGION`      -> Region your namespace resides. E.g. gcp-us-central1
+//! * `TURBOPUFFER_NAMESPACE`   -> Namespace within your turbopuffer account
 //! * `TURBOPUFFER_API_KEY`     -> The API key should just be the key itself.
 //!
 //! To demo this, you can pipe a subset of the data and feed it into a cURL command
@@ -17,7 +18,8 @@
 //! export MOMENTO_API_KEY=<your api key>
 //!
 //! export OPENAI_API_KEY=<openai api key>
-//! export TURBOPUFFER_ENDPOINT=<Should be v2 namespace>
+//! export TURBOPUFFER_REGION=<turbopuffer region>
+//! export TURBOPUFFER_NAMESPACE=<turbopuffer namespace>
 //! export TURBOPUFFER_API_KEY=<turbopuffer api key>
 //!
 //! # Create your Momento cache
@@ -29,7 +31,8 @@
 //!   --name turbopuffer-index-articles \
 //!   --wasm-file /path/to/this/compiled/turbopuffer_index_articles.wasm \
 //!   -E OPENAI_API_KEY="$OPENAI_API_KEY" \
-//!   -E TURBOPUFFER_ENDPOINT="$TURBOPUFFER_ENDPOINT" \
+//!   -E TURBOPUFFER_REGION="$TURBOPUFFER_REGION" \
+//!   -E TURBOPUFFER_NAMESPACE="$TURBOPUFFER_NAMESPACE" \
 //!   -E TURBOPUFFER_API_KEY="$TURBOPUFFER_API_KEY"
 //!
 //! # Send subset of articles for indexing via our uploaded function
@@ -142,12 +145,10 @@ fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRe
         "Bearer {}",
         std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
     );
-    let turbopuffer_endpoint = std::env::var("TURBOPUFFER_ENDPOINT").unwrap_or_default();
-    let turbopuffer_endpoint = if !turbopuffer_endpoint.starts_with("https://") {
-        format!("https://{turbopuffer_endpoint}")
-    } else {
-        turbopuffer_endpoint
-    };
+    let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
+    let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
+    let turbopuffer_endpoint =
+        format!("https://{turbopuffer_region}.com/v2/{turbopuffer_namespace}");
     let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
 
     // When embedding lots of text (like we are doing here), we should split this up into a small chunk size

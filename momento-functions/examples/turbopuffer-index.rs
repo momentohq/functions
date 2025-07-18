@@ -1,10 +1,11 @@
 //! Using the embeddings from the fine-foods-embeddings example, this
 //! example indexes the documents into a Turbopuffer namespace.
 //!
-//! You need to provide `TURBOPUFFER_ENDPOINT` and `TURBOPUFFER_API_KEY`
+//! You need to provide `TURBOPUFFER_REGION`, `TURBOPUFFER_NAMESPACE`, and `TURBOPUFFER_API_KEY`
 //! environment variables.
-//! * The endpoint contains the namespace.
-//! * The API key should just be the key itself without any prefix.
+//! * `TURBOPUFFER_REGION`      -> Region your namespace resides. E.g. gcp-us-central1
+//! * `TURBOPUFFER_NAMESPACE`   -> Namespace within your turbopuffer account
+//! * `TURBOPUFFER_API_KEY`     -> The API key should just be the key itself.
 
 use itertools::Itertools;
 use log::LevelFilter;
@@ -52,13 +53,16 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse
     );
 
     const TURBOPUFFER_API_KEY: &str = concat!("Bearer ", env!("TURBOPUFFER_API_KEY"));
-    const TURBOPUFFER_ENDPOINT: &str = env!("TURBOPUFFER_ENDPOINT");
+    const TURBOPUFFER_REGION: &str = env!("TURBOPUFFER_REGION");
+    const TURBOPUFFER_NAMESPACE: &str = env!("TURBOPUFFER_NAMESPACE");
+    let turbopuffer_endpoint =
+        format!("https://{TURBOPUFFER_REGION}.com/v2/{TURBOPUFFER_NAMESPACE}");
 
     let chunks = documents.into_iter().chunks(2000);
     for chunk in chunks.into_iter() {
         let chunk: Vec<Document> = chunk.collect();
         let result = momento_functions_host::http::post(
-            TURBOPUFFER_ENDPOINT,
+            &turbopuffer_endpoint,
             [
                 ("Authorization".to_string(), TURBOPUFFER_API_KEY.to_string()),
                 ("Content-Type".to_string(), "application/json".to_string()),

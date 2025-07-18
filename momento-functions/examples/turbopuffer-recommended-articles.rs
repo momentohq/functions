@@ -42,7 +42,7 @@
 //!  -d '{"article_ids": ["4484641135897252353", "6703952717813182352", "4965577503700120031"]'  | jq
 //! ```
 
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use log::LevelFilter;
 
@@ -106,13 +106,45 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
     // Default to top 10 articles if not provided
     let topk = topk.unwrap_or(10);
 
-    // Get the embeddings from our provided articles
-    let embeddings = get_article_embeddings(
+    // Get the embeddings from our provided articles, which may or may not exist.
+    // Our returned article embeddings are given in the order of our input. Nothing is really being
+    // done with this now, but if you wanted to, you could assign different weights to the items
+    // in the front of the list (e.g. most recently seen articles) before calcuating the mean vector.
+    //
+    // For example, this could instead be something like:
+    // ```
+    // let mut article_embeddings = get_article_embeddings(
+    //     article_ids.clone(),
+    //     &turbopuffer_endpoint,
+    //     &turbopuffer_api_key,
+    //     &ttl,
+    // )?;
+    // // Assign a higher weight to the first four articles (last 4 recently seen)
+    // for (_, embedding) in article_embeddings.iter_mut().take(4) {
+    //     if let Some(embedding) = embedding {
+    //         for i in 0..embedding.len() {
+    //             embedding *= 0.275;
+    //         }
+    //     }
+    // }
+    let article_embeddings = get_article_embeddings(
         article_ids.clone(),
         &turbopuffer_endpoint,
         &turbopuffer_api_key,
         &ttl,
     )?;
+
+    // Some articles may not have had embeddings at all (e.g. the provided ID doesn't exist, was deleted, etc.),
+    // so only build out our vector of vector embeddings with actual values before calculating the mean vector.
+    let embeddings: Vec<Vec<f32>> = article_embeddings
+        .iter()
+        .flat_map(|(article_id, maybe_embedding)| {
+            if maybe_embedding.is_none() {
+                log::debug!("no embeddings found for {article_id}");
+            }
+            maybe_embedding.clone()
+        })
+        .collect();
 
     // Calculate the mean vector from our Vector of Vectors
     let mean_vector = match mean_vector(&embeddings) {
@@ -147,33 +179,57 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
 // ------------------------------------------------------
 
 /// Gets existing article vector embeddings from our momento cache first,
-/// then queries (and caches) any misses from Turbopuffer itself
+/// then queries (and caches) any misses from Turbopuffer itself, if an embedding
+/// exists within Turbopuffer.
 fn get_article_embeddings(
     article_ids: Vec<String>,
     turbopuffer_endpoint: &String,
     turbopuffer_api_key: &String,
     ttl: &Duration,
-) -> WebResult<Vec<Vec<f32>>> {
+) -> WebResult<Vec<(String, Option<Vec<f32>>)>> {
     log::debug!("Getting article embeddings from momento (if available)");
     Ok({
-        let mut embeddings = Vec::new();
-        let mut cache_misses = Vec::new();
-        for article_id in article_ids {
+        let mut embeddings_map = HashMap::new();
+        // Although we're not exercising the concept here, you may want to preserve the ordering of
+        // of article IDs to assign a weight towards most recently viewed articles (for example).
+        // This showcases how we can still succinctly get embeddings (if they exist) while
+        // mainting the order of these embeddings.
+        for article_id in &article_ids {
             match get_article_embeddings_from_cache(article_id.clone())? {
-                Some(embedding) => embeddings.push(embedding),
-                None => cache_misses.push(article_id),
-            }
+                Some(embedding) => embeddings_map.insert(article_id.clone(), Some(embedding)),
+                // Cache miss is fine, we'll insert it into our map and attempt a query from Turbopuffer
+                None => embeddings_map.insert(article_id.clone(), None),
+            };
         }
+
+        let cache_misses: Vec<String> = embeddings_map
+            .iter()
+            .filter(|(_, embeddings)| embeddings.is_none())
+            .map(|(article, _)| article.clone())
+            .collect();
+
         // For all the misses, get their associated embeddings from our Turbopuffer namespace since
         // they are already indexed.
         if !cache_misses.is_empty() {
-            let mut fetched_embeddings = get_article_embeddings_from_turbopuffer(
+            let fetched_embeddings = get_article_embeddings_from_turbopuffer(
                 cache_misses,
                 turbopuffer_endpoint,
                 turbopuffer_api_key,
                 ttl,
             )?;
-            embeddings.append(&mut fetched_embeddings);
+            // The ordering may not be preserved in our response, so we'll update the values in our map
+            for (found_article, maybe_embeddings) in fetched_embeddings {
+                embeddings_map.insert(found_article, maybe_embeddings);
+            }
+        }
+        let mut embeddings = Vec::new();
+        // As mentioned, the ordering may not be preserved from all of our responses, so we'll
+        // iterate back through the original article ID list to rebuild the list of vectors.
+        for article_id in &article_ids {
+            embeddings.push((
+                article_id.clone(),
+                embeddings_map.get(article_id).cloned().unwrap_or_default(),
+            ))
         }
         embeddings
     })
@@ -209,7 +265,7 @@ fn get_article_embeddings_from_turbopuffer(
     turbopuffer_endpoint: &String,
     turbopuffer_api_key: &String,
     ttl: &Duration,
-) -> WebResult<Vec<Vec<f32>>> {
+) -> WebResult<Vec<(String, Option<Vec<f32>>)>> {
     let result = momento_functions_host::http::post(
         turbopuffer_endpoint,
         [
@@ -253,17 +309,18 @@ fn get_article_embeddings_from_turbopuffer(
             let mut embeddings = Vec::new();
             // Now store in our cache for the future
             for row in rows {
-                // Convert to raw bytes before storing in cache
-                let new_query_embedding = row
-                    .vector
-                    .clone()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .flat_map(f32::to_le_bytes)
-                    .collect::<Vec<u8>>();
-                log::debug!("setting in cache for {} with ttl {:?}", row.id, ttl);
-                cache::set(row.id.clone(), new_query_embedding.clone(), *ttl)?;
-                embeddings.push(row.vector.clone().unwrap_or_default());
+                // Don't cache empty embeddings in Momento
+                if let Some(vector) = &row.vector {
+                    // Convert to raw bytes before storing in cache
+                    let new_query_embedding = vector
+                        .clone()
+                        .into_iter()
+                        .flat_map(f32::to_le_bytes)
+                        .collect::<Vec<u8>>();
+                    log::debug!("setting in cache for {} with ttl {:?}", row.id, ttl);
+                    cache::set(row.id.clone(), new_query_embedding.clone(), *ttl)?;
+                }
+                embeddings.push((row.id, row.vector.clone()));
             }
             Ok(embeddings)
         }

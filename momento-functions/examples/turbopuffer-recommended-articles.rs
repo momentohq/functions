@@ -99,7 +99,7 @@ fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebRespon
     let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
     let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
     let turbopuffer_endpoint =
-        format!("https://{turbopuffer_region}.com/v2/{turbopuffer_namespace}/query");
+        format!("https://{turbopuffer_region}.turbopuffer.com/v2/{turbopuffer_namespace}/query");
     let ttl_seconds = std::env::var("TTL_SECONDS")
         .unwrap_or(DEFAULT_TTL_SECONDS.to_string())
         .parse::<u64>()

@@ -148,7 +148,7 @@ fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRe
     let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
     let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
     let turbopuffer_endpoint =
-        format!("https://{turbopuffer_region}.com/v2/{turbopuffer_namespace}");
+        format!("https://{turbopuffer_region}.turbopuffer.com/v2/{turbopuffer_namespace}");
     let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
 
     // When embedding lots of text (like we are doing here), we should split this up into a small chunk size

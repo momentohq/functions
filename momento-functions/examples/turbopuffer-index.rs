@@ -55,8 +55,9 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse
     const TURBOPUFFER_API_KEY: &str = concat!("Bearer ", env!("TURBOPUFFER_API_KEY"));
     const TURBOPUFFER_REGION: &str = env!("TURBOPUFFER_REGION");
     const TURBOPUFFER_NAMESPACE: &str = env!("TURBOPUFFER_NAMESPACE");
-    let turbopuffer_endpoint =
-        format!("https://{TURBOPUFFER_REGION}.turbopuffer.com/v2/{TURBOPUFFER_NAMESPACE}");
+    let turbopuffer_endpoint = format!(
+        "https://{TURBOPUFFER_REGION}.turbopuffer.com/v2/namespaces/{TURBOPUFFER_NAMESPACE}"
+    );
 
     let chunks = documents.into_iter().chunks(2000);
     for chunk in chunks.into_iter() {

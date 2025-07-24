@@ -191,8 +191,9 @@ fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
     );
     let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
     let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
-    let turbopuffer_endpoint =
-        format!("https://{turbopuffer_region}.turbopuffer.com/v2/{turbopuffer_namespace}/query");
+    let turbopuffer_endpoint = format!(
+        "https://{turbopuffer_region}.turbopuffer.com/v2/namespaces/{turbopuffer_namespace}/query"
+    );
 
     log::debug!(
         "querying turbopuffer with (topk={topk}), (include_attributes={include_attributes:?})",

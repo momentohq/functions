@@ -239,13 +239,11 @@ fn get_embeddings(
 ) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for input");
     for document in &mut documents {
-        if document.contains("\n") {
-            *document = document.replace("\n", " ");
-        }
         if document.is_empty() {
             // openai will fail to generate an embedding if no content is provided
             *document = "no_content".to_string();
         }
+        document.truncate(25_000);
     }
 
     let result = momento_functions_host::http::post(

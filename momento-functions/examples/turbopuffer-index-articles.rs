@@ -241,7 +241,7 @@ fn get_embeddings(documents: Vec<String>, openai_api_key: String) -> WebResult<V
             // openai will fail to generate an embedding if no content is provided
             *document = "no_content".to_string();
         }
-        document.truncate(25_000);
+        document.truncate(10_000);
     }
 
     let result = momento_functions_host::http::post(

@@ -32,5 +32,6 @@ log                     = { version = "0" }
 serde                   = { version = "1", features = ["derive"] }
 serde_json              = { version = "1" }
 sha2                    = { version = "0" }
+tiktoken-rs             = { version = "0" }
 thiserror               = { version = "2" }
 wit-bindgen             = { version = "0.41" }

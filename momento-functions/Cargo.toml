@@ -81,6 +81,8 @@ momento-functions-wit   = { workspace = true }
 serde                   = { workspace = true }
 serde_json              = { workspace = true }
 
+tiktoken-rs             = { workspace = true }
+
 [dev-dependencies]
 momento-functions-log   = { workspace = true }
 

@@ -30,15 +30,16 @@
 //! # Create your Momento function
 //! momento preview function put-function \
 //!   --cache-name "$MOMENTO_CACHE_NAME" \
-//!   --name turbopuffer-recommended-articles \
-//!   --wasm-file /path/to/this/compiled/turbopuffer_search_articles.wasm \
+//!   --name turbopuffer-recommend-articles \
+//!   --wasm-file /path/to/this/compiled/turbopuffer_recommend_articles.wasm \
 //!   -E OPENAI_API_KEY="$OPENAI_API_KEY" \
 //!   -E TURBOPUFFER_NAMESPACE="$TURBOPUFFER_NAMESPACE" \
+//!   -E TURBOPUFFER_REGION="$TURBOPUFFER_REGION" \
 //!   -E TURBOPUFFER_API_KEY="$TURBOPUFFER_API_KEY"
 //!
 //! # Find some recommended articles!
 //! curl --silent \
-//! https://api.cache.$MOMENTO_CELL_HOSTNAME/functions/$MOMENTO_CACHE_NAME/turbopuffer-recommended-articles \
+//! https://api.cache.$MOMENTO_CELL_HOSTNAME/functions/$MOMENTO_CACHE_NAME/turbopuffer-recommend-articles \
 //!  -H "authorization: $MOMENTO_API_KEY" \
 //!  -H "Content-Type: application/json" \
 //!  -d '{"article_ids": ["4484641135897252353", "6703952717813182352", "4965577503700120031"]'  | jq
@@ -457,7 +458,7 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
         momento_functions_log::configure_logging(
             log_level,
             LogMode::Topic {
-                topic: "turbopuffer-recommended-articles".to_string(),
+                topic: "turbopuffer-recommend-articles".to_string(),
             },
         )?;
     }

@@ -457,7 +457,7 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
         momento_functions_log::configure_logging(
             log_level,
             LogMode::Topic {
-                topic: "turbopuffer-recommended-articles".to_string(),
+                topic: "turbopuffer-recommend-articles".to_string(),
             },
         )?;
     }

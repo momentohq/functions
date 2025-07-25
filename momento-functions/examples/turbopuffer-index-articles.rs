@@ -51,6 +51,7 @@ use momento_functions_host::{encoding::Json, web_extensions::headers};
 use momento_functions_log::LogMode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tiktoken_rs::{CoreBPE, cl100k_base_singleton};
 
 const OPENAI_URL: &str = "https://api.openai.com/v1/embeddings";
 // 1536 float32 for text-embedding-3-small
@@ -133,6 +134,8 @@ fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRe
     let headers = headers();
     setup_logging(&headers)?;
 
+    let bpe = cl100k_base_singleton();
+
     if documents.is_empty() {
         log::warn!("No documents provided for indexing.");
         return Ok(WebResponse::new()
@@ -162,7 +165,7 @@ fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebRe
             .map(|document| document.page_content.clone())
             .collect();
         // Queries OpenAI to generate an embedding for these documents so we can ship them off to Turbopuffer
-        let embedding_data = get_embeddings(page_contents, openai_api_key.clone())?;
+        let embedding_data = get_embeddings(page_contents, openai_api_key.clone(), bpe)?;
 
         let mut turbopuffer_inputs = Vec::new();
         // The response from OpenAI is sorted by index, so we can safely zip together the responses
@@ -233,15 +236,28 @@ fn index_documents_in_turbopuffer(
     Ok(())
 }
 
-fn get_embeddings(documents: Vec<String>, openai_api_key: String) -> WebResult<Vec<EmbeddingData>> {
+fn get_embeddings(
+    documents: Vec<String>,
+    openai_api_key: String,
+    tokenizer: &'static CoreBPE,
+) -> WebResult<Vec<EmbeddingData>> {
     log::debug!("getting embeddings for input");
+    // We may be truncating the tokens before shipping off to OpenAI,
+    // but we still want the original document content.
     let mut documents_for_embedding = documents.clone();
     for document in &mut documents_for_embedding {
         if document.is_empty() {
             // openai will fail to generate an embedding if no content is provided
             *document = "no_content".to_string();
         }
-        document.truncate(10_000);
+        let mut tokens = tokenizer.encode_with_special_tokens(document);
+        // OpenAI has a limit of 8192 tokens per input
+        tokens.truncate(8192);
+        *document = tokenizer.decode(tokens).map_err(|e| {
+            WebError::message(format!(
+                "Failed to convert truncated tokens back to string for OpenAI input: {e:?}"
+            ))
+        })?;
     }
 
     let result = momento_functions_host::http::post(

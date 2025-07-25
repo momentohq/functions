@@ -363,7 +363,7 @@ fn get_similar_articles_from_turbopuffer(
         json!({
             "rank_by": ["vector", "ANN", mean_vector],
             "top_k": topk,
-            "include_attributes": vec!["id", "metadata$title", "metadata$link"],
+            "include_attributes": vec!["metadata$title", "metadata$link"],
             "filters": Filter::Comparison(
                 ComparisonFilter("id".to_string(),
                 ComparisonOp::NotIn,

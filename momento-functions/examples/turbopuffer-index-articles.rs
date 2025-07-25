@@ -56,6 +56,7 @@ use tiktoken_rs::{CoreBPE, cl100k_base_singleton};
 const OPENAI_URL: &str = "https://api.openai.com/v1/embeddings";
 // 1536 float32 for text-embedding-3-small
 const EMBEDDING_MODEL: &str = "text-embedding-3-small";
+const MAX_TOKENS: usize = 8192; // OpenAI's limit for text-embedding-3-small
 
 #[derive(Deserialize, Debug)]
 struct EmbeddingResponse {
@@ -244,20 +245,33 @@ fn get_embeddings(
     log::debug!("getting embeddings for input");
     // We may be truncating the tokens before shipping off to OpenAI,
     // but we still want the original document content.
-    let mut documents_for_embedding = documents.clone();
-    for document in &mut documents_for_embedding {
+    let mut documents_for_embedding = Vec::new();
+    for document in &documents {
         if document.is_empty() {
             // openai will fail to generate an embedding if no content is provided
-            *document = "no_content".to_string();
+            documents_for_embedding.push("no_content".to_string());
         }
+
         let mut tokens = tokenizer.encode_with_special_tokens(document);
-        // OpenAI has a limit of 8192 tokens per input
-        tokens.truncate(8192);
-        *document = tokenizer.decode(tokens).map_err(|e| {
-            WebError::message(format!(
-                "Failed to convert truncated tokens back to string for OpenAI input: {e:?}"
-            ))
-        })?;
+
+        let maybe_updated_document = if tokens.len() > MAX_TOKENS {
+            // log that we're truncating from input length to MAX_TOKENS
+            // OpenAI has a limit of MAX_TOKENS tokens per input
+            log::debug!(
+                "token length was {}, truncating to {}",
+                tokens.len(),
+                MAX_TOKENS
+            );
+            tokens.truncate(MAX_TOKENS);
+            tokenizer.decode(tokens).map_err(|e| {
+                WebError::message(format!(
+                    "Failed to convert truncated tokens back to string for OpenAI input: {e:?}"
+                ))
+            })?
+        } else {
+            document.to_string()
+        };
+        documents_for_embedding.push(maybe_updated_document);
     }
 
     let result = momento_functions_host::http::post(
@@ -272,7 +286,7 @@ fn get_embeddings(
         serde_json::json!({
             "model": EMBEDDING_MODEL,
             "encoding_format": "float",
-            "input": documents,
+            "input": documents_for_embedding,
         })
         .to_string(),
     );

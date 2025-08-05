@@ -43,11 +43,12 @@ Add this to build the right kind of artifact:
 crate-type = ["cdylib"]
 ```
 
-Import the Functions support library.
+Import the Functions support library and WIT library.
 
 ```toml
 [dependencies]
 momento-functions = { version = "0" }
+momento-functions-wit = { version = "0" }
 ```
 
 ### Write a Function
@@ -56,8 +57,8 @@ The simplest function is a pong response web function. You can put this in `lib.
 
 ```rust
 momento_functions::post!(ping);
-fn ping(_payload: Vec<u8>) -> FunctionResult<Vec<u8>> {
-    Ok(b"pong".to_vec())
+fn ping(_payload: Vec<u8>) -> &'static str {
+    "pong"
 }
 ```
 
@@ -67,19 +68,41 @@ fn ping(_payload: Vec<u8>) -> FunctionResult<Vec<u8>> {
 
 **Deploy**
 
+First, base64 encode the function, then upload. Note that the path here includes "manage". The output from
+using `curl -v` should include an HTTP status code of 204.
+
 ```bash
-curl \
-  https://api.cache.$MOMENTO_CELL_HOSTNAME/functions/your_cache/ping \
-  -H "authorization: $MOMENTO_API_KEY" \
+MOMENTO_CACHE_NAME=your_cache
+
+base64_data=$(cat target/wasm32-wasip2/release/hello.wasm | base64)
+
+curl -v \
+  https://api.cache.$MOMENTO_CELL_HOSTNAME/functions/manage/$MOMENTO_CACHE_NAME/ping \
   -XPUT \
-  --data-binary @target/wasm32-wasip2/release/hello.wasm
+  -H "authorization: $MOMENTO_API_KEY" \
+  -H "Content-Type: application/json" \
+  --data "{\"inline_wasm\":\"$base64_data\"}"
+```
+
+Alternatively, you can use the [Momento CLI](https://github.com/momentohq/momento-cli),
+which will handle the encoding for you:
+
+```bash
+momento preview function put-function \
+   --cache-name "$MOMENTO_CACHE_NAME" \
+   --name ping \
+   --wasm-file target/wasm32-wasip2/release/hello.wasm
 ```
 
 **Invoke**
 
+Invoke the function by sending a request directly to the function name.
+
 ```bash
+MOMENTO_CACHE_NAME=your_cache
+
 curl \
-  https://api.cache.$MOMENTO_CELL_HOSTNAME/functions/your_cache/ping \
+  https://api.cache.$MOMENTO_CELL_HOSTNAME/functions/$MOMENTO_CACHE_NAME/ping \
   -H "authorization: $MOMENTO_API_KEY" \
   -d 'ping'
 ```

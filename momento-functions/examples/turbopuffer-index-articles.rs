@@ -250,6 +250,7 @@ fn get_embeddings(
         if document.is_empty() {
             // openai will fail to generate an embedding if no content is provided
             documents_for_embedding.push("no_content".to_string());
+            continue;
         }
 
         let mut tokens = tokenizer.encode_with_special_tokens(document);

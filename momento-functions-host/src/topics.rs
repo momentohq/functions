@@ -87,12 +87,12 @@ pub trait PublishKind {
     type Encoding: Encode;
 
     /// Convert this type into a publishable message
-    fn as_publish(&self) -> Result<Publish<Self::Encoding>, <Self::Encoding as Encode>::Error>;
+    fn as_publish(&self) -> Result<Publish<'_, Self::Encoding>, <Self::Encoding as Encode>::Error>;
 }
 impl PublishKind for String {
     type Encoding = String;
 
-    fn as_publish(&self) -> Result<Publish<Self::Encoding>, <Self::Encoding as Encode>::Error> {
+    fn as_publish(&self) -> Result<Publish<'_, Self::Encoding>, <Self::Encoding as Encode>::Error> {
         Ok(Publish::Str(self))
     }
 }
@@ -113,14 +113,14 @@ impl<'a> PublishKind for &'a [u8] {
 impl PublishKind for Vec<u8> {
     type Encoding = Vec<u8>;
 
-    fn as_publish(&self) -> Result<Publish<Self::Encoding>, <Self::Encoding as Encode>::Error> {
+    fn as_publish(&self) -> Result<Publish<'_, Self::Encoding>, <Self::Encoding as Encode>::Error> {
         Ok(Publish::Bytes(self.clone()))
     }
 }
 impl<T: Serialize> PublishKind for Json<T> {
     type Encoding = Json<T>;
 
-    fn as_publish(&self) -> Result<Publish<Self::Encoding>, <Self::Encoding as Encode>::Error> {
+    fn as_publish(&self) -> Result<Publish<'_, Self::Encoding>, <Self::Encoding as Encode>::Error> {
         serde_json::to_string(&self.0).map(Publish::String)
     }
 }

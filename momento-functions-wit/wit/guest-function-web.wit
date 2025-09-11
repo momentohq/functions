@@ -1,7 +1,7 @@
 
 interface guest-function-web {
     use web-function-support.{header};
-    
+
     post: func(payload: list<u8>) -> response;
 
     record response {
@@ -14,6 +14,7 @@ interface guest-function-web {
 interface web-function-support {
     headers: func() -> list<header>;
     query-parameters: func() -> list<query-parameter>;
+    token-metadata: func() -> option<string>;
 
     record header {
         name: string,

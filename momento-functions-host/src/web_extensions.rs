@@ -11,3 +11,8 @@ pub fn headers() -> Vec<(String, String)> {
         .map(|web_function_support::Header { name, value }| (name, value))
         .collect()
 }
+
+/// Returns the metadata within the caller's token, if present.
+pub fn token_metadata() -> Option<String> {
+    web_function_support::token_metadata()
+}

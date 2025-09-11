@@ -71,6 +71,10 @@ name = "web-function-json-greeter"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "web-function-token-metadata"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "environment-variables"
 crate-type = ["cdylib"]
 

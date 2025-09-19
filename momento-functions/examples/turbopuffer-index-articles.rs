@@ -69,13 +69,6 @@ struct EmbeddingData {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct QueryRow {
-    #[serde(alias = "$dist")]
-    dist: f32,
-    id: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
 struct DocumentMetadata {
     title: String,
     link: String,

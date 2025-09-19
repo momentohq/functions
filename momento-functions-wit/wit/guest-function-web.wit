@@ -1,7 +1,7 @@
 
 interface guest-function-web {
     use web-function-support.{header};
-    
+
     post: func(payload: list<u8>) -> response;
 
     record response {
@@ -12,8 +12,12 @@ interface guest-function-web {
 }
 
 interface web-function-support {
+    /// Returns a list of headers used in the function. Can only be called once, consumes ownership.
     headers: func() -> list<header>;
+    /// Returns a list of query parameters used in the function. Can only be called once, consumes ownership.
     query-parameters: func() -> list<query-parameter>;
+    /// Returns the metadata provided in the caller's token, if present. Can only be called once, consumes ownership.
+    token-metadata: func() -> option<string>;
 
     record header {
         name: string,

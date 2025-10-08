@@ -11,35 +11,23 @@
 //! * [`momento-functions`](https://crates.io/crates/momento-functions): Code generators for Functions.
 //! * [`momento-functions-host`](https://crates.io/crates/momento-functions-host): Interfaces and tools for calling host interfaces.
 
-use log::SetLoggerError;
+use momento_functions_host::logging::{ConfigureLoggingInput, LogConfigurationError};
 use thiserror::Error;
 
-mod topic_logger;
-
-/// Which logging mode to use?
-pub enum LogMode {
-    Topic {
-        /// The topic to send logs to.
-        ///
-        /// You can get the logs with the `momento` CLI, or on the Momento topics dashboard at gomomento.com.
-        /// The CLI command would be `momento topic subscribe $topic`
-        /// Log messages will stream to your terminal.
-        topic: String,
-    },
-}
+mod host_logging;
 
 #[derive(Debug, Error)]
 pub enum LogConfigError {
-    #[error("Failed to initialize topics logger: {cause}")]
-    TopicsInit { cause: SetLoggerError },
+    #[error("Failed to initialize logger: {cause}")]
+    Init { cause: LogConfigurationError },
 }
 
-/// Initializes the logging system with the specified log level and mode.
+/// Initializes the logging system with the specified log level and destinations.
 ///
 /// You **must** only call this function once.
-pub fn configure_logging(level: log::LevelFilter, mode: LogMode) -> Result<(), LogConfigError> {
-    match mode {
-        LogMode::Topic { topic } => topic_logger::TopicLog::init(level, topic)
-            .map_err(|e| LogConfigError::TopicsInit { cause: e }),
-    }
+pub fn configure_logging(
+    level: log::LevelFilter,
+    destinations: Vec<ConfigureLoggingInput>,
+) -> Result<(), LogConfigError> {
+    host_logging::HostLog::init(level, destinations).map_err(|e| LogConfigError::Init { cause: e })
 }

@@ -2,10 +2,11 @@ use log::LevelFilter;
 use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     encoding::Json,
+    logging::{ConfigureLoggingInput, LogDestination},
     redis::{Command, RedisClient, RedisValue},
     web_extensions::headers,
 };
-use momento_functions_log::LogMode;
+
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use std::{collections::HashMap, mem::take};
@@ -316,9 +317,9 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
             .unwrap_or(LevelFilter::Info);
         momento_functions_log::configure_logging(
             log_level,
-            LogMode::Topic {
+            vec![ConfigureLoggingInput::new(LogDestination::Topic {
                 topic: "valkey-vector-search".to_string(),
-            },
+            })],
         )?;
     }
     Ok(())

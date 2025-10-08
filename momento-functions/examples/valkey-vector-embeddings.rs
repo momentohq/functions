@@ -1,7 +1,11 @@
 use log::LevelFilter;
 use momento_functions::{WebResponse, WebResult};
-use momento_functions_host::{encoding::Json, web_extensions::headers};
-use momento_functions_log::LogMode;
+use momento_functions_host::{
+    encoding::Json,
+    logging::{ConfigureLoggingInput, LogDestination},
+    web_extensions::headers,
+};
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
@@ -84,9 +88,9 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
             .unwrap_or(LevelFilter::Info);
         momento_functions_log::configure_logging(
             log_level,
-            LogMode::Topic {
+            vec![ConfigureLoggingInput::new(LogDestination::Topic {
                 topic: "valkey-vector-embeddings".to_string(),
-            },
+            })],
         )?;
     }
     Ok(())

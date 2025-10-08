@@ -5,9 +5,9 @@ use momento_functions_host::{
     cache,
     encoding::{Extract, Json},
     http,
+    logging::{ConfigureLoggingInput, LogDestination},
     web_extensions::headers,
 };
-use momento_functions_log::LogMode;
 use std::{collections::HashMap, time::Duration};
 
 momento_functions::post!(accelerate_get_item);
@@ -133,9 +133,9 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
             .unwrap_or(LevelFilter::Info);
         momento_functions_log::configure_logging(
             log_level,
-            LogMode::Topic {
+            vec![ConfigureLoggingInput::new(LogDestination::Topic {
                 topic: "ddb-accelerator".to_string(),
-            },
+            })],
         )?;
     }
     Ok(())

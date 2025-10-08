@@ -103,8 +103,13 @@ use std::time::Duration;
 use log::LevelFilter;
 
 use momento_functions::{WebError, WebResponse, WebResult};
-use momento_functions_host::{cache, encoding::Json, web_extensions::headers};
-use momento_functions_log::LogMode;
+use momento_functions_host::{
+    cache,
+    encoding::Json,
+    logging::{ConfigureLoggingInput, LogDestination},
+    web_extensions::headers,
+};
+
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -357,9 +362,9 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
             .unwrap_or(LevelFilter::Info);
         momento_functions_log::configure_logging(
             log_level,
-            LogMode::Topic {
+            vec![ConfigureLoggingInput::new(LogDestination::Topic {
                 topic: "turbopuffer-search-articles".to_string(),
-            },
+            })],
         )?;
     }
     Ok(())

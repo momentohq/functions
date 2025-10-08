@@ -1,0 +1,48 @@
+interface logging {
+    variant log-configuration-error {
+        /// Contains the error message related to auth
+        auth(string),
+        // Other errors...
+    }
+
+    record topic-destination {
+        /// Required name to make service contract simpler
+        topic-name: string,
+    }
+
+    record cloudwatch-destination {
+        /// ARN for IAM role that a customer provides that Momento will federate into, giving us permissions to
+        /// to publish to their CW logs
+        iam-role-arn: string,
+        /// ARN for the desired log group a customer wants us to publish to.
+        log-group-arn: string,
+    }
+
+    variant destination {
+        topic(topic-destination),
+        cloudwatch(cloudwatch-destination),
+    }
+
+    enum log-level {
+        off,
+        debug,
+        info,
+        warn,
+        error,
+    }
+
+    record configure-logging-input {
+        system-logs-level: log-level,
+        destination: destination
+    }
+    /// Configures logging for the function itself. Allows for multiple destinations, along with specified
+    /// system logging level a customer wants to capture.
+    /// E.g. "Send all logs + debug system logs to my topic, but only error-level system logs to my CW topic"
+    /// 
+    /// IMPORTANT: If capturing system logs interests you, be aware only the first list of inputs configured will
+    /// receive system logs captured before this is called. Any destinations added after will not have these system logs.
+    configure-logging: func(inputs: list<configure-logging-input>) -> result<_, log-configuration-error>;
+    /// Receives input (ideally through a custom-wrapped struct around the log!() macro) to feed to a
+    /// configured destination(s) (if exists)
+    log: func(input: string);
+}

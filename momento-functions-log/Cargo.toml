@@ -14,3 +14,4 @@ categories.workspace = true
 log                     = { workspace = true }
 momento-functions-host  = { workspace = true }
 thiserror               = { workspace = true }
+time                    = { workspace = true, features = ["formatting"] }

@@ -3,6 +3,7 @@ use std::sync::atomic::AtomicU32;
 
 use log::{LevelFilter, Log, set_logger_racy, set_max_level};
 use momento_functions_host::logging::{ConfigureLoggingInput, LogConfigurationError};
+use time::format_description::well_known::Rfc3339;
 
 pub struct HostLog {
     level: LevelFilter,
@@ -42,6 +43,8 @@ impl Log for HostLog {
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
             let mut buffer = String::with_capacity(128);
+            let utc_now = time::OffsetDateTime::now_utc();
+            let timestamp = utc_now.format(&Rfc3339).unwrap_or("<unknown>".to_string());
             let level = record.level().as_str();
             let module = record.module_path().unwrap_or("<unknown>");
             let file = record.file().unwrap_or("<unknown>");
@@ -57,7 +60,7 @@ impl Log for HostLog {
 
             let _ = write!(
                 &mut buffer,
-                "{level} {module} {file}:{line}{dropped_clause} {log_message}"
+                "{level} {timestamp} {module} {file}:{line}{dropped_clause} {log_message}"
             );
 
             momento_functions_host::logging::log(buffer.as_str());

@@ -1,31 +1,28 @@
 use std::fmt::Write;
-use std::sync::atomic::AtomicU32;
 
 use log::{LevelFilter, Log, set_logger_racy, set_max_level};
-use momento_functions_host::logging::{ConfigureLoggingInput, LogConfigurationError};
+use momento_functions_host::logging::{LogConfiguration, LogConfigurationError};
 use time::format_description::well_known::Rfc3339;
 
 pub struct HostLog {
     level: LevelFilter,
-    dropped: AtomicU32,
 }
 
 impl HostLog {
-    pub fn init(
+    pub fn init<Configuration: TryInto<LogConfiguration, Error = LogConfigurationError>>(
         log_level: LevelFilter,
-        destinations: Vec<ConfigureLoggingInput>,
+        configurations: impl IntoIterator<Item = Configuration>,
     ) -> Result<(), LogConfigurationError> {
         set_max_level(log_level);
 
         static mut LOGGER: Option<HostLog> = None;
-        momento_functions_host::logging::configure_logging(destinations)?;
+        momento_functions_host::logging::configure_host_logging(configurations)?;
         #[allow(static_mut_refs)]
         #[allow(clippy::expect_used)]
+        // SAFETY: concurrency requirement is satisfied by the single threaded nature
+        // of the Function environment.
         unsafe {
-            LOGGER.replace(HostLog {
-                level: log_level,
-                dropped: AtomicU32::new(0),
-            });
+            LOGGER.replace(HostLog { level: log_level });
             set_logger_racy(LOGGER.as_mut().expect("logger just set")).map_err(|e| {
                 LogConfigurationError::Unknown {
                     message: format!("Failed to configure logger! {e:?}"),
@@ -51,16 +48,9 @@ impl Log for HostLog {
             let line = record.line().unwrap_or(0);
             let log_message = record.args();
 
-            let dropped = self.dropped.swap(0, std::sync::atomic::Ordering::Relaxed);
-            let dropped_clause = if 0 < dropped {
-                format!(" ({dropped} messages dropped)")
-            } else {
-                String::new()
-            };
-
             let _ = write!(
                 &mut buffer,
-                "{level} {timestamp} {module} {file}:{line}{dropped_clause} {log_message}"
+                "{level} {timestamp} {module} {file}:{line} {log_message}"
             );
 
             momento_functions_host::logging::log(buffer.as_str());

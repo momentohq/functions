@@ -1,9 +1,6 @@
 use log::LevelFilter;
 use momento_functions::WebResult;
-use momento_functions_host::{
-    encoding::Json,
-    logging::{ConfigureLoggingInput, LogDestination},
-};
+use momento_functions_host::{encoding::Json, logging::LogDestination};
 
 #[derive(serde::Deserialize, Debug)]
 struct Request {
@@ -17,11 +14,9 @@ struct Response {
 
 momento_functions::post!(greet);
 fn greet(Json(request): Json<Request>) -> WebResult<Json<Response>> {
-    momento_functions_log::configure_logging(
+    momento_functions_log::configure_logs(
         LevelFilter::Info,
-        vec![ConfigureLoggingInput::new(LogDestination::Topic {
-            topic: "logging-example".to_string(),
-        })],
+        [LogDestination::topic("logging-example")],
     )?;
 
     log::info!("Received request: {request:?}");

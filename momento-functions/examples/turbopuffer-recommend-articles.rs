@@ -51,10 +51,7 @@ use log::LevelFilter;
 
 use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
-    cache,
-    encoding::Json,
-    logging::{ConfigureLoggingInput, LogDestination},
-    web_extensions::headers,
+    cache, encoding::Json, logging::LogDestination, web_extensions::headers,
 };
 
 use serde::{Deserialize, Serialize};
@@ -460,11 +457,9 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
         let log_level = log_level
             .parse::<LevelFilter>()
             .unwrap_or(LevelFilter::Info);
-        momento_functions_log::configure_logging(
+        momento_functions_log::configure_logs(
             log_level,
-            vec![ConfigureLoggingInput::new(LogDestination::Topic {
-                topic: "turbopuffer-recommend-articles".to_string(),
-            })],
+            [LogDestination::topic("turbopuffer-recommend-articles")],
         )?;
     }
     Ok(())

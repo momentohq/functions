@@ -10,11 +10,7 @@
 use itertools::Itertools;
 use log::LevelFilter;
 use momento_functions::{WebResponse, WebResult};
-use momento_functions_host::{
-    encoding::Json,
-    logging::{ConfigureLoggingInput, LogDestination},
-    web_extensions::headers,
-};
+use momento_functions_host::{encoding::Json, logging::LogDestination, web_extensions::headers};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -127,11 +123,9 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
         let log_level = log_level
             .parse::<LevelFilter>()
             .unwrap_or(LevelFilter::Info);
-        momento_functions_log::configure_logging(
+        momento_functions_log::configure_logs(
             log_level,
-            vec![ConfigureLoggingInput::new(LogDestination::Topic {
-                topic: "turbopuffer-index".to_string(),
-            })],
+            [LogDestination::topic("turbopuffer-index")],
         )?;
     }
     Ok(())

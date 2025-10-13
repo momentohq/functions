@@ -11,23 +11,15 @@
 //! * [`momento-functions`](https://crates.io/crates/momento-functions): Code generators for Functions.
 //! * [`momento-functions-host`](https://crates.io/crates/momento-functions-host): Interfaces and tools for calling host interfaces.
 
-use momento_functions_host::logging::{ConfigureLoggingInput, LogConfigurationError};
-use thiserror::Error;
+use momento_functions_host::logging::{LogConfiguration, LogConfigurationError};
 
+use crate::host_logging::HostLog;
 mod host_logging;
 
-#[derive(Debug, Error)]
-pub enum LogConfigError {
-    #[error("Failed to initialize logger: {cause}")]
-    Init { cause: LogConfigurationError },
-}
-
-/// Initializes the logging system with the specified log level and destinations.
-///
-/// You **must** only call this function once.
-pub fn configure_logging(
-    level: log::LevelFilter,
-    destinations: Vec<ConfigureLoggingInput>,
-) -> Result<(), LogConfigError> {
-    host_logging::HostLog::init(level, destinations).map_err(|e| LogConfigError::Init { cause: e })
+/// Entrypoint for configuring logs to be delivered to a destination(s)
+pub fn configure_logs<Configuration: TryInto<LogConfiguration, Error = LogConfigurationError>>(
+    log_level: log::LevelFilter,
+    configurations: impl IntoIterator<Item = Configuration>,
+) -> Result<(), LogConfigurationError> {
+    HostLog::init(log_level, configurations)
 }

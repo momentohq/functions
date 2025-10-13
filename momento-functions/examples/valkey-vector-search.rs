@@ -2,7 +2,7 @@ use log::LevelFilter;
 use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     encoding::Json,
-    logging::{ConfigureLoggingInput, LogDestination},
+    logging::LogDestination,
     redis::{Command, RedisClient, RedisValue},
     web_extensions::headers,
 };
@@ -315,11 +315,9 @@ fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
         let log_level = log_level
             .parse::<LevelFilter>()
             .unwrap_or(LevelFilter::Info);
-        momento_functions_log::configure_logging(
+        momento_functions_log::configure_logs(
             log_level,
-            vec![ConfigureLoggingInput::new(LogDestination::Topic {
-                topic: "valkey-vector-search".to_string(),
-            })],
+            [LogDestination::topic("valkey-vector-search")],
         )?;
     }
     Ok(())

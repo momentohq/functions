@@ -12,17 +12,24 @@ pub enum LogDestination {
     },
 }
 
-/// A single configuration for a destination
-pub struct ConfigureLoggingInput {
-    /// At what level would you like Momento's system logs to be filtered into this destination?
-    pub system_log_level: log::LevelFilter,
-    /// The specific destination
-    pub destination: LogDestination,
+impl LogDestination {
+    /// Creates a Topic destination
+    pub fn topic(name: impl Into<String>) -> Self {
+        Self::Topic { topic: name.into() }
+    }
 }
 
-impl ConfigureLoggingInput {
+/// A single configuration for a destination
+pub struct LogConfiguration {
+    /// At what level would you like Momento's system logs to be filtered into this destination?
+    system_log_level: log::LevelFilter,
+    /// The specific destination
+    destination: LogDestination,
+}
+
+impl LogConfiguration {
     /// Constructs a single logging input with a desired destination. System logs will be at default level (INFO).
-    pub fn new(destination: LogDestination) -> Self {
+    fn new(destination: LogDestination) -> Self {
         Self {
             system_log_level: log::LevelFilter::Info,
             destination,
@@ -30,15 +37,25 @@ impl ConfigureLoggingInput {
     }
 
     /// Constructs a single logging input with a desired destination as well as a specified system logs filter.
-    pub fn new_with_system_log_level(
-        system_log_level: log::LevelFilter,
-        destination: LogDestination,
-    ) -> Self {
-        Self {
-            system_log_level,
-            destination,
+    pub fn with_system_log_level(mut self, system_log_level: log::LevelFilter) -> Self {
+        self.system_log_level = system_log_level;
+        self
+    }
+}
+
+impl TryFrom<LogDestination> for LogConfiguration {
+    type Error = LogConfigurationError;
+
+    fn try_from(value: LogDestination) -> Result<Self, Self::Error> {
+        match value {
+            LogDestination::Topic { topic } => Ok(Self::new(LogDestination::topic(topic))),
         }
     }
+}
+
+/// Create a single `LogConfiguration` given a `LogDestination`.
+pub fn log_configuration(destination: LogDestination) -> LogConfiguration {
+    LogConfiguration::new(destination)
 }
 
 impl From<LogDestination> for logging::Destination {
@@ -53,8 +70,8 @@ impl From<LogDestination> for logging::Destination {
     }
 }
 
-impl From<ConfigureLoggingInput> for logging::ConfigureLoggingInput {
-    fn from(value: ConfigureLoggingInput) -> Self {
+impl From<LogConfiguration> for logging::ConfigureLoggingInput {
+    fn from(value: LogConfiguration) -> Self {
         Self {
             system_logs_level: match value.system_log_level {
                 log::LevelFilter::Off => logging::LogLevel::Off,
@@ -87,13 +104,29 @@ pub enum LogConfigurationError {
     },
 }
 
+impl From<logging::LogConfigurationError> for LogConfigurationError {
+    fn from(value: logging::LogConfigurationError) -> Self {
+        match value {
+            logging::LogConfigurationError::Auth(e) => Self::Auth { message: e },
+        }
+    }
+}
+
 /// Configures logging via Momento host functions
-pub fn configure_logging(inputs: Vec<ConfigureLoggingInput>) -> Result<(), LogConfigurationError> {
-    let converted: Vec<logging::ConfigureLoggingInput> =
-        inputs.into_iter().map(Into::into).collect();
-    logging::configure_logging(&converted).map_err(|e| LogConfigurationError::Auth {
-        message: e.to_string(),
-    })
+pub fn configure_host_logging<
+    Configuration: TryInto<LogConfiguration, Error = LogConfigurationError>,
+>(
+    configurations: impl IntoIterator<Item = Configuration>,
+) -> Result<(), LogConfigurationError> {
+    let configurations = configurations
+        .into_iter()
+        .map(|intoconfiguration| {
+            intoconfiguration
+                .try_into()
+                .map(|configuration| configuration.into())
+        })
+        .collect::<Result<Vec<logging::ConfigureLoggingInput>, LogConfigurationError>>()?;
+    Ok(logging::configure_logging(&configurations)?)
 }
 
 /// Logs a given string

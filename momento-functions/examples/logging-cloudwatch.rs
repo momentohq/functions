@@ -14,7 +14,6 @@ struct Response {
     message: String,
 }
 
-
 momento_functions::post!(greet);
 /// For this example, we demonstrate sending some logs to a CloudWatch logs group
 /// passed in from the request. This example presumes an IAM role with proper

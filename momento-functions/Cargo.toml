@@ -15,6 +15,10 @@ name = "dynamodb-accelerator"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "logging-cloudwatch"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "logging"
 crate-type = ["cdylib"]
 

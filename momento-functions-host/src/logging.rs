@@ -10,12 +10,29 @@ pub enum LogDestination {
         /// Name of the topic
         topic: String,
     },
+    /// AWS CloudWatch Log Group for your function's logs
+    CloudWatch {
+        /// ARN of the IAM role for Momento to assume
+        iam_role_arn: String,
+        /// ARN of the CloudWatch Log Group for Momento to publish your
+        /// function logs to
+        log_group_name: String,
+    },
 }
 
 impl LogDestination {
     /// Creates a Topic destination
     pub fn topic(name: impl Into<String>) -> Self {
         Self::Topic { topic: name.into() }
+    }
+    /// Creates a CloudWatch destination.
+    /// Reach out to us at `support@momentohq.com` for details on how to properly
+    /// set up your log configuration.
+    pub fn cloudwatch(iam_role_arn: impl Into<String>, log_group_name: impl Into<String>) -> Self {
+        Self::CloudWatch {
+            iam_role_arn: iam_role_arn.into(),
+            log_group_name: log_group_name.into(),
+        }
     }
 }
 
@@ -49,6 +66,13 @@ impl TryFrom<LogDestination> for LogConfiguration {
     fn try_from(value: LogDestination) -> Result<Self, Self::Error> {
         match value {
             LogDestination::Topic { topic } => Ok(Self::new(LogDestination::topic(topic))),
+            LogDestination::CloudWatch {
+                iam_role_arn,
+                log_group_name,
+            } => Ok(Self::new(LogDestination::cloudwatch(
+                iam_role_arn,
+                log_group_name,
+            ))),
         }
     }
 }
@@ -66,6 +90,15 @@ impl From<LogDestination> for logging::Destination {
                     logging::TopicDestination { topic_name: topic },
                 )
             }
+            LogDestination::CloudWatch {
+                iam_role_arn,
+                log_group_name,
+            } => momento_functions_wit::host::momento::host::logging::Destination::Cloudwatch(
+                logging::CloudwatchDestination {
+                    iam_role_arn,
+                    log_group_name,
+                },
+            ),
         }
     }
 }

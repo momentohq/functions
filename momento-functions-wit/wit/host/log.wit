@@ -33,6 +33,7 @@ interface logging {
     }
 
     record configure-logging-input {
+        log-level: log-level,
         system-logs-level: log-level,
         destination: destination
     }
@@ -45,5 +46,5 @@ interface logging {
     configure-logging: func(inputs: list<configure-logging-input>) -> result<_, log-configuration-error>;
     /// Receives input (ideally through a custom-wrapped struct around the log!() macro) to feed to a
     /// configured destination(s) (if exists)
-    log: func(input: string);
+    log: func(input: string, level: log-level);
 }

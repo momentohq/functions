@@ -1,4 +1,3 @@
-use log::LevelFilter;
 use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     aws::ddb::KeyValue,
@@ -119,22 +118,7 @@ fn require_header(
     Ok(action.to_string())
 }
 
-fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
-    let log_level = headers.iter().find_map(|(name, value)| {
-        if name == "x-momento-log" {
-            Some(value)
-        } else {
-            None
-        }
-    });
-    if let Some(log_level) = log_level {
-        let log_level = log_level
-            .parse::<LevelFilter>()
-            .unwrap_or(LevelFilter::Info);
-        momento_functions_log::configure_logs(
-            log_level,
-            [LogDestination::topic("ddb-accelerator")],
-        )?;
-    }
+fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+    momento_functions_log::configure_logs([LogDestination::topic("ddb-accelerator").into()])?;
     Ok(())
 }

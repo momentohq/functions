@@ -17,9 +17,8 @@ use crate::host_logging::HostLog;
 mod host_logging;
 
 /// Entrypoint for configuring logs to be delivered to a destination(s)
-pub fn configure_logs<Configuration: TryInto<LogConfiguration, Error = LogConfigurationError>>(
-    log_level: log::LevelFilter,
-    configurations: impl IntoIterator<Item = Configuration>,
+pub fn configure_logs(
+    configurations: impl IntoIterator<Item = LogConfiguration>,
 ) -> Result<(), LogConfigurationError> {
-    HostLog::init(log_level, configurations)
+    HostLog::init(configurations)
 }

@@ -38,6 +38,8 @@ impl LogDestination {
 
 /// A single configuration for a destination
 pub struct LogConfiguration {
+    /// At what level would you like your function's logs to be filtered into this destination?
+    log_level: log::LevelFilter,
     /// At what level would you like Momento's system logs to be filtered into this destination?
     system_log_level: log::LevelFilter,
     /// The specific destination
@@ -46,11 +48,18 @@ pub struct LogConfiguration {
 
 impl LogConfiguration {
     /// Constructs a single logging input with a desired destination. System logs will be at default level (INFO).
-    fn new(destination: LogDestination) -> Self {
+    pub fn new(destination: LogDestination) -> Self {
         Self {
+            log_level: log::LevelFilter::Info,
             system_log_level: log::LevelFilter::Info,
             destination,
         }
+    }
+
+    /// Constructs a single logging input with a desired destination as well as a specified logs filter.
+    pub fn with_log_level(mut self, log_level: log::LevelFilter) -> Self {
+        self.log_level = log_level;
+        self
     }
 
     /// Constructs a single logging input with a desired destination as well as a specified system logs filter.
@@ -60,19 +69,14 @@ impl LogConfiguration {
     }
 }
 
-impl TryFrom<LogDestination> for LogConfiguration {
-    type Error = LogConfigurationError;
-
-    fn try_from(value: LogDestination) -> Result<Self, Self::Error> {
+impl From<LogDestination> for LogConfiguration {
+    fn from(value: LogDestination) -> Self {
         match value {
-            LogDestination::Topic { topic } => Ok(Self::new(LogDestination::topic(topic))),
+            LogDestination::Topic { topic } => Self::new(LogDestination::topic(topic)),
             LogDestination::CloudWatch {
                 iam_role_arn,
                 log_group_name,
-            } => Ok(Self::new(LogDestination::cloudwatch(
-                iam_role_arn,
-                log_group_name,
-            ))),
+            } => Self::new(LogDestination::cloudwatch(iam_role_arn, log_group_name)),
         }
     }
 }
@@ -106,6 +110,15 @@ impl From<LogDestination> for logging::Destination {
 impl From<LogConfiguration> for logging::ConfigureLoggingInput {
     fn from(value: LogConfiguration) -> Self {
         Self {
+            log_level: match value.log_level {
+                log::LevelFilter::Off => logging::LogLevel::Off,
+                log::LevelFilter::Error => logging::LogLevel::Error,
+                log::LevelFilter::Warn => logging::LogLevel::Warn,
+                log::LevelFilter::Info => logging::LogLevel::Info,
+                log::LevelFilter::Debug => logging::LogLevel::Debug,
+                // Momento does not publish Trace logs
+                log::LevelFilter::Trace => logging::LogLevel::Debug,
+            },
             system_logs_level: match value.system_log_level {
                 log::LevelFilter::Off => logging::LogLevel::Off,
                 log::LevelFilter::Error => logging::LogLevel::Error,
@@ -146,23 +159,27 @@ impl From<logging::LogConfigurationError> for LogConfigurationError {
 }
 
 /// Configures logging via Momento host functions
-pub fn configure_host_logging<
-    Configuration: TryInto<LogConfiguration, Error = LogConfigurationError>,
->(
-    configurations: impl IntoIterator<Item = Configuration>,
+pub fn configure_host_logging(
+    configurations: impl IntoIterator<Item = LogConfiguration>,
 ) -> Result<(), LogConfigurationError> {
     let configurations = configurations
         .into_iter()
-        .map(|intoconfiguration| {
-            intoconfiguration
-                .try_into()
-                .map(|configuration| configuration.into())
-        })
-        .collect::<Result<Vec<logging::ConfigureLoggingInput>, LogConfigurationError>>()?;
+        .map(|configuration| configuration.into())
+        .collect::<Vec<logging::ConfigureLoggingInput>>();
     Ok(logging::configure_logging(&configurations)?)
 }
 
 /// Logs a given string
-pub fn log(input: &str) {
-    logging::log(input)
+pub fn log(input: &str, level: log::Level) {
+    logging::log(
+        input,
+        match level {
+            log::Level::Error => logging::LogLevel::Error,
+            log::Level::Warn => logging::LogLevel::Warn,
+            log::Level::Info => logging::LogLevel::Info,
+            log::Level::Debug => logging::LogLevel::Debug,
+            // Momento does not publish Trace logs
+            log::Level::Trace => logging::LogLevel::Debug,
+        },
+    )
 }

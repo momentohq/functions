@@ -23,7 +23,6 @@
 //! https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews?resource=download
 
 use itertools::Itertools;
-use log::LevelFilter;
 use momento_functions::{WebResponse, WebResult};
 use momento_functions_host::{encoding::Json, logging::LogDestination, web_extensions::headers};
 
@@ -122,23 +121,8 @@ fn generate_embeddings(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<W
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
-    let log_level = headers.iter().find_map(|(name, value)| {
-        if name == "x-momento-log" {
-            Some(value)
-        } else {
-            None
-        }
-    });
-    if let Some(log_level) = log_level {
-        let log_level = log_level
-            .parse::<LevelFilter>()
-            .unwrap_or(LevelFilter::Info);
-        momento_functions_log::configure_logs(
-            log_level,
-            [LogDestination::topic("fine-foods-embeddings")],
-        )?;
-    }
+fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+    momento_functions_log::configure_logs([LogDestination::topic("fine-foods-embeddings").into()])?;
     Ok(())
 }
 

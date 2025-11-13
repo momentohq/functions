@@ -1,0 +1,116 @@
+interface permission-messages {
+  // Aliases for categories of functionality.
+  enum cache-role {
+    cache-permit-none,
+    // Restricts access to apis that read and write data from caches
+    cache-read-write,
+    // Restricts access to apis that read from caches
+    cache-read-only,
+    // Restricts access to apis that write from caches
+    // Doesn't allow conditional write APIs (SetIfNotExists, IncreaseTTL etc)
+    cache-write-only,
+  }
+
+  // Aliases for categories of functionality.
+  enum topic-role {
+    topic-permit-none,
+    // Restricts access to apis that read and write data from topics
+    topic-read-write,
+    // Restricts access to apis that read from topics
+    topic-read-only,
+    // Restricts access to apis that write from topics
+    topic-write-only,
+  }
+
+  // Aliases for categories of functionality.
+  enum function-role {
+    function-permit-none,
+    function-invoke,
+  }
+
+  enum super-user-permissions {
+    super-user,
+  }
+
+  variant permissions {
+    super-user(super-user-permissions),
+    explicit(explicit-permissions),
+  }
+
+  record explicit-permissions {
+    permissions: list<permissions-type>,
+  }
+
+  variant cache-selector {
+    cache-name(string),
+  }
+
+  variant cache-item-selector {
+    key(list<u8>),
+    key-prefix(list<u8>),
+  }
+
+  variant cache-permissions-cache {
+    all-caches,
+    cache-selector(cache-selector),
+  }
+
+  variant cache-permissions-item {
+    all-items,
+    item-selector(cache-item-selector),
+  }
+
+  record cache-permissions {
+    role: cache-role,
+    cache: cache-permissions-cache,
+    cache-item: cache-permissions-item,
+  }
+
+  variant topic-selector {
+    topic-name(string),
+    topic-name-prefix(string),
+  }
+
+  variant topic-permissions-cache {
+    all-caches,
+    cache-selector(cache-selector),
+  }
+
+  variant topic-permissions-topic {
+    all-topics,
+    topic-selector(topic-selector),
+  }
+
+  record topic-permissions {
+    role: topic-role,
+    cache: topic-permissions-cache,
+    topic: topic-permissions-topic,
+  }
+
+  variant function-selector {
+    function-name(string),
+    function-name-prefix(string),
+  }
+
+  variant function-permissions-cache {
+    all-caches,
+    cache-selector(cache-selector),
+  }
+
+  variant function-permissions-function {
+    all-functions,
+    function-selector(function-selector),
+  }
+
+  record function-permissions {
+    role: function-role,
+    cache: function-permissions-cache,
+    function: function-permissions-function,
+  }
+
+  variant permissions-type {
+    cache-permissions(cache-permissions),
+    topic-permissions(topic-permissions),
+    function-permissions(function-permissions),
+  }
+}

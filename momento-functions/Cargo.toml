@@ -35,6 +35,10 @@ name = "fine-foods-embeddings"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "token-vending-machine"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "turbopuffer-index"
 crate-type = ["cdylib"]
 

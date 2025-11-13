@@ -19,6 +19,7 @@ pub mod http;
 pub mod logging;
 pub mod redis;
 mod spawn;
+pub mod token;
 pub mod topics;
 pub mod web_extensions;
 

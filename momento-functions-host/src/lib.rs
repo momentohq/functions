@@ -16,6 +16,7 @@ pub mod aws;
 pub mod cache;
 pub mod encoding;
 pub mod http;
+pub mod logging;
 pub mod redis;
 mod spawn;
 pub mod topics;

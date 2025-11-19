@@ -4,6 +4,7 @@ world imports {
     import aws-auth;
     import aws-ddb;
     import aws-lambda;
+    import logging;
     import http;
     import redis;
     import spawn;

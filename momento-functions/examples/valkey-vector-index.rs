@@ -1,11 +1,11 @@
-use log::LevelFilter;
 use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     encoding::Json,
+    logging::LogDestination,
     redis::{Command, RedisClient, RedisValue},
     web_extensions::headers,
 };
-use momento_functions_log::LogMode;
+
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
@@ -143,24 +143,7 @@ fn ensure_index_exists(
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
-    let log_level = headers.iter().find_map(|(name, value)| {
-        if name == "x-momento-log" {
-            Some(value)
-        } else {
-            None
-        }
-    });
-    if let Some(log_level) = log_level {
-        let log_level = log_level
-            .parse::<LevelFilter>()
-            .unwrap_or(LevelFilter::Info);
-        momento_functions_log::configure_logging(
-            log_level,
-            LogMode::Topic {
-                topic: "valkey-vector-index".to_string(),
-            },
-        )?;
-    }
+fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+    momento_functions_log::configure_logs([LogDestination::topic("valkey-vector-index").into()])?;
     Ok(())
 }

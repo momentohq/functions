@@ -1,11 +1,11 @@
-use log::LevelFilter;
 use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     encoding::Json,
+    logging::LogDestination,
     redis::{Command, RedisClient, RedisValue},
     web_extensions::headers,
 };
-use momento_functions_log::LogMode;
+
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use std::{collections::HashMap, mem::take};
@@ -302,25 +302,8 @@ fn get_cached_query_embedding(
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(headers: &[(String, String)]) -> WebResult<()> {
-    let log_level = headers.iter().find_map(|(name, value)| {
-        if name == "x-momento-log" {
-            Some(value)
-        } else {
-            None
-        }
-    });
-    if let Some(log_level) = log_level {
-        let log_level = log_level
-            .parse::<LevelFilter>()
-            .unwrap_or(LevelFilter::Info);
-        momento_functions_log::configure_logging(
-            log_level,
-            LogMode::Topic {
-                topic: "valkey-vector-search".to_string(),
-            },
-        )?;
-    }
+fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+    momento_functions_log::configure_logs([LogDestination::topic("valkey-vector-search").into()])?;
     Ok(())
 }
 

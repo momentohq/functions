@@ -21,13 +21,12 @@
 //! For this example, we'll simply call it `"my very secret value"`.
 use std::time::Duration;
 
-use log::LevelFilter;
 use momento_functions::{WebResponse, WebResult};
 use momento_functions_host::{
     encoding::Json,
-    token::{self, CachePermissionsBuilder, PermissionsBuilder, TopicPermissionsBuilder},
+    logging::LogDestination,
+    token::{self, CachePermissions, Permissions, TopicPermissions},
 };
-use momento_functions_log::LogMode;
 use serde_json::json;
 
 #[derive(serde::Serialize)]
@@ -39,31 +38,21 @@ struct Response {
 
 momento_functions::post!(greet);
 fn greet(_payload: Vec<u8>) -> WebResult<WebResponse> {
-    momento_functions_log::configure_logging(
-        LevelFilter::Info,
-        LogMode::Topic {
-            topic: "token-vending-machine".to_string(),
-        },
-    )?;
+    momento_functions_log::configure_logs([LogDestination::topic("token-vending-machine").into()])?;
 
     log::debug!("received request to generate a disposable token");
-
-    // Example permissions builder that makes constructing permissions straightforward.
-    // You can add multiple of the same kind of permissions (cache, topic, functions, etc),
-    // and validation will be performed by Momento when the request is passed through.
-    let permissions = PermissionsBuilder::new()
-        .add_cache(
-            CachePermissionsBuilder::new()
-                .read_write()
-                .cache_name("foo")
-                .all_items(),
+    let permissions = Permissions::new()
+        .with_cache(
+            CachePermissions::read_write()
+                .with_cache("foo")
+                .with_all_items(),
         )
-        .add_topic(
-            TopicPermissionsBuilder::new()
-                .read_only()
-                .cache_name("foo")
-                .topic_name_prefix("notification-"),
+        .with_topic(
+            TopicPermissions::read_only()
+                .with_cache("foo")
+                .with_topic_prefix("notification-"),
         );
+
     // As documented above, consider this a secret value you want securely embedded and
     // signed in your generated JWT.
     let token_id = Some("my very secret value".to_string());

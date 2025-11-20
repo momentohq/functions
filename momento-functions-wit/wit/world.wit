@@ -4,7 +4,6 @@ world host {
     include momento:host/imports@1.0.0;
 
     import cache-scalar;
-    import permission-messages;
     import token;
     import topic;
 }

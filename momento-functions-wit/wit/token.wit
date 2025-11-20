@@ -1,5 +1,4 @@
 interface token {
-  use permission-messages.{permissions};
 
   /// An error occurred while making the call.
    variant token-error {
@@ -28,7 +27,7 @@ interface token {
      /// Sets when the token will expire
     expires: expires,
     /// The permissions for the new token to be scoped with.
-    permissions: permissions,
+    permissions: string,
     /// Optional string to be included inside the token. This field can also
     /// be used to include a payload you know is signed within the token.
     token-id: option<string>,

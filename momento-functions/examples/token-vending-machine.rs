@@ -27,6 +27,7 @@ use momento_functions_host::{
     logging::LogDestination,
     token::{self, CachePermissions, Permissions, TopicPermissions},
 };
+use momento_functions_wit::host::momento::functions::token::TokenError;
 use serde_json::json;
 
 #[derive(serde::Serialize)]
@@ -83,10 +84,10 @@ fn greet(_payload: Vec<u8>) -> WebResult<WebResponse> {
             log::error!("Failed to generate token: {e:?}");
             let status = match &e {
                 token::GenerateDisposableTokenError::TokenError(token_error) => match token_error {
-                    momento_functions_wit::host::momento::functions::token::TokenError::InvalidArgument(_) => 400,
-                    momento_functions_wit::host::momento::functions::token::TokenError::PermissionDenied(_) => 403,
-                    momento_functions_wit::host::momento::functions::token::TokenError::LimitExceeded(_) => 429,
-                    momento_functions_wit::host::momento::functions::token::TokenError::InternalError => 500,
+                    TokenError::InvalidArgument(_) => 400,
+                    TokenError::PermissionDenied(_) => 403,
+                    TokenError::LimitExceeded(_) => 429,
+                    TokenError::InternalError => 500,
                 },
             };
             Ok(WebResponse::new().with_status(status).with_body(json!({

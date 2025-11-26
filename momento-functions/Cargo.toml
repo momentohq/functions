@@ -23,6 +23,14 @@ name = "logging"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "s3-get"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "s3-put"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "spawn-function"
 crate-type = ["cdylib"]
 

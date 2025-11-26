@@ -78,7 +78,7 @@ impl AwsCredentialsProvider {
     /// # // Not run because docs.rs does not run a Momento WIT host environment, of course!
     /// # // But it does at least compile, to make sure the example is correct.
     /// # use momento_functions_host::{build_environment_aws_credentials, aws::auth::{AwsCredentialsProvider}};
-    /// let provider = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!());
+    /// let provider = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
     /// ```
     pub fn new(
         region: impl AsRef<str>,

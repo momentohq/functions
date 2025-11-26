@@ -1,0 +1,43 @@
+interface aws-s3 {
+    use aws-auth.{credentials-provider};
+
+    variant s3-error {
+      /// The request was not authorized.
+      unauthorized(string),
+      /// The request was malformed.
+      malformed(string),
+      /// The request failed for some other reason.
+      other(string),
+   }
+
+   record put-object-request {
+     bucket: string,
+     key: string,
+     payload: list<u8>,
+   }
+
+   record put-object-output {
+     expiration: option<string>,
+     etag: option<string>,
+     version-id: option<string>,
+   }
+
+   record get-object-request {
+     bucket: string,
+     key: string,
+   }
+
+   record get-object-output {
+     /// If the object is not found, None is returned
+     body: option<list<u8>>,
+     etag: option<string>,
+     version-id: option<string>,
+     expiration: option<string>,
+   }
+
+   resource client {
+     constructor(credentials: borrow<credentials-provider>);
+     put: func(request: put-object-request) -> result<put-object-output, s3-error>;
+     get: func(request: get-object-request) -> result<get-object-output, s3-error>;
+   }
+}

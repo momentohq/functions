@@ -126,14 +126,14 @@ impl S3Client {
         &self,
         bucket: impl Into<String>,
         key: impl Into<String>,
-        value: E,
+        body: E,
     ) -> Result<(), S3PutError<E::Error>> {
         let _output = self
             .client
             .put(&host::aws_s3::PutObjectRequest {
                 bucket: bucket.into(),
                 key: key.into(),
-                payload: value
+                body: body
                     .try_serialize()
                     .map_err(|e| S3PutError::EncodeFailed { cause: e })?
                     .into(),

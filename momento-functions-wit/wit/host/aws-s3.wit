@@ -13,7 +13,7 @@ interface aws-s3 {
    record put-object-request {
      bucket: string,
      key: string,
-     payload: list<u8>,
+     body: list<u8>,
    }
 
    record put-object-output {

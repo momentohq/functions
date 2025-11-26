@@ -1,0 +1,35 @@
+interface token {
+
+  /// An error occurred while making the call.
+   variant token-error {
+        internal-error,
+        invalid-argument(string),
+        permission-denied(string),
+        limit-exceeded(string),
+    }
+
+  record expires {
+    /// How many seconds would you like the token to be valid for?
+    valid-for-seconds: u32,
+  }
+
+  record generate-disposable-token-response {
+    /// The new token
+    api-key: string,
+    /// The endpoint this token can be used again
+    endpoint: string,
+    /// Epoch seconds when the token expires
+    valid-until: u64,
+  }
+
+  /// Generate a token that has an expiry
+  generate-disposable-token: func(
+     /// Sets when the token will expire
+    expires: expires,
+    /// The permissions for the new token to be scoped with.
+    permissions: string,
+    /// Optional string to be included inside the token. This field can also
+    /// be used to include a payload you know is signed within the token.
+    token-id: option<string>,
+  ) -> result<generate-disposable-token-response, token-error>;
+}

@@ -89,6 +89,23 @@ impl AwsCredentialsProvider {
     /// # use momento_functions_host::{build_environment_aws_credentials, aws::auth::{AwsCredentialsProvider}};
     /// let provider = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!());
     /// ```
+    /// -----
+    /// ### Federated IAM role
+    /// You can also use an IAM role ARN that gives permissions to Momento to federeate into your role
+    /// and perform the client's actions on your behalf. Reach out to `support@momentohq.com` for assistance
+    /// with setting this up.
+    /// ```rust,no_run
+    /// # // Not run because docs.rs does not run a Momento WIT host environment, of course!
+    /// # // But it does at least compile, to make sure the example is correct.
+    /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
+    /// # use momento_functions_host::aws::auth::Credentials;
+    /// let provider = AwsCredentialsProvider::new(
+    ///     "us-east-1",
+    ///     Credentials::Federated {
+    ///         role_arn: "your-full-ARN-path-to-your-role"
+    ///     }
+    /// );
+    /// ```
     pub fn new(
         region: impl AsRef<str>,
         credentials: Credentials,

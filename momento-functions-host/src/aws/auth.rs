@@ -63,6 +63,15 @@ pub enum Credentials {
         /// The AWS secret access key for the IAM user you wish to use
         secret_access_key: String,
     },
+    /// Provide an AWS IAM role that grants Momento permission to federate into this role
+    /// and execute the AWS actions on your behalf. This presumes you have set up appropriate
+    /// permissions for the client and actions you are using (S3, DynamoDB, etc.)
+    ///
+    /// Reach out to `support@momentohq.com` for assistance with setting up your IAM role's permissions.
+    Federated {
+        /// The full ARN path of the IAM role you want to use
+        role_arn: String,
+    },
 }
 
 /// A configured AWS credentials provider. This can be used to connect to AWS services.
@@ -92,6 +101,9 @@ impl AwsCredentialsProvider {
                 access_key_id,
                 secret_access_key,
             }),
+            Credentials::Federated { role_arn } => {
+                aws_auth::Authorization::Federated(aws_auth::IamRole { role_arn })
+            }
         };
 
         let resource = aws_auth::provider(&wit_authorization, region.as_ref())?;

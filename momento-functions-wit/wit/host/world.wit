@@ -3,6 +3,7 @@ package momento:host@1.0.0;
 world imports {
     import aws-auth;
     import aws-ddb;
+    import aws-s3;
     import aws-lambda;
     import logging;
     import http;

@@ -65,7 +65,7 @@ impl LambdaClient {
     /// ________
     /// ```rust
     /// use momento_functions_host::aws::lambda::{InvokeError, LambdaClient};
-    /// use momento_functions_host::encoding::Json;;
+    /// use momento_functions_host::encoding::Json;
     ///
     /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<&str>> {
     /// // With a payload

@@ -5,8 +5,14 @@ interface aws-auth {
         secret-access-key: string,
     }
 
+    /// Federated IAM role
+    record iam-role {
+        role-arn: string,
+    }
+
     variant authorization {
         hardcoded(credentials),
+        federated(iam-role),
     }
 
     variant auth-error {

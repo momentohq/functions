@@ -6,7 +6,7 @@ use momento_functions_wit::function_web::momento::functions::web_function_suppor
 
 /// Returns the headers for the web function, if any are present.
 /// This consumes the headers and takes ownership of the value; multiple calls after will always
-/// yield `an empty list.
+/// yield an empty list.
 pub fn headers() -> Vec<(String, String)> {
     web_function_support::headers()
         .into_iter()

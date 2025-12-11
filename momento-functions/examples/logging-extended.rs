@@ -2,6 +2,7 @@ use momento_functions::WebResult;
 use momento_functions_host::{
     encoding::Json,
     logging::{LogConfiguration, LogDestination},
+    web_extensions::invocation_id,
 };
 
 #[derive(serde::Deserialize, Debug)]
@@ -41,7 +42,9 @@ fn greet(Json(request): Json<Request>) -> WebResult<Json<Response>> {
         )),
     ])?;
 
+    let invocation_id = invocation_id();
     log::debug!("Logging a debug message");
+    log::info!("invocation ID is {invocation_id}");
     log::info!("Received request: {request:?}");
     log::error!("Logging an error message");
 

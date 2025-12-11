@@ -3,3 +3,4 @@
 pub mod auth;
 pub mod ddb;
 pub mod lambda;
+pub mod s3;

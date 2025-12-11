@@ -20,3 +20,9 @@ pub fn headers() -> Vec<(String, String)> {
 pub fn token_metadata() -> Option<String> {
     web_function_support::token_metadata()
 }
+
+/// Returns the invocation ID of the currently invoked function. This may be helpful to you
+/// if you want to connect a request ID to callers with the invocation that was used at that time.
+pub fn invocation_id() -> String {
+    web_function_support::invocation_id()
+}

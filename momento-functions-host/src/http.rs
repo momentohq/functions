@@ -238,10 +238,6 @@ pub enum HttpDeleteError {
     /// An error occurred while calling the host http function.
     #[error(transparent)]
     HttpError(#[from] http::Error),
-    /// An invalid form of credentials (e.g. Federated credentials) were used for making HTTP calls. We cannot
-    /// compute a Sigv4 Secret from this
-    #[error("Invalid credentials were attempted to be used, rather than static credentials")]
-    InvalidCredentials,
 }
 
 /// HTTP DELETE
@@ -297,13 +293,9 @@ impl aws::auth::Credentials {
                 region: region.into(),
                 service: service.into(),
             }),
-            aws::auth::Credentials::Federated { role_arn: _ } => {
-                // You should not be attempting to use federated credentials with an HTTP client!
-                // Providing an incorrect, bogus secret that is bound to fail
-                http::Authorization::AwsSigv4Secret(http::AwsSigv4Secret {
-                    access_key_id: "bad value".to_string(),
-                    secret_access_key: "bad value".to_string(),
-                    region: region.into(),
+            aws::auth::Credentials::Federated { role_arn } => {
+                http::Authorization::Federated(http::IamRole {
+                    role_arn,
                     service: service.into(),
                 })
             }
@@ -506,20 +498,7 @@ pub fn delete_aws_sigv4(
         url: url.into(),
         headers: headers.into_iter().collect(),
         body: Default::default(),
-        authorization: match aws_credentials {
-            aws::auth::Credentials::Hardcoded {
-                access_key_id,
-                secret_access_key,
-            } => http::Authorization::AwsSigv4Secret(http::AwsSigv4Secret {
-                access_key_id,
-                secret_access_key,
-                region: region.into(),
-                service: service.into(),
-            }),
-            aws::auth::Credentials::Federated { role_arn: _ } => {
-                return Err(HttpDeleteError::InvalidCredentials);
-            }
-        },
+        authorization: aws_credentials.into_http(region, service),
     })?;
     Ok(Response {
         status,

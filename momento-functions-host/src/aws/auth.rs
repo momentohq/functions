@@ -63,6 +63,15 @@ pub enum Credentials {
         /// The AWS secret access key for the IAM user you wish to use
         secret_access_key: String,
     },
+    /// Provide an AWS IAM role that grants Momento permission to federate into this role
+    /// and execute the AWS actions on your behalf. This presumes you have set up appropriate
+    /// permissions for the client and actions you are using (S3, DynamoDB, etc.)
+    ///
+    /// Reach out to `support@momentohq.com` for assistance with setting up your IAM role's permissions.
+    Federated {
+        /// The full ARN path of the IAM role you want to use
+        role_arn: String,
+    },
 }
 
 /// A configured AWS credentials provider. This can be used to connect to AWS services.
@@ -80,6 +89,23 @@ impl AwsCredentialsProvider {
     /// # use momento_functions_host::{build_environment_aws_credentials, aws::auth::{AwsCredentialsProvider}};
     /// let provider = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
     /// ```
+    /// -----
+    /// ### Federated IAM role
+    /// You can also use an IAM role ARN that gives permissions to Momento to federate into your role
+    /// and perform the client's actions on your behalf. Reach out to `support@momentohq.com` for assistance
+    /// with setting this up.
+    /// ```rust,no_run
+    /// # // Not run because docs.rs does not run a Momento WIT host environment, of course!
+    /// # // But it does at least compile, to make sure the example is correct.
+    /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
+    /// # use momento_functions_host::aws::auth::Credentials;
+    /// let provider = AwsCredentialsProvider::new(
+    ///     "us-east-1",
+    ///     Credentials::Federated {
+    ///         role_arn: "your-full-ARN-path-to-your-role"
+    ///     }
+    /// );
+    /// ```
     pub fn new(
         region: impl AsRef<str>,
         credentials: Credentials,
@@ -92,6 +118,9 @@ impl AwsCredentialsProvider {
                 access_key_id,
                 secret_access_key,
             }),
+            Credentials::Federated { role_arn } => {
+                aws_auth::Authorization::Federated(aws_auth::IamRole { role_arn })
+            }
         };
 
         let resource = aws_auth::provider(&wit_authorization, region.as_ref())?;

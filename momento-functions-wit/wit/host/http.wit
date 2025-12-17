@@ -48,12 +48,19 @@ interface http {
         none,
         /// Explicit sigv4 signed request
         aws-sigv4-secret(aws-sigv4-secret),
+        /// IAM role that Momento will federate into
+        federated(iam-role)
     }
 
     record aws-sigv4-secret {
         access-key-id: string,
         secret-access-key: string,
         region: string,
+        service: string,
+    }
+
+    record iam-role {
+        role-arn: string,
         service: string,
     }
 

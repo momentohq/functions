@@ -293,6 +293,12 @@ impl aws::auth::Credentials {
                 region: region.into(),
                 service: service.into(),
             }),
+            aws::auth::Credentials::Federated { role_arn } => {
+                http::Authorization::Federated(http::IamRole {
+                    role_arn,
+                    service: service.into(),
+                })
+            }
         }
     }
 }
@@ -492,17 +498,7 @@ pub fn delete_aws_sigv4(
         url: url.into(),
         headers: headers.into_iter().collect(),
         body: Default::default(),
-        authorization: match aws_credentials {
-            aws::auth::Credentials::Hardcoded {
-                access_key_id,
-                secret_access_key,
-            } => http::Authorization::AwsSigv4Secret(http::AwsSigv4Secret {
-                access_key_id,
-                secret_access_key,
-                region: region.into(),
-                service: service.into(),
-            }),
-        },
+        authorization: aws_credentials.into_http(region, service),
     })?;
     Ok(Response {
         status,

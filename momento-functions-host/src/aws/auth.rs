@@ -91,7 +91,7 @@ impl AwsCredentialsProvider {
     /// ```
     /// -----
     /// ### Federated IAM role
-    /// You can also use an IAM role ARN that gives permissions to Momento to federeate into your role
+    /// You can also use an IAM role ARN that gives permissions to Momento to federate into your role
     /// and perform the client's actions on your behalf. Reach out to `support@momentohq.com` for assistance
     /// with setting this up.
     /// ```rust,no_run

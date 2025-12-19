@@ -70,7 +70,7 @@ impl FunctionEnvironment {
 
     /// The ID of the currently executing invocation. You can also access this by calling:
     /// ```rust
-    /// let cache_name = std:env::var("__INVOCATION_ID").unwrap_or_default());
+    /// let invocation_id = std:env::var("__INVOCATION_ID").unwrap_or_default());
     /// ```
     pub fn invocation_id(&self) -> &String {
         &self.invocation_id
@@ -140,10 +140,7 @@ pub fn token_metadata() -> Option<String> {
 
 /// Returns the invocation ID of the currently invoked function. This may be helpful to you
 /// if you want to connect a request ID to callers with the invocation that was used at that time.
-#[deprecated(
-    since = "0.7.0",
-    note = "Use `std::env::var(\"__INVOCATION_ID\") instead"
-)]
+#[deprecated(since = "0.7.0", note = "Use `FunctionEnvironment` instead")]
 pub fn invocation_id() -> String {
     web_function_support::invocation_id()
 }

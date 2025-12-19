@@ -15,6 +15,14 @@ name = "dynamodb-accelerator"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "fine-foods-embeddings"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "function-environment"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "logging-extended"
 crate-type = ["cdylib"]
 
@@ -36,10 +44,6 @@ crate-type = ["cdylib"]
 
 [[example]]
 name = "spawn-function-json"
-crate-type = ["cdylib"]
-
-[[example]]
-name = "fine-foods-embeddings"
 crate-type = ["cdylib"]
 
 [[example]]

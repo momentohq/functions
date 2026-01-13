@@ -45,7 +45,7 @@ pub struct FunctionEnvironment {
 impl FunctionEnvironment {
     /// Returns a singleton object containing useful information regarding the current function invocation's
     /// environment. This is safe to call multiple times. It is recommended to use this object when trying to
-    /// access the provided
+    /// access the environment variables populated upon function creation.
     pub fn get_function_environment() -> &'static FunctionEnvironment {
         GET_ENVIRONMENT_ONCE.get_or_init(|| {
             let cache_name = env::var("__CACHE_NAME").unwrap_or(NOT_FOUND.to_string());

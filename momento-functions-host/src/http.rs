@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// HTTP Get response
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Response {
     /// HTTP status code
     pub status: u16,

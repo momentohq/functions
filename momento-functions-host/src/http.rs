@@ -9,7 +9,7 @@ use crate::{
     encoding::{Encode, Extract},
 };
 
-/// HTTP Get response
+/// HTTP response
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Response {
     /// HTTP status code

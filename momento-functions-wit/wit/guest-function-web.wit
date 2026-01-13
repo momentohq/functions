@@ -18,6 +18,8 @@ interface web-function-support {
     query-parameters: func() -> list<query-parameter>;
     /// Returns the metadata provided in the caller's token, if present. Can only be called once, consumes ownership.
     token-metadata: func() -> option<string>;
+    /// DEPRECATED, please migrate to using the `__INVOCATION_ID` environment variable instead.
+    /// 
     /// Returns the Momento-provided invocation ID of the function. Can be called many times.
     invocation-id: func() -> string;
 

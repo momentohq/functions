@@ -24,7 +24,7 @@
 
 use itertools::Itertools;
 use momento_functions::{WebResponse, WebResult};
-use momento_functions_host::{encoding::Json, logging::LogDestination, web_extensions::headers};
+use momento_functions_host::{encoding::Json, logging::LogDestination};
 
 use serde::{Deserialize, Serialize};
 
@@ -85,8 +85,7 @@ struct DocumentOutput {
 
 momento_functions::post!(generate_embeddings);
 fn generate_embeddings(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebResponse> {
-    let headers = headers();
-    setup_logging(&headers)?;
+    setup_logging()?;
 
     log::debug!("getting embeddings for {} documents", documents.len());
     let mut response = Vec::with_capacity(documents.len());
@@ -121,7 +120,7 @@ fn generate_embeddings(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<W
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+fn setup_logging() -> WebResult<()> {
     momento_functions_log::configure_logs([LogDestination::topic("fine-foods-embeddings").into()])?;
     Ok(())
 }

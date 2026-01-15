@@ -49,7 +49,7 @@ use std::{collections::HashMap, time::Duration};
 
 use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
-    cache, encoding::Json, logging::LogDestination, web_extensions::headers,
+    cache, encoding::Json, logging::LogDestination,
 };
 
 use serde::{Deserialize, Serialize};
@@ -89,8 +89,7 @@ const MAXIMUM_COSINE_DISTANCE: f32 = 0.6;
 
 momento_functions::post!(get_recommended_articles);
 fn get_recommended_articles(Json(request): Json<Request>) -> WebResult<WebResponse> {
-    let headers = headers();
-    setup_logging(&headers)?;
+    setup_logging()?;
 
     // These are passed in as environment variables when creating the function
     let turbopuffer_api_key = format!(
@@ -443,7 +442,7 @@ fn mean_vector(vectors: &[Vec<f32>]) -> Option<Vec<f32>> {
     Some(result)
 }
 
-fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+fn setup_logging() -> WebResult<()> {
     momento_functions_log::configure_logs([LogDestination::topic(
         "turbopuffer-recommend-articles",
     )

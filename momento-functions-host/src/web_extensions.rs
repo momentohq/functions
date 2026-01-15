@@ -2,7 +2,7 @@
 //!
 //! These interfaces don't do anything on other kinds of Functions.
 
-use std::{collections::HashMap, env, sync::OnceLock};
+use std::{collections::HashMap, env, sync::LazyLock};
 
 use momento_functions_wit::function_web::momento::functions::web_function_support;
 
@@ -10,10 +10,30 @@ static NOT_FOUND: &str = "<not found>";
 // Some of the Momento host interfaces will take ownership of the returned value, returning
 // a `None` or empty-like object upon repeated calls. These `OnceLocks` allow for repeated
 // calls since the data is not intended to be mutated anyway.
-static GET_ENVIRONMENT_ONCE: OnceLock<FunctionEnvironment> = OnceLock::new();
-static GET_HEADERS_ONCE: OnceLock<Vec<(String, String)>> = OnceLock::new();
-static GET_QUERY_PARAMETERS_ONCE: OnceLock<Vec<(String, String)>> = OnceLock::new();
-static GET_TOKEN_METADATA_ONCE: OnceLock<Option<String>> = OnceLock::new();
+static GET_ENVIRONMENT_ONCE: LazyLock<FunctionEnvironment> = LazyLock::new(|| {
+    let cache_name = env::var("__CACHE_NAME").unwrap_or(NOT_FOUND.to_string());
+    let invocation_id = env::var("__INVOCATION_ID").unwrap_or(NOT_FOUND.to_string());
+    FunctionEnvironment {
+        cache_name,
+        invocation_id,
+    }
+});
+static GET_HEADERS_ONCE: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
+    web_function_support::headers()
+        .into_iter()
+        .map(|web_function_support::Header { name, value }| (name, value))
+        .collect()
+});
+// Yes, this is a hashmap, but query parameters can be repeated. Usually people don't do that though.
+static GET_QUERY_PARAMETERS_ONCE: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
+    web_function_support::query_parameters()
+        .into_iter()
+        .map(|web_function_support::QueryParameter { name, value }| (name, value))
+        .collect()
+});
+static GET_TOKEN_METADATA_ONCE: LazyLock<Option<String>> = LazyLock::new(|| {
+    web_function_support::token_metadata()
+});
 
 /// Data structure containing easy-to-access information regarding the current invocation's
 /// environment. Momento will populate this information as necessary, either through provided
@@ -37,9 +57,6 @@ static GET_TOKEN_METADATA_ONCE: OnceLock<Option<String>> = OnceLock::new();
 pub struct FunctionEnvironment {
     cache_name: String,
     invocation_id: String,
-    headers: HashMap<String, String>,
-    query_parameters: HashMap<String, String>,
-    token_metadata: Option<String>,
 }
 
 impl FunctionEnvironment {
@@ -47,20 +64,10 @@ impl FunctionEnvironment {
     /// environment. This is safe to call multiple times. It is recommended to use this object when trying to
     /// access the environment variables populated upon function creation.
     pub fn get_function_environment() -> &'static FunctionEnvironment {
-        GET_ENVIRONMENT_ONCE.get_or_init(|| {
-            let cache_name = env::var("__CACHE_NAME").unwrap_or(NOT_FOUND.to_string());
-            let invocation_id = env::var("__INVOCATION_ID").unwrap_or(NOT_FOUND.to_string());
-            FunctionEnvironment {
-                cache_name,
-                invocation_id,
-                headers: HashMap::from_iter(headers()),
-                query_parameters: HashMap::from_iter(query_parameters()),
-                token_metadata: token_metadata(),
-            }
-        })
+        &GET_ENVIRONMENT_ONCE
     }
 
-    /// The name of the cache this function belongs to. You can also access this by calling:
+    /// The name of the cache this function belongs to. You can also access this via:
     /// ```rust
     /// let cache_name = std:env::var("__CACHE_NAME").unwrap_or_default());
     /// ```
@@ -68,7 +75,7 @@ impl FunctionEnvironment {
         &self.cache_name
     }
 
-    /// The ID of the currently executing invocation. You can also access this by calling:
+    /// The ID of the currently executing invocation. You can also access this via:
     /// ```rust
     /// let invocation_id = std:env::var("__INVOCATION_ID").unwrap_or_default());
     /// ```
@@ -76,66 +83,47 @@ impl FunctionEnvironment {
         &self.invocation_id
     }
 
-    /// A map of the headers used in the request when the function was invoked. If you would prefer
-    /// the raw `Vec<(String, String)>` object, you can access it via:
+    /// A map of the headers used in the request when the function was invoked. You can also access this via:
     /// ```rust,no_run
     /// use momento_functions_host::web_extensions::headers;
     /// let headers = headers();
     /// ```
     pub fn headers(&self) -> &HashMap<String, String> {
-        &self.headers
+        headers()
     }
 
-    /// A map of the query parameters used in the request when the function was invoked. If you would prefer
-    /// the raw `Vec<(String, String)>` object, you can access it via:
+    /// A map of the query parameters used in the request when the function was invoked. You can also access this via:
     /// ```rust,no_run
     /// use momento_functions_host::web_extensions::query_parameters;
     /// let query_parameters = query_parameters();
     /// ```
     pub fn query_parameters(&self) -> &HashMap<String, String> {
-        &self.query_parameters
+        query_parameters()
     }
 
-    /// The metadata within the caller's token, if present. If you would prefer
-    /// the raw `Option<String>`` object, you can access it via:
+    /// The metadata within the caller's token, if present. You can also access this via:
     /// ```rust,no_run
     /// use momento_functions_host::web_extensions::token_metadata;
     /// let token_metadata = token_metadata();
     /// ```
     pub fn token_metadata(&self) -> &Option<String> {
-        &self.token_metadata
+        token_metadata()
     }
 }
 
 /// Returns the headers for the web function, if any are present.
-pub fn headers() -> Vec<(String, String)> {
-    GET_HEADERS_ONCE
-        .get_or_init(|| {
-            web_function_support::headers()
-                .into_iter()
-                .map(|web_function_support::Header { name, value }| (name, value))
-                .collect()
-        })
-        .to_owned()
+pub fn headers() -> &'static HashMap<String, String> {
+    &GET_HEADERS_ONCE
 }
 
 /// Returns the query parameters for the web function, if any are present.
-pub fn query_parameters() -> Vec<(String, String)> {
-    GET_QUERY_PARAMETERS_ONCE
-        .get_or_init(|| {
-            web_function_support::query_parameters()
-                .into_iter()
-                .map(|web_function_support::QueryParameter { name, value }| (name, value))
-                .collect()
-        })
-        .to_owned()
+pub fn query_parameters() -> &'static HashMap<String, String> {
+    &GET_QUERY_PARAMETERS_ONCE
 }
 
 /// Returns the metadata within the caller's token, if present.
-pub fn token_metadata() -> Option<String> {
-    GET_TOKEN_METADATA_ONCE
-        .get_or_init(web_function_support::token_metadata)
-        .to_owned()
+pub fn token_metadata() -> &'static Option<String> {
+    &GET_TOKEN_METADATA_ONCE
 }
 
 /// Returns the invocation ID of the currently invoked function. This may be helpful to you

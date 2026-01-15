@@ -9,7 +9,7 @@
 
 use itertools::Itertools;
 use momento_functions::{WebResponse, WebResult};
-use momento_functions_host::{encoding::Json, logging::LogDestination, web_extensions::headers};
+use momento_functions_host::{encoding::Json, logging::LogDestination};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -34,8 +34,7 @@ struct Document {
 
 momento_functions::post!(index_document);
 fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse> {
-    let headers = headers();
-    setup_logging(&headers)?;
+    setup_logging()?;
 
     let dimensions = match documents.first() {
         Some(doc) => doc.vector.len(),
@@ -110,7 +109,7 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+fn setup_logging() -> WebResult<()> {
     momento_functions_log::configure_logs([LogDestination::topic("turbopuffer-index").into()])?;
     Ok(())
 }

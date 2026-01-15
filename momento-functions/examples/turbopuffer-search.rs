@@ -18,9 +18,7 @@
 use std::time::Duration;
 
 use momento_functions::{WebError, WebResponse, WebResult};
-use momento_functions_host::{
-    cache, encoding::Json, logging::LogDestination,
-};
+use momento_functions_host::{cache, encoding::Json, logging::LogDestination};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;

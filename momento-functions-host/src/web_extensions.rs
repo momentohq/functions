@@ -31,9 +31,12 @@ static GET_QUERY_PARAMETERS_ONCE: LazyLock<HashMap<String, String>> = LazyLock::
         .map(|web_function_support::QueryParameter { name, value }| (name, value))
         .collect()
 });
-static GET_TOKEN_METADATA_ONCE: LazyLock<Option<String>> = LazyLock::new(|| {
-    web_function_support::token_metadata()
-});
+static GET_TOKEN_METADATA_ONCE: LazyLock<Option<String>> =
+    LazyLock::new(|| web_function_support::token_metadata());
+static GET_HTTP_METHOD_ONCE: LazyLock<String> =
+    LazyLock::new(|| web_function_support::http_method());
+static GET_HTTP_PATH_ONCE: LazyLock<String> =
+    LazyLock::new(|| web_function_support::invocation_path().unwrap_or_default());
 
 /// Data structure containing easy-to-access information regarding the current invocation's
 /// environment. Momento will populate this information as necessary, either through provided
@@ -108,6 +111,21 @@ impl FunctionEnvironment {
     /// ```
     pub fn token_metadata(&self) -> &Option<String> {
         token_metadata()
+    }
+
+    /// The HTTP method used in the request when the function was invoked.
+    /// "GET", "POST", etc.
+    pub fn http_method(&self) -> &str {
+        &GET_HTTP_METHOD_ONCE
+    }
+
+    /// The HTTP path used in the request when the function was invoked.
+    ///
+    /// This is the path relative to the function. If your function is deployed at
+    /// `https://gomomento.com/my-function`, and you call
+    /// `https://gomomento.com/my-function/search/me`, this will return `/search/me`.
+    pub fn http_path(&self) -> &str {
+        &GET_HTTP_PATH_ONCE
     }
 }
 

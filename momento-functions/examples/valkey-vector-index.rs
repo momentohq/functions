@@ -39,9 +39,10 @@ fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
         }
     };
 
-    const CONNECTION_STRING: &str = env!("REDIS_CONNECTION_STRING");
-    log::debug!("Connecting to Redis at {CONNECTION_STRING}");
-    let redis = RedisClient::new(CONNECTION_STRING);
+    // Runtime environment variable - pass with -E flag when deploying
+    let connection_string = std::env::var("REDIS_CONNECTION_STRING").unwrap_or_default();
+    log::debug!("Connecting to Redis at {connection_string}");
+    let redis = RedisClient::new(&connection_string);
     if let Err(e) = ensure_index_exists(dimensions, &redis) {
         log::error!("Failed to ensure index exists: {e:?}");
         return e;

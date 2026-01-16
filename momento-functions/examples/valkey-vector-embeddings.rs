@@ -38,15 +38,14 @@ fn get_embeddings(mut documents: Vec<String>) -> WebResult<Vec<EmbeddingData>> {
             *document = document.replace("\n", " ");
         }
     }
-    // compile-time environment variable.
-    // Runtime environment variable secrets will be supported in the future.
-    const OPENAI_API_KEY: &str = env!("OPENAI_API_KEY");
+    // Runtime environment variable - pass with -E flag when deploying
+    let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
     let result = momento_functions_host::http::post(
         "https://api.openai.com/v1/embeddings",
         [
             (
                 "authorization".to_string(),
-                format!("Bearer {OPENAI_API_KEY}"),
+                format!("Bearer {openai_api_key}"),
             ),
             ("content-type".to_string(), "application/json".to_string()),
         ],

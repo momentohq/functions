@@ -51,11 +51,15 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse
         documents.len()
     );
 
-    const TURBOPUFFER_API_KEY: &str = concat!("Bearer ", env!("TURBOPUFFER_API_KEY"));
-    const TURBOPUFFER_REGION: &str = env!("TURBOPUFFER_REGION");
-    const TURBOPUFFER_NAMESPACE: &str = env!("TURBOPUFFER_NAMESPACE");
+    // Runtime environment variables - pass with -E flag when deploying
+    let turbopuffer_api_key = format!(
+        "Bearer {}",
+        std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
+    );
+    let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
+    let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
     let turbopuffer_endpoint = format!(
-        "https://{TURBOPUFFER_REGION}.turbopuffer.com/v2/namespaces/{TURBOPUFFER_NAMESPACE}"
+        "https://{turbopuffer_region}.turbopuffer.com/v2/namespaces/{turbopuffer_namespace}"
     );
 
     let chunks = documents.into_iter().chunks(2000);
@@ -64,7 +68,7 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse
         let result = momento_functions_host::http::post(
             &turbopuffer_endpoint,
             [
-                ("Authorization".to_string(), TURBOPUFFER_API_KEY.to_string()),
+                ("Authorization".to_string(), turbopuffer_api_key.clone()),
                 ("Content-Type".to_string(), "application/json".to_string()),
                 ("Accept".to_string(), "*/*".to_string()),
                 (

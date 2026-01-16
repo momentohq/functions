@@ -36,8 +36,9 @@ fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
     hash.update(query.as_bytes());
     let query_hash: [u8; 32] = hash.finalize().into();
 
-    const CONNECTION_STRING: &str = env!("REDIS_CONNECTION_STRING");
-    let redis = RedisClient::new(CONNECTION_STRING);
+    // Runtime environment variable - pass with -E flag when deploying
+    let connection_string = std::env::var("REDIS_CONNECTION_STRING").unwrap_or_default();
+    let redis = RedisClient::new(&connection_string);
     let query_embedding = get_cached_query_embedding(query, query_hash, &redis)?;
 
     let response = redis.pipe(vec![
@@ -321,15 +322,14 @@ fn get_embeddings(mut documents: Vec<String>) -> WebResult<Vec<EmbeddingData>> {
             *document = document.replace("\n", " ");
         }
     }
-    // compile-time environment variable.
-    // Runtime environment variable secrets will be supported in the future.
-    const OPENAI_API_KEY: &str = env!("OPENAI_API_KEY");
+    // Runtime environment variable - pass with -E flag when deploying
+    let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
     let result = momento_functions_host::http::post(
         "https://api.openai.com/v1/embeddings",
         [
             (
                 "authorization".to_string(),
-                format!("Bearer {OPENAI_API_KEY}"),
+                format!("Bearer {openai_api_key}"),
             ),
             ("content-type".to_string(), "application/json".to_string()),
         ],

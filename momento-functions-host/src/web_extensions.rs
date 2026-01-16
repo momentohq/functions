@@ -32,9 +32,8 @@ static GET_QUERY_PARAMETERS_ONCE: LazyLock<HashMap<String, String>> = LazyLock::
         .collect()
 });
 static GET_TOKEN_METADATA_ONCE: LazyLock<Option<String>> =
-    LazyLock::new(|| web_function_support::token_metadata());
-static GET_HTTP_METHOD_ONCE: LazyLock<String> =
-    LazyLock::new(|| web_function_support::http_method());
+    LazyLock::new(web_function_support::token_metadata);
+static GET_HTTP_METHOD_ONCE: LazyLock<String> = LazyLock::new(web_function_support::http_method);
 static GET_HTTP_PATH_ONCE: LazyLock<String> =
     LazyLock::new(|| web_function_support::invocation_path().unwrap_or_default());
 

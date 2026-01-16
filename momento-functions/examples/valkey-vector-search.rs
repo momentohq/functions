@@ -3,7 +3,6 @@ use momento_functions_host::{
     encoding::Json,
     logging::LogDestination,
     redis::{Command, RedisClient, RedisValue},
-    web_extensions::headers,
 };
 
 use serde::{Deserialize, Serialize};
@@ -26,8 +25,7 @@ struct Document {
 
 momento_functions::post!(index_document);
 fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
-    let headers = headers();
-    setup_logging(&headers)?;
+    setup_logging()?;
 
     let Request { query, topk } = body;
     let topk = topk.unwrap_or(5);
@@ -303,7 +301,7 @@ fn get_cached_query_embedding(
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+fn setup_logging() -> WebResult<()> {
     momento_functions_log::configure_logs([LogDestination::topic("valkey-vector-search").into()])?;
     Ok(())
 }

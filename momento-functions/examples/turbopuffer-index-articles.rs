@@ -46,7 +46,7 @@
 
 use itertools::Itertools;
 use momento_functions::{WebError, WebResponse, WebResult};
-use momento_functions_host::{encoding::Json, logging::LogDestination, web_extensions::headers};
+use momento_functions_host::{encoding::Json, logging::LogDestination};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -124,8 +124,7 @@ struct TurbopufferDocument {
 
 momento_functions::post!(index_documents);
 fn index_documents(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<WebResponse> {
-    let headers = headers();
-    setup_logging(&headers)?;
+    setup_logging()?;
 
     let bpe = cl100k_base_singleton();
 
@@ -301,7 +300,7 @@ fn get_embeddings(
     Ok(data)
 }
 
-fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+fn setup_logging() -> WebResult<()> {
     momento_functions_log::configure_logs([
         LogDestination::topic("turbopuffer-index-articles").into()
     ])?;

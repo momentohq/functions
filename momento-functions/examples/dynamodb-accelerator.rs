@@ -12,18 +12,18 @@ use std::{collections::HashMap, time::Duration};
 momento_functions::post!(accelerate_get_item);
 fn accelerate_get_item(body: Vec<u8>) -> WebResult<WebResponse> {
     let headers = headers();
-    setup_logging(&headers)?;
+    setup_logging()?;
 
     // Extract the required headers
 
     // The target header comes from the AWS SDK and is the api call being made.
-    let action = match require_header("X-Amz-Target", &headers) {
+    let action = match require_header("X-Amz-Target", headers) {
         Ok(value) => value,
         Err(value) => return value,
     };
     // The x-uri header is the custom header we added to the request _after it was signed_,
     // as we changed the request's target uri to _this Function_.
-    let proxy_uri = match require_header("x-uri", &headers) {
+    let proxy_uri = match require_header("x-uri", headers) {
         Ok(value) => value,
         Err(value) => return value,
     };
@@ -52,7 +52,7 @@ fn accelerate_get_item(body: Vec<u8>) -> WebResult<WebResponse> {
 
 fn handle_get_item(
     body: Vec<u8>,
-    headers: Vec<(String, String)>,
+    headers: &HashMap<String, String>,
     proxy_uri: &str,
 ) -> WebResult<http::Response> {
     #[derive(serde::Deserialize, serde::Serialize, Debug)]
@@ -74,7 +74,7 @@ fn handle_get_item(
         }
         None => {
             log::info!("Cache miss for {cache_key} -> {proxy_uri}");
-            let response = http::post(proxy_uri, headers, body)?;
+            let response = http::post(proxy_uri, headers.clone(), body)?;
             cache::set(&cache_key, Json(&response), Duration::from_secs(60))?;
             response
         }
@@ -84,11 +84,11 @@ fn handle_get_item(
 fn handle_all_other_ddb_calls(
     action: &str,
     body: Vec<u8>,
-    headers: Vec<(String, String)>,
+    headers: &HashMap<String, String>,
     proxy_uri: &str,
 ) -> WebResult<http::Response> {
     log::info!("other action: {action} -> {proxy_uri}");
-    Ok(http::post(proxy_uri, headers, body)?)
+    Ok(http::post(proxy_uri, headers.clone(), body)?)
 }
 
 // ------------------------------------------------------
@@ -97,7 +97,7 @@ fn handle_all_other_ddb_calls(
 
 fn require_header(
     header: &str,
-    headers: &[(String, String)],
+    headers: &HashMap<String, String>,
 ) -> Result<String, WebResult<WebResponse>> {
     let action = match headers.iter().find_map(|(name, value)| {
         if name.eq_ignore_ascii_case(header) {
@@ -118,7 +118,7 @@ fn require_header(
     Ok(action.to_string())
 }
 
-fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+fn setup_logging() -> WebResult<()> {
     momento_functions_log::configure_logs([LogDestination::topic("ddb-accelerator").into()])?;
     Ok(())
 }

@@ -22,6 +22,12 @@ interface web-function-support {
     /// 
     /// Returns the Momento-provided invocation ID of the function. Can be called many times.
     invocation-id: func() -> string;
+    /// Returns the HTTP method used in the request.
+    http-method: func() -> string;
+    /// Call only once - this is taken from the host
+    /// This is the relative path under the function's base URL.
+    /// If you call /my-function/foo/bar, this will return "foo/bar"
+    invocation-path: func() -> option<string>;
 
     record header {
         name: string,

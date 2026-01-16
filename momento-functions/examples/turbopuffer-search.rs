@@ -18,9 +18,7 @@
 use std::time::Duration;
 
 use momento_functions::{WebError, WebResponse, WebResult};
-use momento_functions_host::{
-    cache, encoding::Json, logging::LogDestination, web_extensions::headers,
-};
+use momento_functions_host::{cache, encoding::Json, logging::LogDestination};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -59,8 +57,7 @@ const DEFAULT_TTL_SECONDS: u64 = 30;
 
 momento_functions::post!(search);
 fn search(Json(request): Json<Request>) -> WebResult<WebResponse> {
-    let headers = headers();
-    setup_logging(&headers)?;
+    setup_logging()?;
 
     let Request {
         query,
@@ -213,7 +210,7 @@ fn get_embeddings(mut query: String) -> WebResult<Vec<EmbeddingData>> {
     Ok(data)
 }
 
-fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+fn setup_logging() -> WebResult<()> {
     momento_functions_log::configure_logs([LogDestination::topic("turbopuffer-search").into()])?;
     Ok(())
 }

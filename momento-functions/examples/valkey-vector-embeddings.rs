@@ -1,5 +1,5 @@
 use momento_functions::{WebResponse, WebResult};
-use momento_functions_host::{encoding::Json, logging::LogDestination, web_extensions::headers};
+use momento_functions_host::{encoding::Json, logging::LogDestination};
 
 use serde::{Deserialize, Serialize};
 
@@ -20,8 +20,7 @@ struct EmbeddingData {
 
 momento_functions::post!(get_document_embeddings);
 fn get_document_embeddings(Json(body): Json<Request>) -> WebResult<WebResponse> {
-    let headers = headers();
-    setup_logging(&headers)?;
+    setup_logging()?;
 
     let Request { documents } = body;
     let data = get_embeddings(documents)?;
@@ -68,7 +67,7 @@ fn get_embeddings(mut documents: Vec<String>) -> WebResult<Vec<EmbeddingData>> {
 // | Utility functions for convenience
 // ------------------------------------------------------
 
-fn setup_logging(_headers: &[(String, String)]) -> WebResult<()> {
+fn setup_logging() -> WebResult<()> {
     momento_functions_log::configure_logs([
         LogDestination::topic("valkey-vector-embeddings").into()
     ])?;

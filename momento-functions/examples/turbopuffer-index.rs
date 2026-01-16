@@ -52,7 +52,10 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse
     );
 
     // Runtime environment variables - pass with -E flag when deploying
-    let turbopuffer_api_key = format!("Bearer {}", std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default());
+    let turbopuffer_api_key = format!(
+        "Bearer {}",
+        std::env::var("TURBOPUFFER_API_KEY").unwrap_or_default()
+    );
     let turbopuffer_region = std::env::var("TURBOPUFFER_REGION").unwrap_or_default();
     let turbopuffer_namespace = std::env::var("TURBOPUFFER_NAMESPACE").unwrap_or_default();
     let turbopuffer_endpoint = format!(

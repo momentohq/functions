@@ -30,6 +30,11 @@ crate-type = ["cdylib"]
 name = "logging"
 crate-type = ["cdylib"]
 
+
+[[example]]
+name = "reading-and-sending-headers"
+crate-type = ["cdylib"]
+
 [[example]]
 name = "s3-get"
 crate-type = ["cdylib"]

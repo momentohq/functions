@@ -71,6 +71,14 @@ name = "turbopuffer-search-articles"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "valkey-cluster-vector-index"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "valkey-cluster-vector-search"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "valkey-vector-embeddings"
 crate-type = ["cdylib"]
 

@@ -4,9 +4,11 @@ momento_functions::post!(function_environment);
 fn function_environment(_payload: Vec<u8>) -> String {
     let function_env = FunctionEnvironment::get_function_environment();
     format!(
-        r#"Cache: {}
+        r#"Cache: {},
 Invocation ID: {},
 Query parameters: {},
+HTTP method: {}
+HTTP path: {}
 "#,
         function_env.cache_name(),
         function_env.invocation_id(),
@@ -15,6 +17,8 @@ Query parameters: {},
             .iter()
             .map(|(k, v)| format!("{k}={v}"))
             .collect::<Vec<_>>()
-            .join(", ")
+            .join(", "),
+        function_env.http_method(),
+        function_env.http_path()
     )
 }

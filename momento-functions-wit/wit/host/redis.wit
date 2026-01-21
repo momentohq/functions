@@ -33,10 +33,12 @@ interface redis {
         /// A bulk response of more data. This is generally used by redis
         /// to express nested structures.
         bulk(response-stream),
-        /// A status response.
-        status(string),
         /// An OK from redis.
         okay,
+        /// Short, non-binary strings with minimal overhead
+        simple-string(string),
+        /// Short, non-binary strings to describe an error
+        simple-error(string),
     }
 
     record reply {
@@ -47,4 +49,12 @@ interface redis {
         constructor(connection: redis-connection-type);
         pipe: func(commands: list<command>) -> result<response-stream, redis-error>;
     }
+
+    resource cluster-client {
+        /// Sends a single command to the cluster
+        command: func(command: command) -> result<value, redis-error>;
+    }
+
+    /// Creates a cluster client for a Momento-managed cluster
+    get-managed-cluster-client: func(cluster-name: string) -> cluster-client;
 }

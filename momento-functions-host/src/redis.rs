@@ -15,6 +15,20 @@ pub struct RedisClient {
     client: host::redis::Client,
 }
 
+/// **PREVIEW:** This client is currently in preview! If this interests you,
+/// reach out to us at `support@momentohq.com` to help work with you and get this set up.
+/// Today, Momento supports using functions to connect to Momento-managed clusters. Stay tuned!
+///
+/// Redis cluster client for Function host interfaces.
+///
+/// This client is used to connect to a Redis or Valkey Cluster.
+///
+/// This client uses Momento's host-provided connection cache, which keeps connections
+/// alive across invocations of your Function for reuse.
+pub struct RedisClusterClient {
+    client: host::redis::ClusterClient,
+}
+
 /// An error occurred while getting a redis value.
 #[derive(Debug, thiserror::Error)]
 pub enum RedisGetError<E: ExtractError> {
@@ -27,12 +41,6 @@ pub enum RedisGetError<E: ExtractError> {
         /// The underlying extraction error.
         cause: E,
     },
-    /// Redis returned a status message.
-    #[error("Status message returned from redis: {status}")]
-    StatusMessage {
-        /// The message from Redis.
-        status: String,
-    },
     /// A bulk response was returned by Redis.
     #[error("Unexpected bulk response: {response:?}")]
     UnexpectedBulkResponse {
@@ -42,6 +50,12 @@ pub enum RedisGetError<E: ExtractError> {
     /// An 'okay' response was returned by Redis. (Get expects a value response)
     #[error("Unexpected okay response.")]
     UnexpectedOkayResponse,
+    /// Redis returned a simple error message
+    #[error("Simple error returned from redis: {message}")]
+    SimpleError {
+        /// The message from Redis
+        message: String,
+    },
 }
 
 /// An error occurred while setting a redis value.
@@ -56,11 +70,11 @@ pub enum RedisSetError<E: EncodeError> {
         /// The underlying encoding error.
         cause: E,
     },
-    /// Redis returned a status message.
-    #[error("Status message returned from redis: {status}")]
-    StatusMessage {
+    /// Redis returned a simple error.
+    #[error("Simple error returned from redis: {message}")]
+    SimpleError {
         /// The message from Redis.
-        status: String,
+        message: String,
     },
     /// Redis returned a value in response. (Set expects an "okay" response)
     #[error("Unexpected value response: {value:?}")]
@@ -76,11 +90,11 @@ pub enum RedisDeleteError {
     /// An error occurred while calling the host redis function.
     #[error(transparent)]
     RedisError(#[from] host::redis::RedisError),
-    /// Redis returned a status message.
-    #[error("Status message returned from redis: {status}")]
-    StatusMessage {
+    /// Redis returned a simple error.
+    #[error("Error message returned from redis: {message}")]
+    SimpleError {
         /// The message from Redis.
-        status: String,
+        message: String,
     },
     /// Redis returned a value in response. (Delete expects an "okay" response)
     #[error("Unexpected value response: {value:?}")]
@@ -88,6 +102,115 @@ pub enum RedisDeleteError {
         /// The value Redis returned.
         value: Option<host::redis::Value>,
     },
+}
+
+impl RedisClusterClient {
+    /// Makes a new client
+    pub fn new_momento_managed(cluster_name: impl Into<String>) -> Self {
+        Self {
+            client: host::redis::get_managed_cluster_client(&cluster_name.into()),
+        }
+    }
+
+    /// Get a value from Redis by key.
+    pub fn get<T: Extract>(
+        &self,
+        key: impl Into<Vec<u8>>,
+    ) -> Result<Option<T>, RedisGetError<T::Error>> {
+        let value = self.client.command(&host::redis::Command {
+            command: "get".to_string(),
+            arguments: vec![key.into()],
+        })?;
+        log::debug!("Redis get response: {value:?}");
+        Ok(match value {
+            host::redis::Value::Nil => None,
+            host::redis::Value::Int(i) => Some(
+                T::extract(i.to_string().into_bytes())
+                    .map_err(|e| RedisGetError::ExtractFailed { cause: e })?,
+            ),
+            host::redis::Value::Data(value) => {
+                Some(T::extract(value).map_err(|e| RedisGetError::ExtractFailed { cause: e })?)
+            }
+            host::redis::Value::Bulk(response_stream) => {
+                return Err(RedisGetError::UnexpectedBulkResponse {
+                    response: response_stream,
+                });
+            }
+            host::redis::Value::Okay => {
+                return Err(RedisGetError::UnexpectedOkayResponse);
+            }
+            host::redis::Value::SimpleString(s) => Some(
+                T::extract(s.into_bytes())
+                    .map_err(|e| RedisGetError::ExtractFailed { cause: e })?,
+            ),
+            host::redis::Value::SimpleError(e) => {
+                return Err(RedisGetError::SimpleError { message: e });
+            }
+        })
+    }
+
+    /// Set a value in Redis with a key.
+    pub fn set<T: Encode>(
+        &self,
+        key: impl Into<Vec<u8>>,
+        value: T,
+    ) -> Result<(), RedisSetError<T::Error>> {
+        let serialized_value = value
+            .try_serialize()
+            .map_err(|e| RedisSetError::EncodeError { cause: e })?
+            .into();
+        let value = self.client.command(&host::redis::Command {
+            command: "set".to_string(),
+            arguments: vec![key.into(), serialized_value],
+        })?;
+        match value {
+            host::redis::Value::Okay => Ok(()),
+            host::redis::Value::SimpleError(message) => Err(RedisSetError::SimpleError { message }),
+            e => Err(UnexpectedValueResponse { value: Some(e) }),
+        }
+    }
+
+    /// Delete a key from Redis.
+    pub fn delete(&self, key: impl Into<Vec<u8>>) -> Result<(), RedisDeleteError> {
+        let value = self.client.command(&host::redis::Command {
+            command: "del".to_string(),
+            arguments: vec![key.into()],
+        })?;
+        match value {
+            host::redis::Value::Int(count) => {
+                log::debug!("delete response: {count}");
+                Ok(())
+            }
+            host::redis::Value::SimpleError(message) => {
+                Err(RedisDeleteError::SimpleError { message })
+            }
+            e => Err(RedisDeleteError::UnexpectedValueResponse { value: Some(e) }),
+        }
+    }
+
+    /// Execute a single redis command
+    ///
+    /// ```rust
+    /// # use momento_functions_host::redis::{RedisClusterClient, Command};
+    /// # use momento_functions_wit::host::momento::host;
+    /// # fn f(client: &RedisClusterClient) -> Result<(), host::redis::RedisError> {
+    /// let resp = client.command(
+    ///     Command::builder()
+    ///         .any("FT.SEARCH")
+    ///         .arg(r#"test_index "*=>[KNN 5 @vector_a $query_vector]" PARAMS 2 query_vector "\xcd\xccL?\x00\x00\x00\x00\x00\x00\x00\x00""#)
+    ///         .build(),
+    /// );
+    ///
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn command(&self, command: Command) -> Result<host::redis::Value, host::redis::RedisError> {
+        let Command { command, arguments } = command;
+        let value = self
+            .client
+            .command(&host::redis::Command { command, arguments })?;
+        Ok(value)
+    }
 }
 
 impl RedisClient {
@@ -139,11 +262,15 @@ impl RedisClient {
                             response: response_stream,
                         });
                     }
-                    host::redis::Value::Status(status) => {
-                        return Err(RedisGetError::StatusMessage { status });
-                    }
                     host::redis::Value::Okay => {
                         return Err(RedisGetError::UnexpectedOkayResponse);
+                    }
+                    host::redis::Value::SimpleString(s) => Some(
+                        T::extract(s.into_bytes())
+                            .map_err(|e| RedisGetError::ExtractFailed { cause: e })?,
+                    ),
+                    host::redis::Value::SimpleError(e) => {
+                        return Err(RedisGetError::SimpleError { message: e });
                     }
                 }
             }
@@ -167,8 +294,8 @@ impl RedisClient {
         }])?;
         match response.next() {
             Some(host::redis::Value::Okay) => Ok(()),
-            Some(host::redis::Value::Status(status)) => {
-                Err(RedisSetError::StatusMessage { status })
+            Some(host::redis::Value::SimpleError(message)) => {
+                Err(RedisSetError::SimpleError { message })
             }
             e => Err(UnexpectedValueResponse { value: e }),
         }
@@ -185,8 +312,8 @@ impl RedisClient {
                 log::debug!("delete response: {count}");
                 Ok(())
             }
-            Some(host::redis::Value::Status(status)) => {
-                Err(RedisDeleteError::StatusMessage { status })
+            Some(host::redis::Value::SimpleError(message)) => {
+                Err(RedisDeleteError::SimpleError { message })
             }
             e => Err(RedisDeleteError::UnexpectedValueResponse { value: e }),
         }
@@ -248,16 +375,7 @@ impl ResponseStream {
     /// Get the next response from the stream
     fn next_value(&mut self) -> Option<RedisValue> {
         let next = self.inner.next();
-        next.map(|value| match value {
-            host::redis::Value::Nil => RedisValue::Nil,
-            host::redis::Value::Int(i) => RedisValue::Int(i),
-            host::redis::Value::Data(data) => RedisValue::Data(data),
-            host::redis::Value::Bulk(response_stream) => RedisValue::Bulk(ResponseStream {
-                inner: response_stream,
-            }),
-            host::redis::Value::Status(status) => RedisValue::Status(status),
-            host::redis::Value::Okay => RedisValue::Okay,
-        })
+        next.map(Into::into)
     }
 }
 impl Iterator for ResponseStream {
@@ -265,6 +383,22 @@ impl Iterator for ResponseStream {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_value()
+    }
+}
+
+impl From<host::redis::Value> for RedisValue {
+    fn from(value: host::redis::Value) -> Self {
+        match value {
+            host::redis::Value::Nil => RedisValue::Nil,
+            host::redis::Value::Int(i) => RedisValue::Int(i),
+            host::redis::Value::Data(data) => RedisValue::Data(data),
+            host::redis::Value::Bulk(response_stream) => RedisValue::Bulk(ResponseStream {
+                inner: response_stream,
+            }),
+            host::redis::Value::Okay => RedisValue::Okay,
+            host::redis::Value::SimpleString(s) => RedisValue::SimpleString(s),
+            host::redis::Value::SimpleError(e) => RedisValue::SimpleError(e),
+        }
     }
 }
 
@@ -298,10 +432,12 @@ pub enum RedisValue {
     /// This is used for commands that return multiple values. You iterate over it
     /// to get each individual value.
     Bulk(ResponseStream),
-    /// A status message was returned from the server
-    Status(String),
     /// An okay response was returned from the server
     Okay,
+    /// A short, non-binary string
+    SimpleString(String),
+    /// A short, non-binary error
+    SimpleError(String),
 }
 impl RedisValue {
     /// try to extract the value as a specific type

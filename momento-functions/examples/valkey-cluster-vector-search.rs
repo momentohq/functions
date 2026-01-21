@@ -1,8 +1,8 @@
 use momento_functions::{WebError, WebResponse, WebResult};
 use momento_functions_host::{
     encoding::Json,
-    logging::LogDestination,
-    redis::{Command, RedisClient, RedisValue},
+    logging::{LogConfiguration, LogDestination},
+    redis::{Command, RedisClusterClient, RedisValue},
 };
 
 use serde::{Deserialize, Serialize};
@@ -35,27 +35,25 @@ fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
     let query_hash: [u8; 32] = hash.finalize().into();
 
     // Runtime environment variable - pass with -E flag when deploying
-    let connection_string = std::env::var("REDIS_CONNECTION_STRING").unwrap_or_default();
-    let redis = RedisClient::new(&connection_string);
+    let cluster_name = std::env::var("CLUSTER_NAME").unwrap_or_default();
+    let redis = RedisClusterClient::new_momento_managed(&cluster_name);
     let query_embedding = get_cached_query_embedding(query, query_hash, &redis)?;
 
-    let response = redis.pipe(vec![
-        Command::builder()
-            .any("FT.SEARCH")
-            .arg("document_index")
-            .arg(format!("*=>[KNN {topk} @vector $query_vector]"))
-            .arg("PARAMS")
-            .arg("2")
-            .arg("query_vector")
-            .arg(query_embedding)
-            .build(),
-    ])?;
+    let response: RedisValue = redis
+        .command(
+            Command::builder()
+                .any("FT.SEARCH")
+                .arg("document_index")
+                .arg(format!("*=>[KNN {topk} @vector $query_vector]"))
+                .arg("PARAMS")
+                .arg("2")
+                .arg("query_vector")
+                .arg(query_embedding)
+                .build(),
+        )?
+        .into();
 
-    let responses: RedisValue = response
-        .into_iter()
-        .next()
-        .ok_or_else(|| WebError::message("No response from Redis"))?;
-    let mut responses = match responses {
+    let mut responses = match response {
         RedisValue::Bulk(items) => items.into_iter(),
         RedisValue::SimpleError(e) => {
             log::error!("Redis error: {e}");
@@ -275,7 +273,7 @@ impl FtSearchParserExpect {
 fn get_cached_query_embedding(
     query: String,
     query_hash: [u8; 32],
-    redis: &RedisClient,
+    redis: &RedisClusterClient,
 ) -> WebResult<Vec<u8>> {
     Ok(match redis.get::<Vec<u8>>(&query_hash)? {
         Some(hit) => hit,
@@ -302,7 +300,10 @@ fn get_cached_query_embedding(
 // ------------------------------------------------------
 
 fn setup_logging() -> WebResult<()> {
-    momento_functions_log::configure_logs([LogDestination::topic("valkey-vector-search").into()])?;
+    momento_functions_log::configure_logs([LogConfiguration::new(LogDestination::Topic {
+        topic: "valkey-cluster-vector-search".to_string(),
+    })
+    .with_log_level(log::LevelFilter::Debug)])?;
     Ok(())
 }
 

@@ -432,8 +432,6 @@ pub enum RedisValue {
     /// This is used for commands that return multiple values. You iterate over it
     /// to get each individual value.
     Bulk(ResponseStream),
-    /// A status message was returned from the server
-    Status(String),
     /// An okay response was returned from the server
     Okay,
     /// A short, non-binary string

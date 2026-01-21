@@ -57,7 +57,7 @@ fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
         .ok_or_else(|| WebError::message("No response from Redis"))?;
     let mut responses = match responses {
         RedisValue::Bulk(items) => items.into_iter(),
-        RedisValue::Status(e) => {
+        RedisValue::SimpleError(e) => {
             log::error!("Redis error: {e}");
             return Err(WebError::message(format!("Redis error: {e}")));
         }
@@ -93,7 +93,7 @@ fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
                 search_result_parser = FtSearchParserExpect::DocumentId;
                 search_result_parser.try_parse(value)?;
             }
-            RedisValue::Status(e) => {
+            RedisValue::SimpleError(e) => {
                 log::error!("Redis error: {e}");
                 return Err(WebError::message(format!("Redis error: {e}")));
             }
@@ -123,7 +123,7 @@ fn index_document(Json(body): Json<Request>) -> WebResult<WebResponse> {
                     skip = search_result_parser.try_parse(item)?;
                 }
             }
-            RedisValue::Status(e) => {
+            RedisValue::SimpleError(e) => {
                 log::error!("Redis error: {e}");
                 return Err(WebError::message(format!("Redis error: {e}")));
             }

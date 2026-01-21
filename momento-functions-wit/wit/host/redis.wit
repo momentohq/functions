@@ -50,16 +50,11 @@ interface redis {
         pipe: func(commands: list<command>) -> result<response-stream, redis-error>;
     }
 
-    variant cluster-connection-type {
-        managed(string),
-        other(string),
-    }
-
     resource cluster-client {
-        constructor(connection: cluster-connection-type);
-        // Sends a single command to the cluster
+        /// Sends a single command to the cluster
         command: func(command: command) -> result<value, redis-error>;
     }
 
+    /// Creates a cluster client for a Momento-managed cluster
     get-managed-cluster-client: func(cluster-name: string) -> cluster-client;
 }

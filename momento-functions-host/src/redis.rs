@@ -91,7 +91,7 @@ pub enum RedisDeleteError {
     #[error(transparent)]
     RedisError(#[from] host::redis::RedisError),
     /// Redis returned a simple error.
-    #[error("ERror message returned from redis: {message}")]
+    #[error("Error message returned from redis: {message}")]
     SimpleError {
         /// The message from Redis.
         message: String,

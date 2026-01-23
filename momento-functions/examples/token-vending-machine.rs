@@ -26,6 +26,7 @@ use momento_functions_host::{
     encoding::Json,
     logging::LogDestination,
     token::{self, CachePermissions, Permissions, TopicPermissions},
+    web_extensions::FunctionEnvironment,
 };
 use momento_functions_wit::host::momento::functions::token::TokenError;
 use serde_json::json;
@@ -39,7 +40,10 @@ struct Response {
 
 momento_functions::post!(greet);
 fn greet(_payload: Vec<u8>) -> WebResult<WebResponse> {
-    momento_functions_log::configure_logs([LogDestination::topic("token-vending-machine").into()])?;
+    let function_env = FunctionEnvironment::get_function_environment();
+    momento_functions_log::configure_logs([
+        LogDestination::topic(function_env.function_name()).into()
+    ])?;
 
     log::debug!("received request to generate a disposable token");
     let permissions = Permissions::new()

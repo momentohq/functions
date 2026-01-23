@@ -101,7 +101,9 @@
 use std::time::Duration;
 
 use momento_functions::{WebError, WebResponse, WebResult};
-use momento_functions_host::{cache, encoding::Json, logging::LogDestination};
+use momento_functions_host::{
+    cache, encoding::Json, logging::LogDestination, web_extensions::FunctionEnvironment,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -341,8 +343,9 @@ fn get_embeddings(query: String) -> WebResult<Vec<EmbeddingData>> {
 }
 
 fn setup_logging() -> WebResult<()> {
+    let function_env = FunctionEnvironment::get_function_environment();
     momento_functions_log::configure_logs([
-        LogDestination::topic("turbopuffer-search-articles").into()
+        LogDestination::topic(function_env.function_name()).into()
     ])?;
     Ok(())
 }

@@ -12,9 +12,11 @@ static NOT_FOUND: &str = "<not found>";
 // calls since the data is not intended to be mutated anyway.
 static GET_ENVIRONMENT_ONCE: LazyLock<FunctionEnvironment> = LazyLock::new(|| {
     let cache_name = env::var("__CACHE_NAME").unwrap_or(NOT_FOUND.to_string());
+    let function_name = env::var("__FUNCTION_NAME").unwrap_or(NOT_FOUND.to_string());
     let invocation_id = env::var("__INVOCATION_ID").unwrap_or(NOT_FOUND.to_string());
     FunctionEnvironment {
         cache_name,
+        function_name,
         invocation_id,
     }
 });
@@ -58,6 +60,7 @@ static GET_HTTP_PATH_ONCE: LazyLock<String> =
 /// ```
 pub struct FunctionEnvironment {
     cache_name: String,
+    function_name: String,
     invocation_id: String,
 }
 
@@ -75,6 +78,14 @@ impl FunctionEnvironment {
     /// ```
     pub fn cache_name(&self) -> &String {
         &self.cache_name
+    }
+
+    /// The name of the function. You can also access this via:
+    /// ```rust
+    /// let function_name = std:env::var("__FUNCTION_NAME").unwrap_or_default());
+    /// ```
+    pub fn function_name(&self) -> &String {
+        &self.function_name
     }
 
     /// The ID of the currently executing invocation. You can also access this via:

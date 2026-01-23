@@ -1,7 +1,7 @@
 use momento_functions::{WebResponse, WebResult};
 use momento_functions_host::{
     aws::auth::AwsCredentialsProvider, build_environment_aws_credentials, encoding::Json,
-    logging::LogDestination,
+    logging::LogDestination, web_extensions::FunctionEnvironment,
 };
 use serde::{Deserialize, Serialize};
 
@@ -24,7 +24,10 @@ struct MyStructure {
 
 momento_functions::post!(s3_put);
 fn s3_put(Json(request): Json<Request>) -> WebResult<WebResponse> {
-    momento_functions_log::configure_logs([LogDestination::topic("s3-get").into()])?;
+    let function_env = FunctionEnvironment::get_function_environment();
+    momento_functions_log::configure_logs([
+        LogDestination::topic(function_env.function_name()).into()
+    ])?;
     let client = momento_functions_host::aws::s3::S3Client::new(&AwsCredentialsProvider::new(
         "us-west-2",
         build_environment_aws_credentials!(),

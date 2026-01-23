@@ -5,7 +5,7 @@ use momento_functions_host::{
     encoding::{Extract, Json},
     http,
     logging::LogDestination,
-    web_extensions::headers,
+    web_extensions::{FunctionEnvironment, headers},
 };
 use std::{collections::HashMap, time::Duration};
 
@@ -119,6 +119,9 @@ fn require_header(
 }
 
 fn setup_logging() -> WebResult<()> {
-    momento_functions_log::configure_logs([LogDestination::topic("ddb-accelerator").into()])?;
+    let function_env = FunctionEnvironment::get_function_environment();
+    momento_functions_log::configure_logs([
+        LogDestination::topic(function_env.function_name()).into()
+    ])?;
     Ok(())
 }

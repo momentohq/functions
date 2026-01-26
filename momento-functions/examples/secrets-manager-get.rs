@@ -4,7 +4,6 @@ use momento_functions_host::{
         auth::{AwsCredentialsProvider, Credentials},
         secrets_manager::{GetSecretValueRequest, SecretsManagerClient},
     },
-    build_environment_aws_credentials,
     encoding::Json,
     logging::{LogConfiguration, LogDestination},
 };

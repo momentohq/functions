@@ -14,17 +14,13 @@ use super::auth;
 /// is kept hot at all times. When your Function has not run in several days or more,
 /// the channel is still hot and ready, keeping your Function invocations predictable
 /// even when your demand is unpredictable.
-///
-/// Additionally, you can leverage Momento's caching system to securely store your secret without
-/// making repeated calls to AWS Secrets Manager.
 pub struct SecretsManagerClient {
     client: host::aws_secrets::Client,
-    cache_ttl: Option<Duration>,
 }
 
 /// Helpful struct to easily make a request to AWS Secrets Manager.
 ///
-/// Use `GetSecretValueRequest::new()` to construct what you need.
+/// Use `GetSecretValueRequest::new("your secret ID")` to construct what you need.
 pub struct GetSecretValueRequest {
     secret_id: String,
     version_id: Option<String>,
@@ -75,10 +71,8 @@ where
 }
 
 impl SecretsManagerClient {
-    /// Create a new Secrets Manager client without caching.
+    /// Create a new Secrets Manager client.
     ///
-    /// Secrets retrieved through this client will always be fetched directly from AWS Secrets Manager
-    /// without being cached.
     ///
     /// ```rust,no-run
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
@@ -99,58 +93,27 @@ impl SecretsManagerClient {
     pub fn new(credentials: &auth::AwsCredentialsProvider) -> Self {
         Self {
             client: host::aws_secrets::Client::new(credentials.resource()),
-            cache_ttl: None,
-        }
-    }
-
-    /// Create a new Secrets Manager client with caching enabled.
-    ///
-    /// Secrets retrieved through this client will be cached in Momento with the specified TTL.
-    /// Subsequent requests for the same secret will return the cached value until the TTL expires.
-    ///
-    /// # Arguments
-    /// * `credentials` - AWS credentials provider for authenticating with Secrets Manager
-    /// * `cache_ttl` - Duration to cache secrets
-    ///
-    /// # Examples
-    ///
-    /// ```rust,no-run
-    /// use std::time::Duration;
-    /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
-    /// use momento_functions_host::aws::secrets_manager::SecretsManagerClient;
-    /// use momento_functions_host::build_environment_aws_credentials;
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    ///
-    /// # fn f() -> Result<(), AuthError> {
-    /// // Cache secrets for 5 minutes
-    /// let client = SecretsManagerClient::new_with_cache(
-    ///     &AwsCredentialsProvider::new(
-    ///         "us-east-1",
-    ///         build_environment_aws_credentials!()
-    ///     )?,
-    ///     Duration::from_secs(300)
-    /// );
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn new_with_cache(credentials: &auth::AwsCredentialsProvider, cache_ttl: Duration) -> Self {
-        Self {
-            client: host::aws_secrets::Client::new(credentials.resource()),
-            cache_ttl: Some(cache_ttl),
         }
     }
 
     /// Get a secret value from AWS Secrets Manager.
     ///
-    /// If you construct this client only with `new()`, the secret is fetched directly from AWS Secrets Manager
-    /// without storing the secret within your cache.
+    /// If you would like to avoid repeated calls to AWS Secrets Manager to save on latency, you can
+    /// pass in a specified `Duration` for allowed staleness in your request. The secret is securely cached
+    /// within the function's context and is only accessible by the function itself. No other resource can access
+    /// this secret. Once the secret has been detected as stale, the request will be sent directly to AWS Secrets
+    /// Manager once more.
     ///
-    /// If you would like to avoid repeated calls to AWS Secrets Manager (and hit limits), you can instead construct
-    /// this with `new_with_cache` and a TTL to store your secret within your cache. This way, repeated functions can
-    /// read from the cache instead.
+    /// Staleness refers to how long the secret has been cached within the function's context before another call
+    /// to Secrets Manager is made. This is compareda against the first time the secret is cached, regardless of
+    /// invocation. You can use this to ensure your solution has a window of allowing stale credentials when a
+    /// secret has been rotated.
+    ///
+    /// You can set it to `Duration::from_secs(0)` to always make the call to AWS.
     ///
     /// # Arguments
     /// * `request` - The request to send to Secrets Manager
+    /// * `allowed_staleness` - How long to cache the secret within your function's context.
     ///
     /// # Examples
     ///
@@ -163,7 +126,7 @@ impl SecretsManagerClient {
     /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
     /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
     /// let client = SecretsManagerClient::new(&credentials);
-    /// let secret: Vec<u8> = client.get_secret_value(GetSecretValueRequest::new("my-secret"))?;
+    /// let secret: Vec<u8> = client.get_secret_value(GetSecretValueRequest::new("my-secret"), Duration::from_secs(0))?;
     /// # Ok(())
     /// # }
     /// ```
@@ -179,7 +142,8 @@ impl SecretsManagerClient {
     /// let client = SecretsManagerClient::new(&credentials);
     /// let secret: Vec<u8> = client.get_secret_value(
     ///     GetSecretValueRequest::new("my-secret")
-    ///         .version_stage("AWSPENDING")
+    ///         .version_stage("AWSPENDING"),
+    ///     Duration::from_secs(0),
     /// )?;
     /// # Ok(())
     /// # }
@@ -194,8 +158,9 @@ impl SecretsManagerClient {
     /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
     /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
     /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
-    /// let client = SecretsManagerClient::new_with_cache(&credentials, Duration::from_secs(300));
-    /// let secret: Vec<u8> = client.get_secret_value(GetSecretValueRequest::new("my-secret"))?;
+    /// let client = SecretsManagerClient::new(&credentials, Duration::from_secs(300));
+    /// let allowed_staleness = Duration::from_mins(5);
+    /// let secret: Vec<u8> = client.get_secret_value(GetSecretValueRequest::new("my-secret"), allowed_staleness)?;
     /// # Ok(())
     /// # }
     ///
@@ -215,79 +180,34 @@ impl SecretsManagerClient {
     /// }
     ///
     /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
-    /// let client = SecretsManagerClient::new_with_cache(&credentials, Duration::from_secs(300));
-    /// let secret: MyPersistedSecret = client.get_secret_value(GetSecretValueRequest::new("my-secret"))?;
+    /// let client = SecretsManagerClient::new(&credentials, Duration::from_secs(300));
+    /// let allowed_staleness = Duration::from_mins(5);
+    /// let secret: MyPersistedSecret = client.get_secret_value(GetSecretValueRequest::new("my-secret"), allowed_staleness)?;
     /// # Ok(())
     /// # }
     /// ```
     pub fn get_secret_value<T: crate::encoding::Extract>(
         &self,
         request: GetSecretValueRequest,
+        allowed_staleness: Duration,
     ) -> Result<T, SecretsManagerGetSecretValueError<T::Error>> {
-        let cache_key = request.secret_id.clone();
+        let response = self
+            .client
+            .get_secret_value(&host::aws_secrets::GetSecretValueRequest {
+                secret_id: request.secret_id,
+                version_id: request.version_id,
+                version_stage: request.version_stage,
+                allowed_staleness_seconds: allowed_staleness.as_secs(),
+            })?;
 
-        // If caching is enabled, check the cache first
-        if let Some(ttl) = self.cache_ttl {
-            log::debug!("caching enabled for secrets, checking if secret exists in cache");
-            if let Some(cached_value) = crate::cache::get::<T>(&cache_key)
-                .map_err(|e| {
-                    Some(match e {
-                        crate::cache::CacheGetError::ExtractFailed { cause } => {
-                            SecretsManagerGetSecretValueError::ExtractFailed { cause }
-                        }
-                        crate::cache::CacheGetError::CacheError(_) => {
-                            return None;
-                        }
-                    })
-                })
-                .unwrap_or(None)
-            {
-                return Ok(cached_value);
-            }
+        // Extract the secret bytes based on the variant so it is properly encoded upon cache storage
+        let secret_bytes = match response.secret {
+            host::aws_secrets::SecretValue::SecretBytes(bytes) => bytes,
+            host::aws_secrets::SecretValue::SecretString(s) => s.into_bytes(),
+        };
 
-            log::debug!("cache miss, retrieving secret from AWS Secrets Manager");
-
-            let response =
-                self.client
-                    .get_secret_value(&host::aws_secrets::GetSecretValueRequest {
-                        secret_id: request.secret_id,
-                        version_id: request.version_id,
-                        version_stage: request.version_stage,
-                    })?;
-
-            // Extract the secret bytes based on the variant so it is properly encoded upon cache storage
-            let secret_bytes = match response.secret {
-                host::aws_secrets::SecretValue::SecretBytes(bytes) => bytes,
-                host::aws_secrets::SecretValue::SecretString(s) => s.into_bytes(),
-            };
-
-            log::debug!("storing secret in cache");
-            if let Err(e) = crate::cache::set(&cache_key, secret_bytes.clone(), ttl) {
-                log::debug!(
-                    "failed to cache secret, will return secret since it was retrieved: {e:?}"
-                );
-            }
-
-            // Extract and return the value
-            T::extract(secret_bytes)
-                .map_err(|cause| SecretsManagerGetSecretValueError::ExtractFailed { cause })
-        } else {
-            log::debug!("retrieving secret from AWS Secrets Manager");
-            let response =
-                self.client
-                    .get_secret_value(&host::aws_secrets::GetSecretValueRequest {
-                        secret_id: request.secret_id,
-                        version_id: request.version_id,
-                        version_stage: request.version_stage,
-                    })?;
-
-            let secret_bytes = match response.secret {
-                host::aws_secrets::SecretValue::SecretBytes(bytes) => bytes,
-                host::aws_secrets::SecretValue::SecretString(s) => s.into_bytes(),
-            };
-
-            T::extract(secret_bytes)
-                .map_err(|cause| SecretsManagerGetSecretValueError::ExtractFailed { cause })
-        }
+        // Extract and return the value
+        T::extract(secret_bytes)
+            .map_err(|cause| SecretsManagerGetSecretValueError::ExtractFailed { cause })
     }
 }

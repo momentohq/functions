@@ -14,8 +14,6 @@ use std::time::Duration;
 #[derive(Debug, Deserialize)]
 struct Request {
     secret_name: String,
-    #[serde(default)]
-    use_cache: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -23,6 +21,12 @@ struct Response {
     message: String,
 }
 
+/// In this example, imagine a secret has been stored in Secrets Manager as
+/// ```json
+/// {
+///     "token": "my super secret JWT for my service"
+/// }
+/// ```
 #[derive(Debug, Deserialize)]
 struct MySecret {
     pub token: String,
@@ -38,29 +42,29 @@ fn secrets_manager_get(Json(request): Json<Request>) -> WebResult<WebResponse> {
     let credentials =
         AwsCredentialsProvider::new("us-west-2", build_environment_aws_credentials!())?;
 
-    // Create client with or without caching based on request
-    let client = if request.use_cache {
-        log::info!("Creating Secrets Manager client with 5-minute cache");
-        SecretsManagerClient::new_with_cache(&credentials, Duration::from_secs(300))
-    } else {
-        log::info!("Creating Secrets Manager client without caching");
-        SecretsManagerClient::new(&credentials)
-    };
+    let client = SecretsManagerClient::new(&credentials);
+
+    // If you'd like your secret securely cached within your funciton's context, how long will you allow it to remain
+    // stale before it is retrieved from Secrets Manager again? This is compared against the first time the secret is stored,
+    // regardless of the function invocation.
+    let allowed_staleness = Duration::from_mins(5);
 
     log::info!("Retrieving secret: {}", &request.secret_name);
 
-    let Json(secret): Json<MySecret> =
-        match client.get_secret_value(GetSecretValueRequest::new(&request.secret_name)) {
-            Ok(s) => s,
-            Err(e) => {
-                log::error!("Failed to retrieve secret: {:?}", e);
-                return Ok(WebResponse::new()
-                    .with_status(500)
-                    .with_body(Json(Response {
-                        message: format!("Failed to retrieve secret: {e:?}"),
-                    }))?);
-            }
-        };
+    let Json(secret): Json<MySecret> = match client.get_secret_value(
+        GetSecretValueRequest::new(&request.secret_name),
+        allowed_staleness,
+    ) {
+        Ok(s) => s,
+        Err(e) => {
+            log::error!("Failed to retrieve secret: {:?}", e);
+            return Ok(WebResponse::new()
+                .with_status(500)
+                .with_body(Json(Response {
+                    message: format!("Failed to retrieve secret: {e:?}"),
+                }))?);
+        }
+    };
 
     if !secret.token.is_empty() {
         log::info!("Successfully retrieved secret")
@@ -73,6 +77,7 @@ fn secrets_manager_get(Json(request): Json<Request>) -> WebResult<WebResponse> {
             }))?);
     }
 
+    // Obviously we don't want to leak secrets in this example! We can return the length of the secret instead
     Ok(WebResponse::new()
         .with_status(200)
         .with_body(Json(Response {

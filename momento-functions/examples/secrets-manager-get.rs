@@ -1,7 +1,7 @@
 use momento_functions::{WebResponse, WebResult};
 use momento_functions_host::{
     aws::{
-        auth::AwsCredentialsProvider,
+        auth::{AwsCredentialsProvider, Credentials},
         secrets_manager::{GetSecretValueRequest, SecretsManagerClient},
     },
     build_environment_aws_credentials,
@@ -39,8 +39,14 @@ fn secrets_manager_get(Json(request): Json<Request>) -> WebResult<WebResponse> {
     })
     .with_log_level(log::LevelFilter::Debug)])?;
 
-    let credentials =
-        AwsCredentialsProvider::new("us-west-2", build_environment_aws_credentials!())?;
+    // In this example, you would provide the full path to your IAM Role Arn that gives Momento permission to
+    // federate into your role and execute the Secrets Manager request on your behalf to retrieve your secret.
+    let credentials = AwsCredentialsProvider::new(
+        "us-west-2",
+        Credentials::Federated {
+            role_arn: "<name of your role ARN>".to_string(),
+        },
+    )?;
 
     let client = SecretsManagerClient::new(&credentials);
 

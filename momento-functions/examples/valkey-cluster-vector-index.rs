@@ -3,6 +3,7 @@ use momento_functions_host::{
     encoding::Json,
     logging::{LogConfiguration, LogDestination},
     redis::{Command, RedisClusterClient, RedisValue},
+    web_extensions::FunctionEnvironment,
 };
 
 use serde::Deserialize;
@@ -144,8 +145,9 @@ fn ensure_index_exists(
 // ------------------------------------------------------
 
 fn setup_logging() -> WebResult<()> {
+    let function_env = FunctionEnvironment::get_function_environment();
     momento_functions_log::configure_logs([LogConfiguration::new(LogDestination::Topic {
-        topic: "valkey-cluster-vector-index".to_string(),
+        topic: function_env.function_name().to_string(),
     })
     .with_log_level(log::LevelFilter::Debug)])?;
     Ok(())

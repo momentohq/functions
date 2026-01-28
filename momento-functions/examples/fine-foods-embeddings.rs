@@ -24,7 +24,9 @@
 
 use itertools::Itertools;
 use momento_functions::{WebResponse, WebResult};
-use momento_functions_host::{encoding::Json, logging::LogDestination};
+use momento_functions_host::{
+    encoding::Json, logging::LogDestination, web_extensions::FunctionEnvironment,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -121,7 +123,10 @@ fn generate_embeddings(Json(documents): Json<Vec<DocumentInput>>) -> WebResult<W
 // ------------------------------------------------------
 
 fn setup_logging() -> WebResult<()> {
-    momento_functions_log::configure_logs([LogDestination::topic("fine-foods-embeddings").into()])?;
+    let function_env = FunctionEnvironment::get_function_environment();
+    momento_functions_log::configure_logs([
+        LogDestination::topic(function_env.function_name()).into()
+    ])?;
     Ok(())
 }
 

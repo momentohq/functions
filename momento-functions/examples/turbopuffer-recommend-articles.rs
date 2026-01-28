@@ -48,7 +48,9 @@
 use std::{collections::HashMap, time::Duration};
 
 use momento_functions::{WebError, WebResponse, WebResult};
-use momento_functions_host::{cache, encoding::Json, logging::LogDestination};
+use momento_functions_host::{
+    cache, encoding::Json, logging::LogDestination, web_extensions::FunctionEnvironment,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -441,10 +443,10 @@ fn mean_vector(vectors: &[Vec<f32>]) -> Option<Vec<f32>> {
 }
 
 fn setup_logging() -> WebResult<()> {
-    momento_functions_log::configure_logs([LogDestination::topic(
-        "turbopuffer-recommend-articles",
-    )
-    .into()])?;
+    let function_env = FunctionEnvironment::get_function_environment();
+    momento_functions_log::configure_logs([
+        LogDestination::topic(function_env.function_name()).into()
+    ])?;
     Ok(())
 }
 

@@ -9,7 +9,9 @@
 
 use itertools::Itertools;
 use momento_functions::{WebResponse, WebResult};
-use momento_functions_host::{encoding::Json, logging::LogDestination};
+use momento_functions_host::{
+    encoding::Json, logging::LogDestination, web_extensions::FunctionEnvironment,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -114,6 +116,9 @@ fn index_document(Json(documents): Json<Vec<Document>>) -> WebResult<WebResponse
 // ------------------------------------------------------
 
 fn setup_logging() -> WebResult<()> {
-    momento_functions_log::configure_logs([LogDestination::topic("turbopuffer-index").into()])?;
+    let function_env = FunctionEnvironment::get_function_environment();
+    momento_functions_log::configure_logs([
+        LogDestination::topic(function_env.function_name()).into()
+    ])?;
     Ok(())
 }

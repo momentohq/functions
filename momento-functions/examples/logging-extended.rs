@@ -2,6 +2,7 @@ use momento_functions::WebResult;
 use momento_functions_host::{
     encoding::Json,
     logging::{LogConfiguration, LogDestination},
+    web_extensions::FunctionEnvironment,
 };
 
 #[derive(serde::Deserialize, Debug)]
@@ -22,15 +23,19 @@ momento_functions::post!(greet);
 /// This example presumes an IAM role with proper permissions have been set up.
 /// Reach out to `support@momentohq.com` for assisance with how to set up your AWS IAM Role.
 fn greet(Json(request): Json<Request>) -> WebResult<Json<Response>> {
+    let function_env = FunctionEnvironment::get_function_environment();
     momento_functions_log::configure_logs([
         // Here is a dedicated topic that only has system logs, useful in case you only want to monitor
         // logs sent by Momento
-        LogConfiguration::new(LogDestination::topic("logging-extended-system-logs"))
-            .with_log_level(log::LevelFilter::Off)
-            .with_system_log_level(log::LevelFilter::Debug),
+        LogConfiguration::new(LogDestination::topic(format!(
+            "{}-system-logs",
+            function_env.function_name()
+        )))
+        .with_log_level(log::LevelFilter::Off)
+        .with_system_log_level(log::LevelFilter::Debug),
         // Here is a standard topic log that will capture application DEBUG logs and up, as well as any errors
         // sent by Momento.
-        LogConfiguration::new(LogDestination::topic("logging-extended"))
+        LogConfiguration::new(LogDestination::topic(function_env.function_name()))
             .with_log_level(log::LevelFilter::Debug)
             .with_system_log_level(log::LevelFilter::Error),
         // For our CW log destination, we'll let the default INFO be used for both application and

@@ -5,12 +5,14 @@ fn function_environment(_payload: Vec<u8>) -> String {
     let function_env = FunctionEnvironment::get_function_environment();
     format!(
         r#"Cache: {},
+Function: {},
 Invocation ID: {},
 Query parameters: {},
 HTTP method: {}
 HTTP path: {}
 "#,
         function_env.cache_name(),
+        function_env.function_name(),
         function_env.invocation_id(),
         function_env
             .query_parameters()

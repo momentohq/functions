@@ -46,7 +46,9 @@
 
 use itertools::Itertools;
 use momento_functions::{WebError, WebResponse, WebResult};
-use momento_functions_host::{encoding::Json, logging::LogDestination};
+use momento_functions_host::{
+    encoding::Json, logging::LogDestination, web_extensions::FunctionEnvironment,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -301,8 +303,9 @@ fn get_embeddings(
 }
 
 fn setup_logging() -> WebResult<()> {
+    let function_env = FunctionEnvironment::get_function_environment();
     momento_functions_log::configure_logs([
-        LogDestination::topic("turbopuffer-index-articles").into()
+        LogDestination::topic(function_env.function_name()).into()
     ])?;
     Ok(())
 }

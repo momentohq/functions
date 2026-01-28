@@ -33,7 +33,7 @@ where
     S3Error(#[from] S3Error),
 }
 
-/// An error occurred while getting an object form S3
+/// An error occurred while getting an object from S3
 #[derive(Debug, thiserror::Error)]
 pub enum S3GetError<E>
 where
@@ -51,11 +51,11 @@ where
 }
 
 impl S3Client {
-    // Create a new S3 client.
+    /// Create a new S3 client.
     ///
     /// ```rust,no-run
     /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
-    /// # use momento_functions_host::aws::lambda::S3Client;
+    /// # use momento_functions_host::aws::s3::S3Client;
     /// # use momento_functions_host::build_environment_aws_credentials;    /// #
     /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
     ///

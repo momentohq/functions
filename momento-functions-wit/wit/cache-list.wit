@@ -1,0 +1,147 @@
+interface cache-list {
+    variant error {
+        internal-error,
+        request-cancelled,
+        invalid-argument(string),
+        timeout,
+        permission-denied(string),
+        limit-exceeded(string),
+        failed-precondition(string),
+        not-found(string),
+    }
+
+    record pop-found {
+        value: list<u8>,
+        list-length: u32,
+    }
+
+    record list-range {
+        begin-index: u32,
+        count: u32,
+    }
+
+    record list-ranges {
+        ranges: list<list-range>,
+    }
+
+    variant pop-response {
+        found(pop-found),
+        missing,
+    }
+
+    variant erase-range {
+        all,
+        ranges(list-ranges),
+    }
+
+    variant erase-response {
+        /// Length of list after erasing
+        found(u32),
+        missing,
+    }
+
+    variant remove-response {
+        /// Length of list after erasing
+        found(u32),
+        missing,
+    }
+
+    variant remove-range {
+        all-elements-with-value(list<u8>),
+    }
+
+    variant start-index {
+        unbounded,
+        inclusive(s32),
+    }
+
+    variant end-index {
+        unbounded,
+        exclusive(s32),
+    }
+
+    variant fetch-response {
+        found(list<u8>),
+        missing,
+    }
+
+    variant length-response {
+        /// Length of list
+        found(u32),
+        missing,
+    }
+
+    variant retain-response {
+        /// Length of list after the operation is completed
+        found(u32),
+        missing,
+    }
+
+    list-push-front: func(
+        list-name: list<u8>,
+        value: list<u8>,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool,
+        truncate-back-to-size: u32
+    ) -> result<u32, error>;
+
+    list-push-back: func(
+        list-name: list<u8>,
+        value: list<u8>,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool,
+        truncate-back-to-size: u32
+    ) -> result<u32, error>;
+
+    list-pop-front: func(
+        list-name: list<u8>
+    ) -> result<pop-response, error>;
+
+    list-pop-back: func(
+        list-name: list<u8>
+    ) -> result<pop-response, error>;
+
+    list-erase: func(
+        list-name: list<u8>,
+        range: erase-range
+    ) -> result<erase-response, error>;
+
+    list-remove: func(
+        list-name: list<u8>,
+        range: remove-range
+    ) -> result<remove-response, error>;
+
+    list-fetch: func(
+        list-name: list<u8>,
+        start: start-index,
+        end: end-index
+    ) -> result<fetch-response, error>;
+
+    list-length: func(
+        list-name: list<u8>
+    ) -> result<length-response, error>;
+
+    list-concatenate-front: func(
+        list-name: list<u8>,
+        values: list<list<u8>>,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool,
+        truncate-back-to-size: u32
+    ) -> result<u32, error>;
+
+    list-concatenate-back: func(
+        list-name: list<u8>,
+        values: list<list<u8>>,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool,
+        truncate-back-to-size: u32
+    ) -> result<u32, error>;
+
+    list-retain: func(
+        list-name: list<u8>,
+        start: start-index,
+        end: end-index,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool
+    ) -> result<retain-response, error>;
+}

@@ -3,6 +3,7 @@ package momento:functions@1.0.0;
 world host {
     include momento:host/imports@1.0.0;
 
+    import cache-list;
     import cache-scalar;
     import token;
     import topic;

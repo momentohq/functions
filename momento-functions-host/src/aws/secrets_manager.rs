@@ -105,7 +105,7 @@ impl SecretsManagerClient {
     /// Manager once more.
     ///
     /// Staleness refers to how long the secret has been cached within the function's context before another call
-    /// to Secrets Manager is made. This is compareda against the first time the secret is cached, regardless of
+    /// to Secrets Manager is made. This is compared against the first time the secret is cached, regardless of
     /// invocation. You can use this to ensure your solution has a window of allowing stale credentials when a
     /// secret has been rotated.
     ///
@@ -187,6 +187,42 @@ impl SecretsManagerClient {
     /// # }
     /// ```
     pub fn get_secret_value<T: crate::encoding::Extract>(
+        &self,
+        request: GetSecretValueRequest,
+        allowed_staleness: Duration,
+    ) -> Result<T, SecretsManagerGetSecretValueError<T::Error>> {
+        self.do_get_secret_value(request, allowed_staleness)
+    }
+
+    /// Similar to [get_secret_value](SecretsManager::get_secret_value), but will always make a request to Secrets Manager
+    /// for the latest value.
+    ///
+    /// # Arguments
+    /// * `request` - The request to send to Secrets Manager
+    ///
+    /// # Examples
+    ///
+    /// Simple fetch:
+    /// ```rust,no_run
+    /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
+    /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
+    /// use momento_functions_host::build_environment_aws_credentials;
+    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
+    /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
+    /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
+    /// let client = SecretsManagerClient::new(&credentials);
+    /// let secret: Vec<u8> = client.get_secret_latest_value(GetSecretValueRequest::new("my-secret"))?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_latest_secret_value<T: crate::encoding::Extract>(
+        &self,
+        request: GetSecretValueRequest,
+    ) -> Result<T, SecretsManagerGetSecretValueError<T::Error>> {
+        self.do_get_secret_value(request, Duration::from_secs(0))
+    }
+
+    fn do_get_secret_value<T: crate::encoding::Extract>(
         &self,
         request: GetSecretValueRequest,
         allowed_staleness: Duration,

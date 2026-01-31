@@ -11,6 +11,10 @@ keywords.workspace = true
 categories.workspace = true
 
 [[example]]
+name = "cache-scalar"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "dynamodb-accelerator"
 crate-type = ["cdylib"]
 
@@ -29,7 +33,6 @@ crate-type = ["cdylib"]
 [[example]]
 name = "logging"
 crate-type = ["cdylib"]
-
 
 [[example]]
 name = "reading-and-sending-headers"

@@ -12,6 +12,32 @@ interface cache-scalar {
         not-found(string),
     }
 
+    /// Condition for set-if operations.
+    variant set-if-condition {
+        /// Set only if the key already exists.
+        present,
+        /// Set only if the key exists and its value is not equal to the provided value.
+        present-and-not-equal(list<u8>),
+        /// Set only if the key does not exist.
+        absent,
+        /// Set only if the key exists and its value equals the provided value.
+        equal(list<u8>),
+        /// Set if the key does not exist, or if it exists and its value equals the provided value.
+        absent-or-equal(list<u8>),
+        /// Set only if the key exists and its value is not equal to the provided value.
+        not-equal(list<u8>),
+    }
+
+    /// Result of a set-if operation.
+    variant set-if-result {
+        /// The value was stored.
+        stored,
+        /// The value was not stored because the condition was not met.
+        not-stored,
+    }
+
     get: func(key: list<u8>) -> result<option<list<u8>>, error>;
     set: func(key: list<u8>, value: list<u8>, ttl-milliseconds: u64) -> result<_, error>;
+    set-if: func(key: list<u8>, value: list<u8>, ttl-milliseconds: u64, condition: set-if-condition) -> result<set-if-result, error>;
+    delete: func(key: list<u8>) -> result<_, error>;
 }

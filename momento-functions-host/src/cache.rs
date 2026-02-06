@@ -304,7 +304,7 @@ pub struct GetWithHashValue<T> {
 /// # fn f() -> Result<(), CacheGetWithHashError<Vec<u8>>> {
 /// let result: Option<GetWithHashValue<Vec<u8>>> = cache::get_with_hash("my_key")?;
 /// if let Some(entry) = result {
-///     println!("Value: {:?}, Hash: {:?}", entry.value, entry.hash);
+///     log::info!("Value: {:?}, Hash: {:?}", entry.value, entry.hash);
 /// }
 /// # Ok(()) }
 /// ```
@@ -351,10 +351,10 @@ pub fn get_with_hash<T: Extract>(
 /// )?;
 /// match result {
 ///     SetIfHashResult::Stored(new_hash) => {
-///         println!("Value updated, new hash: {:?}", new_hash);
+///         log::info!("Value updated, new hash: {:?}", new_hash);
 ///     }
 ///     SetIfHashResult::NotStored => {
-///         println!("Value was modified by another process");
+///         log::info!("Value was modified by another process");
 ///     }
 /// }
 /// # Ok(()) }

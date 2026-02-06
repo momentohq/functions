@@ -36,8 +36,48 @@ interface cache-scalar {
         not-stored,
     }
 
+    /// Condition for set-if-hash operations (comparing hashes instead of full values).
+    variant set-if-hash-condition {
+        /// Set only if the key exists and the hash of its current value does not match the provided hash.
+        present-and-not-hash-equal(list<u8>),
+        /// Set only if the key exists and the hash of its current value matches the provided hash.
+        present-and-hash-equal(list<u8>),
+        /// Set if the key does not exist, or if it exists and the hash of its current value matches the provided hash.
+        absent-or-hash-equal(list<u8>),
+        /// Set if the key does not exist, or if it exists and the hash of its current value does not match the provided hash.
+        absent-or-not-hash-equal(list<u8>),
+        /// Unconditionally set the value.
+        unconditional,
+    }
+
+    /// Result of a set-if-hash operation.
+    variant set-if-hash-result {
+        /// The value was stored. Contains the hash computed on the newly stored value.
+        stored(list<u8>),
+        /// The value was not stored because the condition was not met.
+        not-stored,
+    }
+
+    /// Result of a get-with-hash operation. Contains both the value and its hash.
+    record get-with-hash-found {
+        /// The value stored at the key.
+        value: list<u8>,
+        /// The hash of the value.
+        hash: list<u8>,
+    }
+
+    /// Result of a get-with-hash operation.
+    variant get-with-hash-result {
+        /// The key was found. Contains the value and its hash.
+        found(get-with-hash-found),
+        /// The key was not found.
+        missing,
+    }
+
     get: func(key: list<u8>) -> result<option<list<u8>>, error>;
+    get-with-hash: func(key: list<u8>) -> result<get-with-hash-result, error>;
     set: func(key: list<u8>, value: list<u8>, ttl-milliseconds: u64) -> result<_, error>;
     set-if: func(key: list<u8>, value: list<u8>, ttl-milliseconds: u64, condition: set-if-condition) -> result<set-if-result, error>;
+    set-if-hash: func(key: list<u8>, value: list<u8>, ttl-milliseconds: u64, condition: set-if-hash-condition) -> result<set-if-hash-result, error>;
     delete: func(key: list<u8>) -> result<_, error>;
 }

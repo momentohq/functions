@@ -5,7 +5,11 @@ use std::time::Duration;
 use crate::encoding::{Encode, EncodeError, Extract, ExtractError};
 use momento_functions_wit::host::momento::functions::cache_scalar;
 
+pub use cache_scalar::GetWithHashFound;
+pub use cache_scalar::GetWithHashResult;
 pub use cache_scalar::SetIfCondition;
+pub use cache_scalar::SetIfHashCondition;
+pub use cache_scalar::SetIfHashResult;
 pub use cache_scalar::SetIfResult;
 
 /// An error occurred when setting a value in the cache.
@@ -248,4 +252,127 @@ pub fn set_if<E: Encode>(
 /// ```
 pub fn delete(key: impl AsRef<[u8]>) -> Result<(), CacheDeleteError> {
     cache_scalar::delete(key.as_ref()).map_err(Into::into)
+}
+
+/// An error occurred when getting a value with its hash from the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheGetWithHashError<E: ExtractError> {
+    /// The value could not be extracted with the provided implementation.
+    #[error("Failed to extract value.")]
+    ExtractFailed {
+        /// The underlying error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_scalar::Error),
+}
+
+/// An error occurred when conditionally setting a value based on hash comparison.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheSetIfHashError<E: EncodeError> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_scalar::Error),
+}
+
+/// A value retrieved from the cache along with its hash.
+pub struct GetWithHashValue<T> {
+    /// The extracted value.
+    pub value: T,
+    /// The hash of the value.
+    pub hash: Vec<u8>,
+}
+
+/// Get a value from the cache along with its hash.
+///
+/// The hash can be used with [`set_if_hash`] to perform conditional updates
+/// based on whether the value has changed since it was read.
+///
+/// Examples:
+/// ________
+/// ```rust
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::{CacheGetWithHashError, GetWithHashValue};
+///
+/// # fn f() -> Result<(), CacheGetWithHashError<Vec<u8>>> {
+/// let result: Option<GetWithHashValue<Vec<u8>>> = cache::get_with_hash("my_key")?;
+/// if let Some(entry) = result {
+///     println!("Value: {:?}, Hash: {:?}", entry.value, entry.hash);
+/// }
+/// # Ok(()) }
+/// ```
+pub fn get_with_hash<T: Extract>(
+    key: impl AsRef<[u8]>,
+) -> Result<Option<GetWithHashValue<T>>, CacheGetWithHashError<T::Error>> {
+    match cache_scalar::get_with_hash(key.as_ref())? {
+        GetWithHashResult::Found(found) => {
+            let value = T::extract(found.value)
+                .map_err(|e| CacheGetWithHashError::ExtractFailed { cause: e })?;
+            Ok(Some(GetWithHashValue {
+                value,
+                hash: found.hash,
+            }))
+        }
+        GetWithHashResult::Missing => Ok(None),
+    }
+}
+
+/// Conditionally set a value in the cache based on a hash comparison.
+///
+/// This is useful for optimistic concurrency control where you want to update
+/// a value only if it hasn't changed since you last read it, without needing
+/// to compare the full value.
+///
+/// Examples:
+/// ________
+/// Update only if the hash matches (value hasn't changed):
+/// ```rust
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::{CacheSetIfHashError, SetIfHashCondition, SetIfHashResult};
+/// # use std::time::Duration;
+///
+/// # fn f() -> Result<(), CacheSetIfHashError<&'static str>> {
+/// // First, get the current value and its hash
+/// // let entry = cache::get_with_hash("my_key")?;
+/// let previous_hash = vec![1, 2, 3]; // Hash from a previous get_with_hash call
+///
+/// let result = cache::set_if_hash(
+///     "my_key",
+///     b"new_value".to_vec(),
+///     Duration::from_secs(60),
+///     SetIfHashCondition::PresentAndHashEqual(previous_hash),
+/// )?;
+/// match result {
+///     SetIfHashResult::Stored(new_hash) => {
+///         println!("Value updated, new hash: {:?}", new_hash);
+///     }
+///     SetIfHashResult::NotStored => {
+///         println!("Value was modified by another process");
+///     }
+/// }
+/// # Ok(()) }
+/// ```
+pub fn set_if_hash<E: Encode>(
+    key: impl AsRef<[u8]>,
+    value: E,
+    ttl: Duration,
+    condition: SetIfHashCondition,
+) -> Result<SetIfHashResult, CacheSetIfHashError<E::Error>> {
+    cache_scalar::set_if_hash(
+        key.as_ref(),
+        &value
+            .try_serialize()
+            .map_err(|e| CacheSetIfHashError::EncodeFailed { cause: e })?
+            .into(),
+        saturate_ttl(ttl),
+        &condition,
+    )
+    .map_err(Into::into)
 }

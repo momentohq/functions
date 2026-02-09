@@ -1,0 +1,51 @@
+package momento:aws-s3@1.0.0;
+
+interface aws-s3 {
+    use momento:aws-auth/aws-auth@1.0.0.{credentials-provider};
+    use momento:bytes/bytes@1.0.0.{data};
+
+    variant s3-error {
+      /// The request was not authorized.
+      unauthorized(string),
+      /// The request was malformed.
+      malformed(string),
+      /// The request failed for some other reason.
+      other(string),
+   }
+
+   record put-object-request {
+     bucket: string,
+     key: string,
+     body: data,
+   }
+
+   record put-object-output {
+     expiration: option<string>,
+     etag: option<string>,
+     version-id: option<string>,
+   }
+
+   record get-object-request {
+     bucket: string,
+     key: string,
+   }
+
+   record get-object-output {
+     body: option<data>,
+     etag: option<string>,
+     version-id: option<string>,
+     expiration: option<string>,
+   }
+
+   resource client {
+     constructor(credentials: borrow<credentials-provider>);
+     put: func(request: put-object-request) -> result<put-object-output, s3-error>;
+     get: func(request: get-object-request) -> result<get-object-output, s3-error>;
+   }
+}
+
+world imports {
+    import momento:aws-auth/aws-auth@1.0.0;
+    import momento:bytes/bytes@1.0.0;
+    import aws-s3;
+}

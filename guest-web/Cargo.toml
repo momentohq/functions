@@ -1,0 +1,28 @@
+[package]
+name = "momento-functions-guest-web"
+description = "Guest bindings for Momento Web Functions"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[[example]]
+name = "echo"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "greet"
+crate-type = ["cdylib"]
+
+[dependencies]
+momento-functions-bytes = { workspace = true }
+
+serde                   = { workspace = true }
+serde_json              = { workspace = true }
+wit-bindgen             = { workspace = true }
+
+[dev-dependencies]

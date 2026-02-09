@@ -511,6 +511,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "momento-functions-bytes"
+version = "0.12.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "wit-bindgen",
+]
+
+[[package]]
+name = "momento-functions-guest-web"
+version = "0.12.0"
+dependencies = [
+ "momento-functions-bytes",
+ "serde",
+ "serde_json",
+ "wit-bindgen",
+]
+
+[[package]]
 name = "momento-functions-host"
 version = "0.12.0"
 dependencies = [

@@ -1,0 +1,20 @@
+package momento:spawn@1.0.0;
+
+interface spawn {
+    variant spawn-error {
+        /// The function does not exist.
+        function-not-found,
+        /// The function failed to spawn.
+        internal-error,
+        /// The function failed to spawn due to a limit error.
+        limit(string),
+    }
+
+    /// Invoke a Spawn Function by name with the given data.
+    /// Spawn Functions do not return a value to you - they are fire-and-forget.
+    spawn-function: func(name: string, data: list<u8>) -> result<_, spawn-error>;
+}
+
+world imports {
+    import spawn;
+}

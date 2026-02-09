@@ -1,0 +1,25 @@
+package momento:topic@1.0.0;
+
+interface topic {
+    /// An error occurred while making the call.
+    variant error {
+        internal-error,
+        request-cancelled,
+        invalid-argument(string),
+        timeout,
+        permission-denied(string),
+        limit-exceeded(string),
+        failed-precondition(string),
+        not-found(string),
+    }
+
+    // Publish a string message to a topic
+    publish: func(topic: string, value: string) -> result<_, error>;
+
+    // Publish a bytes message to a topic
+    publish-bytes: func(topic: string, value: list<u8>) -> result<_, error>;
+}
+
+world imports {
+    import topic;
+}

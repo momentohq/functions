@@ -2,6 +2,8 @@
 resolver = "2"
 
 members = [
+    "bytes",
+    "guest-web",
     "momento-functions",
     "momento-functions-host",
     "momento-functions-log",
@@ -22,6 +24,7 @@ categories = ["web-programming"]
 lto = true
 
 [workspace.dependencies]
+momento-functions-bytes = { version = "0", path = "bytes" }
 momento-functions-host  = { version = "0", path = "momento-functions-host" }
 momento-functions-log   = { version = "0", path = "momento-functions-log" }
 momento-functions-wit   = { version = "0", path = "momento-functions-wit" }

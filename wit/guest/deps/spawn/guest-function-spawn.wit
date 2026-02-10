@@ -1,0 +1,15 @@
+package momento:spawn-function@1.0.0;
+
+interface guest-function-spawn {
+    use momento:bytes/bytes@1.0.0.{data};
+
+    // A spawned function is triggered by an event. It does not have a return value.
+    //
+    // The ordering and concurrency semantics of a spawned function are not defined here;
+    // they are defined by the method in which the function is spawned.
+    spawned: func(payload: data);
+}
+
+world exports {
+    export guest-function-spawn;
+}

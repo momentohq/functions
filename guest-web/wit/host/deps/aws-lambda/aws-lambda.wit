@@ -1,0 +1,51 @@
+package momento:aws-lambda@1.0.0;
+
+interface aws-lambda {
+    use momento:aws-auth/aws-auth@1.0.0.{credentials-provider};
+    use momento:bytes/bytes@1.0.0.{data};
+
+    variant lambda-error {
+        /// The request was not authorized.
+        unauthorized(string),
+        /// The request was malformed.
+        malformed(string),
+        /// The request failed for some other reason.
+        other(string),
+    }
+
+    record invoke-request {
+        function-name: string,
+        qualifier: option<string>,
+        payload: option<data>,
+        invocation-type: invocation-type,
+    }
+    variant invocation-type {
+        request-response(invoke-synchronous-parameters),
+        event,
+        dry-run,
+    }
+    record invoke-synchronous-parameters {
+        log-type: option<log-type>,
+        client-context: option<string>,
+    }
+    variant log-type {
+        tail,
+    }
+    record invoke-output {
+        status-code: s32,
+        payload: option<data>,
+        log-result: option<string>,
+        executed-version: option<string>,
+    }
+
+    resource client {
+        constructor(credentials: borrow<credentials-provider>);
+        invoke: func(request: invoke-request) -> result<invoke-output, lambda-error>;
+    }
+}
+
+world imports {
+    import momento:aws-auth/aws-auth@1.0.0;
+    import momento:bytes/bytes@1.0.0;
+    import aws-lambda;
+}

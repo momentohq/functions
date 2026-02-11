@@ -497,7 +497,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "itertools",
  "log",
@@ -512,7 +512,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-bytes"
-version = "0.12.0"
+version = "0.13.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -521,7 +521,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-guest-web"
-version = "0.12.0"
+version = "0.13.1"
 dependencies = [
  "momento-functions-bytes",
  "serde",
@@ -531,7 +531,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-host"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "base64",
  "log",
@@ -543,7 +543,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-log"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "log",
  "momento-functions-host",
@@ -553,7 +553,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-wit"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "wit-bindgen",
 ]

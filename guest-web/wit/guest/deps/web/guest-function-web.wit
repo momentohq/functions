@@ -1,0 +1,44 @@
+package momento:web-function@1.0.0;
+
+interface web-function-support {
+    // Call only once - these are taken from the host
+    headers: func() -> list<header>;
+    // Call only once - these are taken from the host
+    query-parameters: func() -> list<query-parameter>;
+    // Call only once - this is taken from the host
+    token-metadata: func() -> option<string>;
+    invocation-id: func() -> string;
+    http-method: func() -> string;
+    // Call only once - this is taken from the host
+    // This is the relative path under the function's base URL.
+    // If you call /my-function/foo/bar, this will return "foo/bar"
+    invocation-path: func() -> option<string>;
+
+    record header {
+        name: string,
+        value: string,
+    }
+
+    record query-parameter {
+        name: string,
+        value: string,
+    }
+}
+
+interface guest-function-web {
+    use momento:bytes/bytes@1.0.0.{data};
+    use web-function-support.{header};
+
+    invoke: func(request: data) -> response;
+
+    record response {
+        status: u16,
+        headers: list<header>,
+        body: data,
+    }
+}
+
+world web-function {
+    import web-function-support;
+    export guest-function-web;
+}

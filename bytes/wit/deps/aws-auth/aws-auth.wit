@@ -1,0 +1,30 @@
+package momento:aws-auth@1.0.0;
+
+interface aws-auth {
+    /// Bare AWS credentials. Prefer other variants.
+    record credentials {
+        access-key-id: string,
+        secret-access-key: string,
+    }
+
+    /// Federated IAM role
+    record iam-role {
+        role-arn: string,
+    }
+
+    variant authorization {
+        hardcoded(credentials),
+        federated(iam-role),
+    }
+
+    variant auth-error {
+        unauthorized(string),
+    }
+
+    resource credentials-provider;
+    provider: func(authorization: authorization, region: string) -> result<credentials-provider, auth-error>;
+}
+
+world imports {
+    import aws-auth;
+}

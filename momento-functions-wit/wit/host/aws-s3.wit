@@ -28,16 +28,33 @@ interface aws-s3 {
    }
 
    record get-object-output {
-     /// If the object is not found, None is returned
      body: option<list<u8>>,
      etag: option<string>,
      version-id: option<string>,
      expiration: option<string>,
    }
 
+  record get-object-output-extended {
+     body: option<list<u8>>,
+     etag: option<string>,
+     version-id: option<string>,
+     expiration: option<string>,
+     content-type: option<string>,
+   }
+
+   record object-options {
+    content-type: option<string>,
+    content-encoding: option<string>,
+  }
+
    resource client {
      constructor(credentials: borrow<credentials-provider>);
+     /// Deprecated, use put-extended instead
      put: func(request: put-object-request) -> result<put-object-output, s3-error>;
+     /// Deprecated, use get-extended instead
      get: func(request: get-object-request) -> result<get-object-output, s3-error>;
+     // These are not exactly ideal, but once we migrate over to the v2 interface we can better add support for this
+     put-extended: func(request: put-object-request, options: object-options) -> result<put-object-output, s3-error>;
+     get-extended: func(request: get-object-request, options: object-options) -> result<get-object-output-extended, s3-error>;
    }
 }

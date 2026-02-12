@@ -16,6 +16,50 @@ pub struct S3Client {
     client: host::aws_s3::Client,
 }
 
+/// Options for S3 object operations.
+///
+/// Used with [`S3Client::put_with_options`] and [`S3Client::get_with_options`] to specify
+/// optional content metadata for S3 objects.
+///
+/// All fields default to `None`, so you only need to set the ones you care about.
+///
+/// # Examples
+///
+/// ```rust
+/// use momento_functions_host::aws::s3::S3ObjectOptions;
+///
+/// // Set only content-type
+/// let options = S3ObjectOptions {
+///     content_type: Some("application/json".to_string()),
+///     ..Default::default()
+/// };
+///
+/// // Set both content-type and content-encoding
+/// let options = S3ObjectOptions {
+///     content_type: Some("application/json".to_string()),
+///     content_encoding: Some("gzip".to_string()),
+///     ..Default::default()
+/// };
+/// ```
+#[derive(Debug, Default, Clone)]
+pub struct S3ObjectOptions {
+    /// The MIME type of the object (e.g. `"application/json"`, `"image/png"`).
+    pub content_type: Option<String>,
+    /// The encoding of the object (e.g. `"gzip"`, `"br"`).
+    pub content_encoding: Option<String>,
+}
+
+/// The result of a [`S3Client::get_with_options`] call.
+///
+/// Contains the extracted value along with any content metadata returned by S3.
+#[derive(Debug)]
+pub struct S3GetOutput<T> {
+    /// The extracted value.
+    pub value: T,
+    /// The content type of the object, if set.
+    pub content_type: Option<String>,
+}
+
 /// An error occurred while putting an object to S3
 #[derive(Debug, thiserror::Error)]
 pub enum S3PutError<E>
@@ -79,6 +123,9 @@ impl S3Client {
     ///
     /// You can use strings, bytes, or structs that are Serializable.
     ///
+    /// If you need to set content-type or content-encoding, use
+    /// [`put_with_options`](S3Client::put_with_options) instead.
+    ///
     /// Examples:
     /// ________
     /// ```rust,no-run
@@ -112,7 +159,7 @@ impl S3Client {
     ///     hello: String
     /// }
     ///
-    /// # fn f(client: &S3Client) -> Result<(), S3EPutrror<Json<MyStruct>>> {
+    /// # fn f(client: &S3Client) -> Result<(), S3PutError<Json<MyStruct>>> {
     ///
     /// // Just a request payload, encoded as JSON
     /// client.put(
@@ -128,16 +175,55 @@ impl S3Client {
         key: impl Into<String>,
         body: E,
     ) -> Result<(), S3PutError<E::Error>> {
+        self.put_with_options(bucket, key, body, S3ObjectOptions::default())
+    }
+
+    /// Put an object into an S3 bucket with additional options.
+    ///
+    /// This is the same as [`put`](S3Client::put), but allows you to specify
+    /// content-type and content-encoding for the object.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no-run
+    /// use momento_functions_host::aws::s3::{S3PutError, S3Client, S3ObjectOptions};
+    ///
+    /// # fn f(client: &S3Client) -> Result<(), S3PutError<&str>> {
+    /// client.put_with_options(
+    ///     "my-bucket",
+    ///     "my-key",
+    ///     b"compressed data",
+    ///     S3ObjectOptions {
+    ///         content_type: Some("application/octet-stream".to_string()),
+    ///         content_encoding: Some("gzip".to_string()),
+    ///         ..Default::default()
+    ///     },
+    /// )?;
+    /// # Ok(())}
+    /// ```
+    pub fn put_with_options<E: Encode>(
+        &self,
+        bucket: impl Into<String>,
+        key: impl Into<String>,
+        body: E,
+        options: S3ObjectOptions,
+    ) -> Result<(), S3PutError<E::Error>> {
         let _output = self
             .client
-            .put(&host::aws_s3::PutObjectRequest {
-                bucket: bucket.into(),
-                key: key.into(),
-                body: body
-                    .try_serialize()
-                    .map_err(|e| S3PutError::EncodeFailed { cause: e })?
-                    .into(),
-            })
+            .put_extended(
+                &host::aws_s3::PutObjectRequest {
+                    bucket: bucket.into(),
+                    key: key.into(),
+                    body: body
+                        .try_serialize()
+                        .map_err(|e| S3PutError::EncodeFailed { cause: e })?
+                        .into(),
+                },
+                &host::aws_s3::ObjectOptions {
+                    content_type: options.content_type,
+                    content_encoding: options.content_encoding,
+                },
+            )
             .map_err(S3PutError::from)?;
         Ok(())
     }
@@ -147,6 +233,9 @@ impl S3Client {
     /// The output's body is wrapped in an `Option`, with `None` indicating the object
     /// was not found with the given bucket and key.
     ///
+    /// If you need to set request options or retrieve content metadata like content-type,
+    /// use [`get_with_options`](S3Client::get_with_options) instead.
+    ///
     /// Examples:
     /// ________
     /// ```rust
@@ -154,7 +243,7 @@ impl S3Client {
     /// use momento_functions_host::encoding::Json;
     ///
     /// # fn f(client: &S3Client) -> Result<(), S3GetError<&str>> {
-    /// let my_value: Option<String> = match client.get(
+    /// let my_value: Option<String> = client.get(
     ///     "my-bucket",
     ///     "foo",
     /// )?;
@@ -183,7 +272,7 @@ impl S3Client {
     ///     "my-key",
     /// )? {
     ///     Some(Json(my_struct)) => {
-    ///       Some(my_struct)  
+    ///       Some(my_struct)
     ///     }
     ///     // Not found
     ///     None => None,
@@ -195,16 +284,61 @@ impl S3Client {
         bucket: impl Into<String>,
         key: impl Into<String>,
     ) -> Result<Option<T>, S3GetError<T::Error>> {
+        Ok(self
+            .get_with_options(bucket, key, S3ObjectOptions::default())?
+            .map(|output| output.value))
+    }
+
+    /// Get an object from an S3 bucket with additional options.
+    ///
+    /// This is the same as [`get`](S3Client::get), but allows you to specify
+    /// request options and returns content metadata (like content-type) alongside the value.
+    ///
+    /// Returns `Ok(None)` if the object was not found.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no-run
+    /// use momento_functions_host::aws::s3::{S3GetError, S3Client, S3ObjectOptions};
+    ///
+    /// # fn f(client: &S3Client) -> Result<(), S3GetError<&str>> {
+    /// let result = client.get_with_options::<Vec<u8>>(
+    ///     "my-bucket",
+    ///     "my-key",
+    ///     S3ObjectOptions::default(),
+    /// )?;
+    ///
+    /// if let Some(output) = result {
+    ///     println!("content-type: {:?}", output.content_type);
+    ///     println!("body length: {}", output.value.len());
+    /// }
+    /// # Ok(())}
+    /// ```
+    pub fn get_with_options<T: Extract>(
+        &self,
+        bucket: impl Into<String>,
+        key: impl Into<String>,
+        options: S3ObjectOptions,
+    ) -> Result<Option<S3GetOutput<T>>, S3GetError<T::Error>> {
         let output = self
             .client
-            .get(&host::aws_s3::GetObjectRequest {
-                bucket: bucket.into(),
-                key: key.into(),
-            })
+            .get_extended(
+                &host::aws_s3::GetObjectRequest {
+                    bucket: bucket.into(),
+                    key: key.into(),
+                },
+                &host::aws_s3::ObjectOptions {
+                    content_type: options.content_type,
+                    content_encoding: options.content_encoding,
+                },
+            )
             .map_err(S3GetError::from)?;
         if let Some(body) = output.body {
             let value = T::extract(body).map_err(|e| S3GetError::ExtractFailed { cause: e })?;
-            Ok(Some(value))
+            Ok(Some(S3GetOutput {
+                value,
+                content_type: output.content_type,
+            }))
         } else {
             Ok(None)
         }

@@ -26,23 +26,23 @@ pub struct S3Client {
 /// # Examples
 ///
 /// ```rust
-/// use momento_functions_host::aws::s3::S3ObjectOptions;
+/// use momento_functions_host::aws::s3::ObjectOptions;
 ///
 /// // Set only content-type
-/// let options = S3ObjectOptions {
+/// let options = ObjectOptions {
 ///     content_type: Some("application/json".to_string()),
 ///     ..Default::default()
 /// };
 ///
 /// // Set both content-type and content-encoding
-/// let options = S3ObjectOptions {
+/// let options = ObjectOptions {
 ///     content_type: Some("application/json".to_string()),
 ///     content_encoding: Some("gzip".to_string()),
 ///     ..Default::default()
 /// };
 /// ```
 #[derive(Debug, Default, Clone)]
-pub struct S3ObjectOptions {
+pub struct ObjectOptions {
     /// The MIME type of the object (e.g. `"application/json"`, `"image/png"`).
     pub content_type: Option<String>,
     /// The encoding of the object (e.g. `"gzip"`, `"br"`).
@@ -175,7 +175,7 @@ impl S3Client {
         key: impl Into<String>,
         body: E,
     ) -> Result<(), S3PutError<E::Error>> {
-        self.put_with_options(bucket, key, body, S3ObjectOptions::default())
+        self.put_with_options(bucket, key, body, ObjectOptions::default())
     }
 
     /// Put an object into an S3 bucket with additional options.
@@ -186,14 +186,14 @@ impl S3Client {
     /// # Examples
     ///
     /// ```rust,no-run
-    /// use momento_functions_host::aws::s3::{S3PutError, S3Client, S3ObjectOptions};
+    /// use momento_functions_host::aws::s3::{S3PutError, S3Client, ObjectOptions};
     ///
     /// # fn f(client: &S3Client) -> Result<(), S3PutError<&str>> {
     /// client.put_with_options(
     ///     "my-bucket",
     ///     "my-key",
     ///     b"compressed data",
-    ///     S3ObjectOptions {
+    ///     ObjectOptions {
     ///         content_type: Some("application/octet-stream".to_string()),
     ///         content_encoding: Some("gzip".to_string()),
     ///         ..Default::default()
@@ -206,7 +206,7 @@ impl S3Client {
         bucket: impl Into<String>,
         key: impl Into<String>,
         body: E,
-        options: S3ObjectOptions,
+        options: ObjectOptions,
     ) -> Result<(), S3PutError<E::Error>> {
         let _output = self
             .client
@@ -285,7 +285,7 @@ impl S3Client {
         key: impl Into<String>,
     ) -> Result<Option<T>, S3GetError<T::Error>> {
         Ok(self
-            .get_with_options(bucket, key, S3ObjectOptions::default())?
+            .get_with_options(bucket, key, ObjectOptions::default())?
             .map(|output| output.value))
     }
 
@@ -299,13 +299,13 @@ impl S3Client {
     /// # Examples
     ///
     /// ```rust,no-run
-    /// use momento_functions_host::aws::s3::{S3GetError, S3Client, S3ObjectOptions};
+    /// use momento_functions_host::aws::s3::{S3GetError, S3Client, ObjectOptions};
     ///
     /// # fn f(client: &S3Client) -> Result<(), S3GetError<&str>> {
     /// let result = client.get_with_options::<Vec<u8>>(
     ///     "my-bucket",
     ///     "my-key",
-    ///     S3ObjectOptions::default(),
+    ///     ObjectOptions::default(),
     /// )?;
     ///
     /// if let Some(output) = result {
@@ -318,7 +318,7 @@ impl S3Client {
         &self,
         bucket: impl Into<String>,
         key: impl Into<String>,
-        options: S3ObjectOptions,
+        options: ObjectOptions,
     ) -> Result<Option<S3GetOutput<T>>, S3GetError<T::Error>> {
         let output = self
             .client

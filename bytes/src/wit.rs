@@ -1,5 +1,4 @@
 wit_bindgen::generate!({
     world: "momento:bytes/imports",
-    path: ["wit/"],
-    generate_all,
+    path: [ concat!(env!("OUT_DIR"), "/wit/host") ],
 });

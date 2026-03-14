@@ -1,6 +1,9 @@
 wit_bindgen::generate!({
     world: "momento:web-function/web-function",
-    path: ["wit/host/", "wit/guest/"],
+    path: [
+        concat!(env!("OUT_DIR"), "/wit/host"),
+        concat!(env!("OUT_DIR"), "/wit/guest")
+    ],
     with: {
         "momento:bytes/bytes@1.0.0": momento_functions_bytes::wit::momento::bytes::bytes,
     },

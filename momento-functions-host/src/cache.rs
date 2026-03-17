@@ -3,6 +3,7 @@
 use std::time::Duration;
 
 use crate::encoding::{Encode, EncodeError, Extract, ExtractError};
+use momento_functions_wit::host::momento::functions::cache_list;
 use momento_functions_wit::host::momento::functions::cache_scalar;
 
 pub use cache_scalar::GetWithHashFound;
@@ -373,6 +374,202 @@ pub fn set_if_hash<E: Encode>(
             .into(),
         saturate_ttl(ttl),
         &condition,
+    )
+    .map_err(Into::into)
+}
+
+/// Represents the desired behavior for managing the TTL on collections.
+///
+/// The first time the collection is created, it needs to set a TTL. For subsequent operations
+/// that modify the collection, you may choose to update the TTL in order to prolong the life
+/// of the cached collection, or to leave the TTL unmodified to ensure the collection expires
+/// at the original TTL.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct CollectionTtl {
+    ttl: Duration,
+    refresh: bool,
+}
+
+impl CollectionTtl {
+    /// Create a collection TTL with the provided `ttl` and `refresh` settings.
+    pub const fn new(ttl: Duration, refresh: bool) -> Self {
+        Self { ttl, refresh }
+    }
+
+    /// Create a collection TTL that updates the TTL for the collection any time it is
+    /// modified.
+    pub fn refresh_on_update(ttl: impl Into<Duration>) -> Self {
+        Self::new(ttl.into(), true)
+    }
+
+    /// Create a collection TTL that will not refresh the TTL for the collection when
+    /// it is updated.
+    ///
+    /// Use this if you want to be sure that the collection expires at the originally
+    /// specified time, even if you make modifications to the value of the collection.
+    ///
+    /// The TTL will still be used when a new collection is created.
+    pub fn initialize_only(ttl: impl Into<Duration>) -> Self {
+        Self::new(ttl.into(), false)
+    }
+
+    /// Return a new collection TTL which uses the same TTL but refreshes on updates.
+    pub fn with_refresh_on_update(self) -> Self {
+        Self::new(self.ttl(), true)
+    }
+
+    /// Return a new collection TTL which uses the same TTL but does not refresh on
+    /// updates.
+    pub fn with_no_refresh_on_update(self) -> Self {
+        Self::new(self.ttl(), false)
+    }
+
+    /// Return a new collection TTL which has the same refresh behavior but uses the
+    /// provided TTL.
+    pub fn with_ttl(self, ttl: impl Into<Duration>) -> Self {
+        Self::new(ttl.into(), self.refresh())
+    }
+
+    /// Constructs a CollectionTtl with the specified TTL. The TTL for the collection will be
+    /// refreshed any time the collection is modified.
+    pub fn of(ttl: Duration) -> Self {
+        Self::new(ttl, true)
+    }
+
+    /// The [`Duration`] after which the cached collection should be expired from the
+    /// cache.
+    pub fn ttl(&self) -> Duration {
+        self.ttl
+    }
+
+    /// Whether the collection's TTL will be refreshed on every update.
+    ///
+    /// If true, this will extend the time at which the collection would expire when
+    /// an update operation happens. Otherwise, the collection's TTL will only be set
+    /// when it is initially created.
+    pub fn refresh(&self) -> bool {
+        self.refresh
+    }
+}
+
+/// An error occurred when pushing a value to the back of a list in the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheListPushBackError<E: EncodeError> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_list::Error),
+}
+
+/// An error occurred when pushing a value to the front of a list in the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheListPushFrontError<E: EncodeError> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_list::Error),
+}
+
+/// Adds an element to the back of the given list. Creates the list if it does not already exist.
+///
+/// # Arguments
+/// * `list_name` - The name of the list.
+/// * `value` - The value to append to the list.
+/// * `collection_ttl` - The time-to-live for the list.
+/// * `truncate_front_to_size` - If the list exceeds this length, remove excess from the front of the list.
+///
+/// # Examples:
+/// ________
+/// Append a value to the back of a list:
+/// ```rust
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::CacheListPushBackError;
+/// # use std::time::Duration;
+///
+/// # fn f() -> Result<(), CacheListPushBackError<&'static str>> {
+///
+/// let list_length = cache::list_push_back(
+///     "my_list",
+///     b"new_value".to_vec(),
+///     CollectionTtl::of(Duration::from_secs(60)),
+///     None,
+/// )?;
+///
+/// log::info!("New length of my_list: {}", list_length);
+/// # Ok(()) }
+/// ```
+pub fn list_push_back<E: Encode>(
+    list_name: impl AsRef<[u8]>,
+    value: E,
+    collection_ttl: CollectionTtl,
+    truncate_front_to_size: Option<u32>,
+) -> Result<u32, CacheListPushBackError<E::Error>> {
+    cache_list::list_push_back(
+        list_name.as_ref(),
+        &value
+            .try_serialize()
+            .map_err(|e| CacheListPushBackError::EncodeFailed { cause: e })?
+            .into(),
+        saturate_ttl(collection_ttl.ttl()),
+        collection_ttl.refresh(),
+        truncate_front_to_size.unwrap_or(0),
+    )
+    .map_err(Into::into)
+}
+
+/// Adds an element to the front of the given list. Creates the list if it does not already exist.
+///
+/// # Arguments
+/// * `list_name` - The name of the list.
+/// * `value` - The value to append to the list.
+/// * `collection_ttl` - The time-to-live for the list.
+/// * `truncate_back_to_size` - If the list exceeds this length, remove excess from the back of the list.
+///
+/// # Examples:
+/// ________
+/// Append a value to the back of a list:
+/// ```rust
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::{CacheListPushFrontError, CollectionTtl};
+/// # use std::time::Duration;
+///
+/// # fn f() -> Result<(), CacheListPushFrontError<&'static str>> {
+///
+/// let list_length = cache::list_push_front(
+///     "my_list",
+///     b"new_value".to_vec(),
+///     CollectionTtl::of(Duration::from_secs(60)),
+///     None,
+/// )?;
+///
+/// log::info!("New length of my_list: {}", list_length);
+/// # Ok(()) }
+/// ```
+pub fn list_push_front<E: Encode>(
+    list_name: impl AsRef<[u8]>,
+    value: E,
+    collection_ttl: CollectionTtl,
+    truncate_back_to_size: Option<u32>,
+) -> Result<u32, CacheListPushFrontError<E::Error>> {
+    cache_list::list_push_front(
+        list_name.as_ref(),
+        &value
+            .try_serialize()
+            .map_err(|e| CacheListPushFrontError::EncodeFailed { cause: e })?
+            .into(),
+        saturate_ttl(collection_ttl.ttl()),
+        collection_ttl.refresh(),
+        truncate_back_to_size.unwrap_or(0),
     )
     .map_err(Into::into)
 }

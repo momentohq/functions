@@ -380,7 +380,7 @@ pub fn set_if_hash<E: Encode>(
 
 /// Represents the desired behavior for managing the TTL on collections.
 ///
-/// The first time the collection is created, it needs to a TTL. For subsequent operations
+/// The first time the collection is created, it needs to set a TTL. For subsequent operations
 /// that modify the collection, you may choose to update the TTL in order to prolong the life
 /// of the cached collection, or to leave the TTL unmodified to ensure the collection expires
 /// at the original TTL.

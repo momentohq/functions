@@ -261,6 +261,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "momento-functions-cache"
+version = "0.14.1"
+dependencies = [
+ "momento-functions-bytes",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "wit-bindgen",
+]
+
+[[package]]
 name = "momento-functions-guest-web"
 version = "0.14.1"
 dependencies = [

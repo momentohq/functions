@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "bytes",
+    "cache",
     "guest-web",
     "momento-functions",
     "momento-functions-host",

@@ -1,3 +1,4 @@
+#[allow(clippy::expect_used)]
 fn main() {
     // Pull the workspace wit files into OUT_DIR so they can be used as part of the
     // build during publish.

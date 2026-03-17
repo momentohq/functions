@@ -3,6 +3,7 @@
 use std::time::Duration;
 
 use crate::encoding::{Encode, EncodeError, Extract, ExtractError};
+use momento_functions_wit::host::momento::functions::cache_list;
 use momento_functions_wit::host::momento::functions::cache_scalar;
 
 pub use cache_scalar::GetWithHashFound;
@@ -373,6 +374,134 @@ pub fn set_if_hash<E: Encode>(
             .into(),
         saturate_ttl(ttl),
         &condition,
+    )
+    .map_err(Into::into)
+}
+
+/// An error occurred when pushing a value to the back of a list in the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheListPushBackError<E: EncodeError> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_list::Error),
+}
+
+/// An error occurred when pushing a value to the front of a list in the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheListPushFrontError<E: EncodeError> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_list::Error),
+}
+
+/// Adds an element to the back of the given list. Creates the list if it does not already exist.
+///
+/// # Arguments
+/// * `list_name` - The name of the list.
+/// * `value` - The value to append to the list.
+/// * `ttl` - The time-to-live for the list. Will be ignored if the list exists and refresh_ttl is false.
+/// * `refresh_ttl` - Whether to refresh the ttl when updating the list.
+/// * `truncate_front_to_size` - If the list exceeds this length, remove excess from the front of the list.
+///
+/// # Examples:
+/// ________
+/// Append a value to the back of a list:
+/// ```rust
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::CacheListPushBackError;
+/// # use std::time::Duration;
+///
+/// # fn f() -> Result<(), CacheListPushBackError<&'static str>> {
+///
+/// let list_length = cache::list_push_back(
+///     "my_list",
+///     b"new_value".to_vec(),
+///     Duration::from_secs(60),
+///     true,
+///     None,
+/// )?;
+///
+/// log::info!("New length of my_list: {}", list_length);
+/// # Ok(()) }
+/// ```
+pub fn list_push_back<E: Encode>(
+    list_name: impl AsRef<[u8]>,
+    value: E,
+    ttl: Duration,
+    refresh_ttl: bool,
+    truncate_front_to_size: Option<u32>,
+) -> Result<u32, CacheListPushBackError<E::Error>> {
+    cache_list::list_push_back(
+        list_name.as_ref(),
+        &value
+            .try_serialize()
+            .map_err(|e| CacheListPushBackError::EncodeFailed { cause: e })?
+            .into(),
+        saturate_ttl(ttl),
+        refresh_ttl,
+        truncate_front_to_size.unwrap_or(0),
+    )
+    .map_err(Into::into)
+}
+
+/// Adds an element to the front of the given list. Creates the list if it does not already exist.
+///
+/// # Arguments
+/// * `list_name` - The name of the list.
+/// * `value` - The value to append to the list.
+/// * `ttl` - The time-to-live for the list. Will be ignored if the list exists and refresh_ttl is false.
+/// * `refresh_ttl` - Whether to refresh the ttl when updating the list.
+/// * `truncate_back_to_size` - If the list exceeds this length, remove excess from the back of the list.
+///
+/// # Examples:
+/// ________
+/// Append a value to the back of a list:
+/// ```rust
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::CacheListPushFrontError;
+/// # use std::time::Duration;
+///
+/// # fn f() -> Result<(), CacheListPushFrontError<&'static str>> {
+///
+/// let list_length = cache::list_push_front(
+///     "my_list",
+///     b"new_value".to_vec(),
+///     Duration::from_secs(60),
+///     true,
+///     None,
+/// )?;
+///
+/// log::info!("New length of my_list: {}", list_length);
+/// # Ok(()) }
+/// ```
+pub fn list_push_front<E: Encode>(
+    list_name: impl AsRef<[u8]>,
+    value: E,
+    ttl: Duration,
+    refresh_ttl: bool,
+    truncate_back_to_size: Option<u32>,
+) -> Result<u32, CacheListPushFrontError<E::Error>> {
+    cache_list::list_push_front(
+        list_name.as_ref(),
+        &value
+            .try_serialize()
+            .map_err(|e| CacheListPushFrontError::EncodeFailed { cause: e })?
+            .into(),
+        saturate_ttl(ttl),
+        refresh_ttl,
+        truncate_back_to_size.unwrap_or(0),
     )
     .map_err(Into::into)
 }

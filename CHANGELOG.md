@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/momentohq/functions/compare/v0.15.0...v0.15.1) (2026-03-23)
+
+
+### Miscellaneous
+
+* update s3 examples to use better auth ([#62](https://github.com/momentohq/functions/issues/62)) ([53bbd8c](https://github.com/momentohq/functions/commit/53bbd8c6937ad5b530af0f8ddc7553836395e3dd))
+
 ## [0.15.0](https://github.com/momentohq/functions/compare/v0.14.1...v0.15.0) (2026-03-19)
 
 

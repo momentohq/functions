@@ -252,6 +252,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "momento-functions-aws-auth"
+version = "0.14.1"
+dependencies = [
+ "thiserror",
+ "wit-bindgen",
+]
+
+[[package]]
+name = "momento-functions-aws-s3"
+version = "0.14.1"
+dependencies = [
+ "momento-functions-aws-auth",
+ "momento-functions-bytes",
+ "thiserror",
+ "wit-bindgen",
+]
+
+[[package]]
 name = "momento-functions-bytes"
 version = "0.14.1"
 dependencies = [

@@ -5,9 +5,9 @@ members = [
     "bytes",
     "cache",
     "guest-web",
+    "log",
     "momento-functions",
     "momento-functions-host",
-    "momento-functions-log",
     "momento-functions-wit",
 ]
 

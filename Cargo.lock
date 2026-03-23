@@ -294,6 +294,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "momento-functions-host-log"
+version = "0.14.1"
+dependencies = [
+ "log",
+ "thiserror",
+ "time",
+ "wit-bindgen",
+]
+
+[[package]]
 name = "momento-functions-log"
 version = "0.14.1"
 dependencies = [

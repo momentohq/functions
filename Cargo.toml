@@ -6,6 +6,7 @@ members = [
     "aws-s3",
     "bytes",
     "cache",
+    "guest-spawn",
     "guest-web",
     "log",
     "momento-functions",
@@ -27,9 +28,10 @@ categories = ["web-programming"]
 lto = true
 
 [workspace.dependencies]
-momento-functions-aws-auth = { version = "0", path = "aws-auth" }
-momento-functions-aws-s3   = { version = "0", path = "aws-s3" }
-momento-functions-bytes    = { version = "0", path = "bytes" }
+momento-functions-aws-auth    = { version = "0", path = "aws-auth" }
+momento-functions-aws-s3     = { version = "0", path = "aws-s3" }
+momento-functions-bytes      = { version = "0", path = "bytes" }
+momento-functions-guest-spawn = { version = "0", path = "guest-spawn" }
 momento-functions-host   = { version = "0", path = "momento-functions-host" }
 momento-functions-log   = { version = "0", path = "momento-functions-log" }
 momento-functions-wit   = { version = "0", path = "momento-functions-wit" }

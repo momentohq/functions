@@ -1,12 +1,15 @@
 use momento_functions::{WebResponse, WebResult};
 use momento_functions_host::{
-    aws::auth::AwsCredentialsProvider, build_environment_aws_credentials, encoding::Json,
-    logging::LogDestination, web_extensions::FunctionEnvironment,
+    aws::auth::{AwsCredentialsProvider, Credentials},
+    encoding::Json,
+    logging::LogDestination,
+    web_extensions::FunctionEnvironment,
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 struct Request {
+    role_arn: String,
     bucket: String,
     key: String,
 }
@@ -30,7 +33,9 @@ fn s3_put(Json(request): Json<Request>) -> WebResult<WebResponse> {
     ])?;
     let client = momento_functions_host::aws::s3::S3Client::new(&AwsCredentialsProvider::new(
         "us-west-2",
-        build_environment_aws_credentials!(),
+        Credentials::Federated {
+            role_arn: request.role_arn,
+        },
     )?);
 
     log::info!(

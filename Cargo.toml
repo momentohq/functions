@@ -2,11 +2,15 @@
 resolver = "2"
 
 members = [
+    "aws-auth",
+    "aws-s3",
     "bytes",
+    "cache",
+    "guest-spawn",
     "guest-web",
+    "log",
     "momento-functions",
     "momento-functions-host",
-    "momento-functions-log",
     "momento-functions-wit",
 ]
 
@@ -24,8 +28,11 @@ categories = ["web-programming"]
 lto = true
 
 [workspace.dependencies]
-momento-functions-bytes = { version = "0", path = "bytes" }
-momento-functions-host  = { version = "0", path = "momento-functions-host" }
+momento-functions-aws-auth    = { version = "0", path = "aws-auth" }
+momento-functions-aws-s3     = { version = "0", path = "aws-s3" }
+momento-functions-bytes      = { version = "0", path = "bytes" }
+momento-functions-guest-spawn = { version = "0", path = "guest-spawn" }
+momento-functions-host   = { version = "0", path = "momento-functions-host" }
 momento-functions-log   = { version = "0", path = "momento-functions-log" }
 momento-functions-wit   = { version = "0", path = "momento-functions-wit" }
 
@@ -38,4 +45,5 @@ sha2                    = { version = "0" }
 tiktoken-rs             = { version = "0" }
 thiserror               = { version = "2" }
 time                    = { version = "0.3" }
-wit-bindgen             = { version = "0.41" }
+# wit-bindgen             = { version = "0.53" }
+wit-bindgen             = { git = "https://github.com/bytecodealliance/wit-bindgen", commit = "ffbf78c6883f0f5d8ed3c5b6ea36bbedc1ab7ea8" }

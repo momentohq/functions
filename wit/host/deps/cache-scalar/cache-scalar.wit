@@ -1,6 +1,7 @@
 package momento:cache-scalar@1.0.0;
 
 interface cache-scalar {
+    use momento:bytes/bytes@1.0.0.{data};
 
     /// An error occurred while making the call.
     variant error {
@@ -14,10 +15,77 @@ interface cache-scalar {
         not-found(string),
     }
 
-    get: func(key: list<u8>) -> result<option<list<u8>>, error>;
-    set: func(key: list<u8>, value: list<u8>, ttl-milliseconds: u64) -> result<_, error>;
+    /// Condition for set-if operations.
+    variant set-if-condition {
+        /// Set only if the key already exists.
+        present,
+        /// Set only if the key exists and its value is not equal to the provided value.
+        present-and-not-equal(data),
+        /// Set only if the key does not exist.
+        absent,
+        /// Set only if the key exists and its value equals the provided value.
+        equal(data),
+        /// Set if the key does not exist, or if it exists and its value equals the provided value.
+        absent-or-equal(data),
+        /// Set only if the key exists and its value is not equal to the provided value.
+        not-equal(data),
+    }
+
+    /// Result of a set-if operation.
+    variant set-if-result {
+        /// The value was stored.
+        stored,
+        /// The value was not stored because the condition was not met.
+        not-stored,
+    }
+
+    /// Condition for set-if-hash operations (comparing hashes instead of full values).
+    variant set-if-hash-condition {
+        /// Set only if the key exists and the hash of its current value does not match the provided hash.
+        present-and-not-hash-equal(data),
+        /// Set only if the key exists and the hash of its current value matches the provided hash.
+        present-and-hash-equal(data),
+        /// Set if the key does not exist, or if it exists and the hash of its current value matches the provided hash.
+        absent-or-hash-equal(data),
+        /// Set if the key does not exist, or if it exists and the hash of its current value does not match the provided hash.
+        absent-or-not-hash-equal(data),
+        /// Unconditionally set the value.
+        unconditional,
+    }
+
+    /// Result of a set-if-hash operation.
+    variant set-if-hash-result {
+        /// The value was stored. Contains the hash computed on the newly stored value.
+        stored(data),
+        /// The value was not stored because the condition was not met.
+        not-stored,
+    }
+
+    /// Result of a get-with-hash operation. Contains both the value and its hash.
+    record get-with-hash-found {
+        /// The value stored at the key.
+        value: data,
+        /// The hash of the value.
+        hash: data,
+    }
+
+    /// Result of a get-with-hash operation.
+    variant get-with-hash-result {
+        /// The key was found. Contains the value and its hash.
+        found(get-with-hash-found),
+        /// The key was not found.
+        missing,
+    }
+
+    get: func(key: data) -> result<option<data>, error>;
+    get-with-hash: func(key: data) -> result<get-with-hash-result, error>;
+    set: func(key: data, value: data, ttl-milliseconds: u64) -> result<_, error>;
+    set-if: func(key: data, value: data, ttl-milliseconds: u64, condition: set-if-condition) -> result<set-if-result, error>;
+    set-if-hash: func(key: data, value: data, ttl-milliseconds: u64, condition: set-if-hash-condition) -> result<set-if-hash-result, error>;
+    delete: func(key: data) -> result<_, error>;
 }
 
 world imports {
+    import momento:bytes/bytes@1.0.0;
     import cache-scalar;
 }

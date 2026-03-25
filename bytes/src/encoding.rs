@@ -19,6 +19,13 @@ pub trait Encode {
     fn try_serialize(self) -> Result<Data, Self::Error>;
 }
 
+// A pass-through for IO convenience
+impl Encode for Data {
+    type Error = Infallible;
+    fn try_serialize(self) -> Result<Data, Self::Error> {
+        Ok(self)
+    }
+}
 impl Encode for Vec<u8> {
     type Error = Infallible;
     fn try_serialize(self) -> Result<Data, Self::Error> {

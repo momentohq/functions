@@ -46,4 +46,4 @@ tiktoken-rs             = { version = "0" }
 thiserror               = { version = "2" }
 time                    = { version = "0.3" }
 # wit-bindgen             = { version = "0.53" }
-wit-bindgen             = { git = "https://github.com/kvcache/wit-bindgen", branch = "manifest" }
+wit-bindgen             = { git = "https://github.com/bytecodealliance/wit-bindgen", commit = "ffbf78c6883f0f5d8ed3c5b6ea36bbedc1ab7ea8" }

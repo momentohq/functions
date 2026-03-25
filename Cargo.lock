@@ -620,8 +620,8 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen"
-version = "0.53.1"
-source = "git+https://github.com/kvcache/wit-bindgen?branch=manifest#d0642ef1f71f9f3f34bb2573cf3d262a8f49a8d9"
+version = "0.54.0"
+source = "git+https://github.com/bytecodealliance/wit-bindgen#ffbf78c6883f0f5d8ed3c5b6ea36bbedc1ab7ea8"
 dependencies = [
  "bitflags",
  "wit-bindgen-rust-macro",
@@ -629,8 +629,8 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen-core"
-version = "0.53.1"
-source = "git+https://github.com/kvcache/wit-bindgen?branch=manifest#d0642ef1f71f9f3f34bb2573cf3d262a8f49a8d9"
+version = "0.54.0"
+source = "git+https://github.com/bytecodealliance/wit-bindgen#ffbf78c6883f0f5d8ed3c5b6ea36bbedc1ab7ea8"
 dependencies = [
  "anyhow",
  "heck",
@@ -639,8 +639,8 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen-rust"
-version = "0.53.1"
-source = "git+https://github.com/kvcache/wit-bindgen?branch=manifest#d0642ef1f71f9f3f34bb2573cf3d262a8f49a8d9"
+version = "0.54.0"
+source = "git+https://github.com/bytecodealliance/wit-bindgen#ffbf78c6883f0f5d8ed3c5b6ea36bbedc1ab7ea8"
 dependencies = [
  "anyhow",
  "heck",
@@ -654,8 +654,8 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen-rust-macro"
-version = "0.53.1"
-source = "git+https://github.com/kvcache/wit-bindgen?branch=manifest#d0642ef1f71f9f3f34bb2573cf3d262a8f49a8d9"
+version = "0.54.0"
+source = "git+https://github.com/bytecodealliance/wit-bindgen#ffbf78c6883f0f5d8ed3c5b6ea36bbedc1ab7ea8"
 dependencies = [
  "anyhow",
  "macro-string",

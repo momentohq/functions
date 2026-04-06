@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/momentohq/functions/compare/v0.16.0...v0.16.1) (2026-04-06)
+
+
+### Bug Fixes
+
+* surgically duplicate wit dependencies ([#65](https://github.com/momentohq/functions/issues/65)) ([a07ec79](https://github.com/momentohq/functions/commit/a07ec79b452262cdee7cdd65475df5ac04cf630a))
+
 ## [0.16.0](https://github.com/momentohq/functions/compare/v0.15.1...v0.16.0) (2026-04-06)
 
 

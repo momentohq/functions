@@ -32,7 +32,7 @@ impl WebError {
 
 impl<E: Error + 'static> From<E> for WebError {
     fn from(e: E) -> Self {
-        let body = format!("An error occurred during function invocation: {e}");
+        let body = format!("An error occurred during function invocation: {e:?}");
         Self {
             source: Some(Box::new(e)),
             response: WebResponse {

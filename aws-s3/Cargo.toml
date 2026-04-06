@@ -1,0 +1,17 @@
+[package]
+name = "momento-functions-aws-s3"
+description = "Host interfaces for AWS S3 interactions"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+momento-functions-aws-auth = { workspace = true }
+momento-functions-bytes    = { workspace = true }
+thiserror                  = { workspace = true }
+wit-bindgen                = { workspace = true }

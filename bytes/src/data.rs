@@ -22,14 +22,6 @@ impl Data {
     }
 }
 
-impl From<Vec<u8>> for Data {
-    fn from(value: Vec<u8>) -> Self {
-        Self {
-            data: Location::Inline { buffer: value },
-        }
-    }
-}
-
 impl From<crate::wit::momento::bytes::bytes::Data> for Data {
     fn from(value: crate::wit::momento::bytes::bytes::Data) -> Self {
         match value {
@@ -38,6 +30,44 @@ impl From<crate::wit::momento::bytes::bytes::Data> for Data {
             },
             crate::wit::momento::bytes::bytes::Data::Buffer(resource) => Self {
                 data: Location::OnHost { resource },
+            },
+        }
+    }
+}
+
+impl From<Vec<u8>> for Data {
+    fn from(value: Vec<u8>) -> Self {
+        Self {
+            data: Location::Inline { buffer: value },
+        }
+    }
+}
+
+impl From<&[u8]> for Data {
+    fn from(value: &[u8]) -> Self {
+        Self {
+            data: Location::Inline {
+                buffer: value.to_vec(),
+            },
+        }
+    }
+}
+
+impl From<String> for Data {
+    fn from(value: String) -> Self {
+        Self {
+            data: Location::Inline {
+                buffer: value.into_bytes(),
+            },
+        }
+    }
+}
+
+impl From<&str> for Data {
+    fn from(value: &str) -> Self {
+        Self {
+            data: Location::Inline {
+                buffer: value.as_bytes().to_vec(),
             },
         }
     }

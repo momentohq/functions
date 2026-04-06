@@ -1,0 +1,15 @@
+[package]
+name = "momento-functions-aws-auth"
+description = "Host interfaces for AWS authentication"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+thiserror   = { workspace = true }
+wit-bindgen = { workspace = true }

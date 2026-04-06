@@ -6,6 +6,7 @@ members = [
     "aws-s3",
     "bytes",
     "cache",
+    "cache-list",
     "guest-spawn",
     "guest-web",
     "log",

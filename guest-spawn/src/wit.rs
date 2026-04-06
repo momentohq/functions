@@ -1,8 +1,7 @@
 wit_bindgen::generate!({
     world: "momento:spawn-function/spawn-function",
     path: [
-        concat!(env!("OUT_DIR"), "/wit/host"),
-        concat!(env!("OUT_DIR"), "/wit/guest"),
+        "wit",
     ],
     with: {
         "momento:bytes/bytes@1.0.0": momento_functions_bytes::wit::momento::bytes::bytes,

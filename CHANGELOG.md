@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/momentohq/functions/compare/v0.15.1...v0.16.0) (2026-04-06)
+
+
+### Features
+
+* remove duplicated wit directories. add new v2 crates: scalar cache, aws auth + s3, spawn ([#53](https://github.com/momentohq/functions/issues/53)) ([a885e43](https://github.com/momentohq/functions/commit/a885e43bbe011fc5c83aa630f761824da37d31c6))
+
 ## [0.15.1](https://github.com/momentohq/functions/compare/v0.15.0...v0.15.1) (2026-03-23)
 
 

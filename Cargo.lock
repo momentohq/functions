@@ -265,6 +265,7 @@ version = "0.16.1"
 dependencies = [
  "base64",
  "momento-functions-aws-auth",
+ "momento-functions-bytes",
  "serde",
  "serde_json",
  "thiserror",

@@ -2,6 +2,7 @@ package momento:aws-ddb@1.0.0;
 
 interface aws-ddb {
     use momento:aws-auth/aws-auth@1.0.0.{credentials-provider};
+    use momento:bytes/bytes@1.0.0.{data};
 
     variant ddb-error {
         /// The request was not authorized.
@@ -63,7 +64,7 @@ interface aws-ddb {
         ///   "name": { "S": "arthur" },
         ///   "friends": { "SS": ["bob", "alice"] }
         /// }
-        json(string),
+        json(data),
     }
 
     record put-item-request {
@@ -100,5 +101,6 @@ interface aws-ddb {
 
 world imports {
     import momento:aws-auth/aws-auth@1.0.0;
+    import momento:bytes/bytes@1.0.0;
     import aws-ddb;
 }

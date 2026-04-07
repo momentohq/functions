@@ -12,6 +12,7 @@ categories.workspace = true
 
 [dependencies]
 momento-functions-aws-auth = { workspace = true }
+momento-functions-bytes    = { workspace = true }
 
 base64                     = { workspace = true }
 serde                      = { workspace = true }

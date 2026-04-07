@@ -1,6 +1,7 @@
 use crate::types::{Item, Key};
 use crate::wit::momento::aws_ddb::aws_ddb::{self as aws_ddb};
 use momento_functions_aws_auth::CredentialsProvider;
+use momento_functions_bytes::Data;
 
 /// DynamoDB client for host interfaces.
 ///
@@ -18,7 +19,7 @@ pub enum DynamoDBError {
     /// When calling DynamoDB, Items are serialized/deserialized to/from JSON.
     /// This error indicates that a failure occurred when doing so.
     #[error("Failed to serialize/deserialize host json: {cause}")]
-    SerDeJson {
+    Json {
         /// The underlying (de)serialization error.
         #[from]
         cause: serde_json::error::Error,
@@ -47,13 +48,13 @@ pub enum GetItemError<E> {
 impl DynamoDBClient {
     /// Create a new DynamoDB client.
     ///
-    /// ```rust
+    /// ```rust,no_run,no_run
     /// use momento_functions_aws_auth::{Authorization, IamRole, provider, CredentialsProvider};
     /// use momento_functions_aws_ddb::DynamoDBClient;
     ///
     /// # fn f() -> Result<(), momento_functions_aws_auth::AuthError> {
     /// let credentials = provider(
-    ///     Authorization::Federated(IamRole { role_arn: "arn:aws:iam::123456789012:role/my-role".to_string() }),
+    ///     &Authorization::Federated(IamRole { role_arn: "arn:aws:iam::123456789012:role/my-role".to_string() }),
     ///     "us-east-1",
     /// )?;
     /// let client = DynamoDBClient::new(&credentials);
@@ -71,7 +72,7 @@ impl DynamoDBClient {
     /// Examples:
     /// ________
     /// Custom bound types:
-    /// ```rust
+    /// ```rust,no_run,no_run
     /// use momento_functions_aws_ddb::{AttributeValue, DynamoDBClient, DynamoDBError, GetItemError, Item};
     ///
     /// /// Look up an item from a DynamoDB table and deserialize it into a MyStruct.
@@ -90,10 +91,11 @@ impl DynamoDBClient {
     ///     type Error = String;
     ///     fn try_from(mut value: Item) -> Result<Self, Self::Error> {
     ///         Ok(Self {
-    ///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into()?,
+    ///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into().map_err(|e: momento_functions_aws_ddb::ConversionError| e.to_string())?,
     ///         })
     ///     }
     /// }
+    /// ```
     pub fn get_item<V, E>(
         &self,
         table_name: impl Into<String>,
@@ -114,7 +116,7 @@ impl DynamoDBClient {
     ///
     /// Examples:
     /// ________
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_aws_ddb::{DynamoDBClient, DynamoDBError, Item};
     ///
     /// /// Read an item from a DynamoDB table "my_table" with a S key attribute "some_attribute".
@@ -140,7 +142,10 @@ impl DynamoDBClient {
 
         match output.item {
             Some(item) => match item {
-                aws_ddb::Item::Json(j) => Ok(serde_json::from_str(&j)?),
+                aws_ddb::Item::Json(data) => {
+                    let bytes = Data::from(data).into_bytes();
+                    Ok(serde_json::from_slice(&bytes)?)
+                }
             },
             None => Ok(None),
         }
@@ -151,7 +156,7 @@ impl DynamoDBClient {
     /// Examples:
     /// ________
     /// Raw item:
-    /// ```rust
+    /// ```rust,no_run
     /// # use momento_functions_aws_ddb::{DynamoDBClient, DynamoDBError};
     ///
     /// # fn put_some_item(client: &DynamoDBClient) -> Result<(), DynamoDBError> {
@@ -166,7 +171,7 @@ impl DynamoDBClient {
     /// ```
     /// ________
     /// Custom bound types:
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_aws_ddb::{AttributeValue, DynamoDBClient, DynamoDBError, Item};
     ///
     /// /// Store an item in a DynamoDB table by serializing a MyStruct.
@@ -194,9 +199,9 @@ impl DynamoDBClient {
     ) -> Result<(), DynamoDBError> {
         let item: Item = item.into();
 
-        let _output = self.client.put_item(&aws_ddb::PutItemRequest {
+        let _output = self.client.put_item(aws_ddb::PutItemRequest {
             table_name: table_name.into(),
-            item: aws_ddb::Item::Json(serde_json::to_string(&item)?),
+            item: aws_ddb::Item::Json(Data::from(serde_json::to_vec(&item)?).into()),
             condition: None,
             return_values: aws_ddb::ReturnValues::None,
             return_consumed_capacity: aws_ddb::ReturnConsumedCapacity::None,

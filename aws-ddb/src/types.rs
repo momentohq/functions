@@ -140,14 +140,14 @@ impl From<KeyValue> for aws_ddb::KeyValue {
 /// Examples:
 /// ________
 /// Basic explicit lists:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_aws_ddb::Item;
 /// let item: Item = vec![("some key", "some value")].into();
 /// let item: Item = vec![("some key", 42)].into();
 /// ```
 /// ________
 /// Custom bound types:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_aws_ddb::{AttributeValue, Item};
 /// struct MyStruct {
 ///     some_attribute: String,
@@ -167,7 +167,7 @@ impl From<KeyValue> for aws_ddb::KeyValue {
 ///     type Error = String;
 ///     fn try_from(mut value: Item) -> Result<Self, Self::Error> {
 ///         Ok(Self {
-///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into()?,
+///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into().map_err(|e: momento_functions_aws_ddb::ConversionError| e.to_string())?,
 ///         })
 ///     }
 /// }

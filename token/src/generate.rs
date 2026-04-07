@@ -16,7 +16,7 @@ pub struct GenerateDisposableTokenResponse {
     pub api_key: String,
     /// The endpoint to be used when calling Momento with this token.
     pub endpoint: String,
-    /// How long the token is valid for, in epoch seconds.
+    /// How long the token is valid until, in epoch seconds.
     pub valid_until: u64,
 }
 

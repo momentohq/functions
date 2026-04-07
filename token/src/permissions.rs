@@ -344,9 +344,9 @@ impl TopicPermissions {
     pub fn write_only() -> Self {
         Self {
             role: TopicRole::TopicWriteOnly,
-            all_caches: None,
+            all_caches: Some(()),
             cache_selector: None,
-            all_topics: None,
+            all_topics: Some(()),
             topic_selector: None,
         }
     }

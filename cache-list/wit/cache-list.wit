@@ -1,0 +1,156 @@
+package momento:cache-list@1.0.0;
+
+interface cache-list {
+    use momento:bytes/bytes@1.0.0.{data};
+
+    variant error {
+        internal-error,
+        request-cancelled,
+        invalid-argument(string),
+        timeout,
+        permission-denied(string),
+        limit-exceeded(string),
+        failed-precondition(string),
+        not-found(string),
+    }
+
+    record pop-found {
+        value: data,
+        list-length: u32,
+    }
+
+    record list-range {
+        begin-index: u32,
+        count: u32,
+    }
+
+    record list-ranges {
+        ranges: list<list-range>,
+    }
+
+    variant pop-response {
+        found(pop-found),
+        missing,
+    }
+
+    variant erase-range {
+        all,
+        ranges(list-ranges),
+    }
+
+    variant erase-response {
+        /// Length of list after erasing
+        found(u32),
+        missing,
+    }
+
+    variant remove-response {
+        /// Length of list after erasing
+        found(u32),
+        missing,
+    }
+
+    variant remove-range {
+        all-elements-with-value(data),
+    }
+
+    variant start-index {
+        unbounded,
+        inclusive(s32),
+    }
+
+    variant end-index {
+        unbounded,
+        exclusive(s32),
+    }
+
+    variant fetch-response {
+        found(list<data>),
+        missing,
+    }
+
+    variant length-response {
+        /// Length of list
+        found(u32),
+        missing,
+    }
+
+    variant retain-response {
+        /// Length of list after the operation is completed
+        found(u32),
+        missing,
+    }
+
+    list-push-front: func(
+        list-name: data,
+        value: data,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool,
+        truncate-back-to-size: u32
+    ) -> result<u32, error>;
+
+    list-push-back: func(
+        list-name: data,
+        value: data,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool,
+        truncate-front-to-size: u32
+    ) -> result<u32, error>;
+
+    list-pop-front: func(
+        list-name: data
+    ) -> result<pop-response, error>;
+
+    list-pop-back: func(
+        list-name: data
+    ) -> result<pop-response, error>;
+
+    list-erase: func(
+        list-name: data,
+        range: erase-range
+    ) -> result<erase-response, error>;
+
+    list-remove: func(
+        list-name: data,
+        range: remove-range
+    ) -> result<remove-response, error>;
+
+    list-fetch: func(
+        list-name: data,
+        start: start-index,
+        end: end-index
+    ) -> result<fetch-response, error>;
+
+    list-length: func(
+        list-name: data
+    ) -> result<length-response, error>;
+
+    list-concatenate-front: func(
+        list-name: data,
+        values: list<data>,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool,
+        truncate-back-to-size: u32
+    ) -> result<u32, error>;
+
+    list-concatenate-back: func(
+        list-name: data,
+        values: list<data>,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool,
+        truncate-front-to-size: u32
+    ) -> result<u32, error>;
+
+    list-retain: func(
+        list-name: data,
+        start: start-index,
+        end: end-index,
+        ttl-milliseconds: u64,
+        refresh-ttl: bool
+    ) -> result<retain-response, error>;
+}
+
+world imports {
+    import momento:bytes/bytes@1.0.0;
+    import cache-list;
+}

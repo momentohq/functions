@@ -23,8 +23,8 @@ use crate::response::IntoWebResponse;
 /// You may also implement [IntoWebResponse] for your own types.
 ///
 /// **Raw Bytes Input:**
-/// ```rust
-/// use std::error::Error;///
+/// ```rust,no_run
+/// use std::error::Error;
 ///
 /// use momento_functions::WebResponse;
 ///
@@ -35,7 +35,7 @@ use crate::response::IntoWebResponse;
 /// ```
 ///
 /// **Typed JSON Input:**
-/// ```rust
+/// ```rust,no_run
 /// use std::error::Error;
 /// use momento_functions::WebResponse;
 /// use momento_functions_host::encoding::Json;

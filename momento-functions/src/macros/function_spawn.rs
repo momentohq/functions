@@ -3,7 +3,7 @@
 /// You can use raw bytes, or json-marshalled types.
 ///
 /// **Raw:**
-/// ```rust
+/// ```rust,no_run
 /// momento_functions::spawn!(triggered);
 /// fn triggered(payload: Vec<u8>) {
 ///     ()
@@ -11,15 +11,14 @@
 /// ```
 ///
 /// **Typed JSON:**
-/// ```rust
+/// ```rust,no_run
 /// #[derive(serde::Deserialize)]
 /// struct Request {
 ///     name: String,
 /// }
 ///
 /// momento_functions::spawn!(greet, Request);
-/// fn greet(request: Request) -> () {
-///     Ok(())
+/// fn greet(request: Request) {
 /// }
 /// ```
 #[macro_export]

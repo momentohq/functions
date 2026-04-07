@@ -114,7 +114,8 @@ impl Permissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = Permissions::new()
     ///     .with_cache(CachePermissions::read_write())
     ///     .with_topic(TopicPermissions::read_only());
@@ -229,7 +230,8 @@ impl CachePermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = CachePermissions::new()
     ///     .with_role(CacheRole::CacheReadWrite)
     ///     .with_cache("my-cache")
@@ -251,7 +253,8 @@ impl CachePermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = CachePermissions::read_write()
     ///     .with_cache("my-cache");
     /// ```
@@ -271,7 +274,8 @@ impl CachePermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = CachePermissions::read_only()
     ///     .with_cache("my-cache");
     /// ```
@@ -291,7 +295,8 @@ impl CachePermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = CachePermissions::write_only()
     ///     .with_cache("my-cache");
     /// ```
@@ -390,7 +395,8 @@ impl TopicPermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = TopicPermissions::new()
     ///     .with_role(TopicRole::TopicReadWrite)
     ///     .with_cache("my-cache")
@@ -412,7 +418,8 @@ impl TopicPermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = TopicPermissions::read_write()
     ///     .with_topic("notifications");
     /// ```
@@ -432,7 +439,8 @@ impl TopicPermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = TopicPermissions::read_only()
     ///     .with_topic("notifications");
     /// ```
@@ -452,7 +460,8 @@ impl TopicPermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = TopicPermissions::write_only()
     ///     .with_topic("notifications");
     /// ```
@@ -551,7 +560,8 @@ impl FunctionPermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = FunctionPermissions::new()
     ///     .with_role(FunctionRole::FunctionInvoke)
     ///     .with_cache("my-cache")
@@ -573,7 +583,8 @@ impl FunctionPermissions {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// use momento_functions_host::token::*;
     /// let perms = FunctionPermissions::invoke()
     ///     .with_function("my-function");
     /// ```

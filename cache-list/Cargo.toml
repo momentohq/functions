@@ -1,0 +1,20 @@
+[package]
+name = "momento-functions-cache-list"
+description = "Host interfaces for Cache list interactions"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+momento-functions-bytes              = { workspace = true }
+momento-functions-collections-common = { workspace = true }
+
+serde                   = { workspace = true }
+serde_json              = { workspace = true }
+thiserror               = { workspace = true }
+wit-bindgen             = { workspace = true }

@@ -45,17 +45,17 @@ pub enum CacheGetError<E: ExtractError> {
 /// Examples:
 /// ________
 /// Bytes:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::CacheGetError;
 ///
-/// # fn f() -> Result<(), CacheGetError<Vec<u8>>> {
+/// # fn f() -> Result<(), CacheGetError<std::convert::Infallible>> {
 /// let value: Option<Vec<u8>> = cache::get("my_key")?;
 /// # Ok(()) }
 /// ```
 /// ________
 /// Json:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::CacheGetError;
 /// use momento_functions_host::encoding::Json;
@@ -65,7 +65,7 @@ pub enum CacheGetError<E: ExtractError> {
 ///   message: String
 /// }
 ///
-/// # fn f() -> Result<(), CacheGetError<Json<MyStruct>>> {
+/// # fn f() -> Result<(), CacheGetError<serde_json::Error>> {
 /// let value: Option<Json<MyStruct>> = cache::get("my_key")?;
 /// # Ok(()) }
 /// ```
@@ -83,12 +83,12 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError
 /// Examples:
 /// ________
 /// Bytes:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::CacheSetError;
 /// # use std::time::Duration;
 ///
-/// # fn f() -> Result<(), CacheSetError<&'static str>> {
+/// # fn f() -> Result<(), CacheSetError<std::convert::Infallible>> {
 /// cache::set(
 ///     "my_key",
 ///     b"hello".to_vec(),
@@ -98,7 +98,7 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError
 /// ```
 /// ________
 /// Json:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::CacheSetError;
 /// # use std::time::Duration;
@@ -109,7 +109,7 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError
 ///    hello: String
 /// }
 ///
-/// # fn f() -> Result<(), CacheSetError<Json<MyStruct>>> {
+/// # fn f() -> Result<(), CacheSetError<serde_json::Error>> {
 /// cache::set(
 ///     "my_key",
 ///     Json(MyStruct { hello: "hello".to_string() }),
@@ -164,12 +164,12 @@ pub enum CacheDeleteError {
 /// Examples:
 /// ________
 /// Set only if absent:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::{CacheSetIfError, SetIfCondition, SetIfResult};
 /// # use std::time::Duration;
 ///
-/// # fn f() -> Result<(), CacheSetIfError<&'static str>> {
+/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
 /// let result: SetIfResult = cache::set_if(
 ///     "my_key",
 ///     b"hello".to_vec(),
@@ -188,12 +188,12 @@ pub enum CacheDeleteError {
 /// ```
 /// ________
 /// Set only if present:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::{CacheSetIfError, SetIfCondition, SetIfResult};
 /// # use std::time::Duration;
 ///
-/// # fn f() -> Result<(), CacheSetIfError<&'static str>> {
+/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
 /// let result = cache::set_if(
 ///     "my_key",
 ///     b"updated".to_vec(),
@@ -204,12 +204,12 @@ pub enum CacheDeleteError {
 /// ```
 /// ________
 /// Set only if equal to a specific value:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::{CacheSetIfError, SetIfCondition, SetIfResult};
 /// # use std::time::Duration;
 ///
-/// # fn f() -> Result<(), CacheSetIfError<&'static str>> {
+/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
 /// let result = cache::set_if(
 ///     "my_key",
 ///     b"new_value".to_vec(),
@@ -243,7 +243,7 @@ pub fn set_if<E: Encode>(
 ///
 /// Examples:
 /// ________
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::CacheDeleteError;
 ///
@@ -298,11 +298,11 @@ pub struct GetWithHashValue<T> {
 ///
 /// Examples:
 /// ________
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::{CacheGetWithHashError, GetWithHashValue};
 ///
-/// # fn f() -> Result<(), CacheGetWithHashError<Vec<u8>>> {
+/// # fn f() -> Result<(), CacheGetWithHashError<std::convert::Infallible>> {
 /// let result: Option<GetWithHashValue<Vec<u8>>> = cache::get_with_hash("my_key")?;
 /// if let Some(entry) = result {
 ///     log::info!("Value: {:?}, Hash: {:?}", entry.value, entry.hash);
@@ -334,12 +334,12 @@ pub fn get_with_hash<T: Extract>(
 /// Examples:
 /// ________
 /// Update only if the hash matches (value hasn't changed):
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::{CacheSetIfHashError, SetIfHashCondition, SetIfHashResult};
 /// # use std::time::Duration;
 ///
-/// # fn f() -> Result<(), CacheSetIfHashError<&'static str>> {
+/// # fn f() -> Result<(), CacheSetIfHashError<std::convert::Infallible>> {
 /// // First, get the current value and its hash
 /// // let entry = cache::get_with_hash("my_key")?;
 /// let previous_hash = vec![1, 2, 3]; // Hash from a previous get_with_hash call
@@ -491,12 +491,12 @@ pub enum CacheListPushFrontError<E: EncodeError> {
 /// # Examples:
 /// ________
 /// Append a value to the back of a list:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::CacheListPushBackError;
+/// # use momento_functions_host::cache::{CacheListPushBackError, CollectionTtl};
 /// # use std::time::Duration;
 ///
-/// # fn f() -> Result<(), CacheListPushBackError<&'static str>> {
+/// # fn f() -> Result<(), CacheListPushBackError<std::convert::Infallible>> {
 ///
 /// let list_length = cache::list_push_back(
 ///     "my_list",
@@ -538,12 +538,12 @@ pub fn list_push_back<E: Encode>(
 /// # Examples:
 /// ________
 /// Append a value to the back of a list:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::cache;
 /// # use momento_functions_host::cache::{CacheListPushFrontError, CollectionTtl};
 /// # use std::time::Duration;
 ///
-/// # fn f() -> Result<(), CacheListPushFrontError<&'static str>> {
+/// # fn f() -> Result<(), CacheListPushFrontError<std::convert::Infallible>> {
 ///
 /// let list_length = cache::list_push_front(
 ///     "my_list",

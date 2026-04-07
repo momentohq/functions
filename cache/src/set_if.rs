@@ -2,7 +2,7 @@ use momento_functions_bytes::Data;
 
 use crate::wit::momento::cache_scalar::cache_scalar;
 
-/// Conditionally set a value in the cache
+/// Conditionally set a value in the cache.
 pub enum SetIfCondition {
     /// Set the value only if the key is already present in the cache.
     Present,
@@ -46,4 +46,61 @@ impl From<cache_scalar::SetIfResult> for ConditionalSetResult<()> {
             cache_scalar::SetIfResult::NotStored => Self::NotStored,
         }
     }
+}
+
+/// Condition for set-if-hash operations (comparing hashes instead of full values).
+pub enum SetIfHashCondition {
+    /// Set only if the key exists and the hash of its current value does not match the provided hash.
+    PresentAndNotHashEqual(Data),
+    /// Set only if the key exists and the hash of its current value matches the provided hash.
+    PresentAndHashEqual(Data),
+    /// Set if the key does not exist, or if it exists and the hash of its current value matches the provided hash.
+    AbsentOrHashEqual(Data),
+    /// Set if the key does not exist, or if it exists and the hash of its current value does not match the provided hash.
+    AbsentOrNotHashEqual(Data),
+    /// Unconditionally set the value.
+    Unconditional,
+}
+
+impl From<SetIfHashCondition> for cache_scalar::SetIfHashCondition {
+    fn from(value: SetIfHashCondition) -> Self {
+        match value {
+            SetIfHashCondition::PresentAndNotHashEqual(data) => {
+                Self::PresentAndNotHashEqual(data.into())
+            }
+            SetIfHashCondition::PresentAndHashEqual(data) => Self::PresentAndHashEqual(data.into()),
+            SetIfHashCondition::AbsentOrHashEqual(data) => Self::AbsentOrHashEqual(data.into()),
+            SetIfHashCondition::AbsentOrNotHashEqual(data) => {
+                Self::AbsentOrNotHashEqual(data.into())
+            }
+            SetIfHashCondition::Unconditional => Self::Unconditional,
+        }
+    }
+}
+
+/// Result of a set-if-hash operation.
+pub enum SetIfHashResult {
+    /// The value was stored. Contains the hash computed on the newly stored value.
+    Stored(Vec<u8>),
+    /// The value was not stored because the condition was not met.
+    NotStored,
+}
+
+impl From<cache_scalar::SetIfHashResult> for SetIfHashResult {
+    fn from(value: cache_scalar::SetIfHashResult) -> Self {
+        match value {
+            cache_scalar::SetIfHashResult::Stored(data) => {
+                Self::Stored(Data::from(data).into_bytes())
+            }
+            cache_scalar::SetIfHashResult::NotStored => Self::NotStored,
+        }
+    }
+}
+
+/// A value retrieved from the cache along with its hash.
+pub struct GetWithHashValue<T> {
+    /// The extracted value.
+    pub value: T,
+    /// The hash of the value.
+    pub hash: Vec<u8>,
 }

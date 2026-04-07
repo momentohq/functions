@@ -1,0 +1,11 @@
+[package]
+name = "momento-functions-collections-common"
+description = "Common types for Momento Cache collection interfaces"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true

@@ -55,7 +55,7 @@ pub enum GetItemError<E> {
 impl DynamoDBClient {
     /// Create a new DynamoDB client.
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// # use momento_functions_host::aws::ddb::DynamoDBClient;
     /// # use momento_functions_host::build_environment_aws_credentials;
@@ -81,7 +81,7 @@ impl DynamoDBClient {
     /// Examples:
     /// ________
     /// Custom bound types:
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_host::aws::ddb::{AttributeValue, DynamoDBClient, DynamoDBError, GetItemError, Item};
     ///
     /// /// Look up an item from a DynamoDB table and deserialize it into a MyStruct.
@@ -100,10 +100,11 @@ impl DynamoDBClient {
     ///     type Error = String;
     ///     fn try_from(mut value: Item) -> Result<Self, Self::Error> {
     ///         Ok(Self {
-    ///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into()?,
+    ///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into().map_err(|e: momento_functions_host::aws::ddb::ConversionError| e.to_string())?,
     ///         })
     ///     }
     /// }
+    /// ```
     pub fn get_item<V, E>(
         &self,
         table_name: impl Into<String>,
@@ -124,7 +125,7 @@ impl DynamoDBClient {
     ///
     /// Examples:
     /// ________
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_host::aws::ddb::{DynamoDBClient, DynamoDBError, Item};
     ///
     /// /// Read an item from a DynamoDB table "my_table" with a S key attribute "some_attribute".
@@ -175,7 +176,7 @@ impl DynamoDBClient {
     /// Examples:
     /// Raw item:
     /// ________
-    /// ```rust
+    /// ```rust,no_run
     /// # use momento_functions_host::aws::ddb::{DynamoDBClient, DynamoDBError};
     ///
     /// # fn put_some_item(client: &DynamoDBClient) -> Result<(), DynamoDBError> {
@@ -190,7 +191,7 @@ impl DynamoDBClient {
     /// ```
     /// ________
     /// Custom bound types:
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_host::aws::ddb::{AttributeValue, DynamoDBClient, DynamoDBError, Item};
     ///
     /// /// Store an item in a DynamoDB table by serializing a MyStruct.
@@ -365,14 +366,14 @@ impl From<KeyValue> for host::aws_ddb::KeyValue {
 /// Examples:
 /// ________
 /// Basic explicit lists:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_host::aws::ddb::Item;
 /// let item: Item = vec![("some key", "some value")].into();
 /// let item: Item = vec![("some key", 42)].into();
 /// ```
 /// ________
 /// Custom bound types:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_host::aws::ddb::{AttributeValue, Item};
 /// struct MyStruct {
 ///     some_attribute: String,
@@ -392,7 +393,7 @@ impl From<KeyValue> for host::aws_ddb::KeyValue {
 ///     type Error = String;
 ///     fn try_from(mut value: Item) -> Result<Self, Self::Error> {
 ///         Ok(Self {
-///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into()?,
+///             some_attribute: value.attributes.remove("some_attribute").ok_or("missing some_attribute")?.try_into().map_err(|e: momento_functions_host::aws::ddb::ConversionError| e.to_string())?,
 ///         })
 ///     }
 /// }

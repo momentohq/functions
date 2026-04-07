@@ -22,13 +22,13 @@ use momento_functions_wit::host::momento::host::aws_auth::AuthError;
 /// **Examples:**
 /// ________
 /// Read from the normal environment variables
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::build_environment_aws_credentials;
 /// let credentials = build_environment_aws_credentials!();
 /// ```
 /// ________
 /// Read from foo_AWS_ACCESS_KEY_ID and foo_AWS_SECRET_ACCESS_KEY
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::build_environment_aws_credentials;
 /// let credentials = build_environment_aws_credentials!("foo_");
 /// ```
@@ -87,7 +87,10 @@ impl AwsCredentialsProvider {
     /// # // Not run because docs.rs does not run a Momento WIT host environment, of course!
     /// # // But it does at least compile, to make sure the example is correct.
     /// # use momento_functions_host::{build_environment_aws_credentials, aws::auth::{AwsCredentialsProvider}};
+    /// # fn f() -> Result<(), momento_functions_wit::host::momento::host::aws_auth::AuthError> {
     /// let provider = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
+    /// # Ok(())
+    /// # }
     /// ```
     /// -----
     /// ### Federated IAM role
@@ -102,7 +105,7 @@ impl AwsCredentialsProvider {
     /// let provider = AwsCredentialsProvider::new(
     ///     "us-east-1",
     ///     Credentials::Federated {
-    ///         role_arn: "your-full-ARN-path-to-your-role"
+    ///         role_arn: "your-full-ARN-path-to-your-role".to_string()
     ///     }
     /// );
     /// ```

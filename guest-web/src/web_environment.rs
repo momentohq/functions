@@ -44,19 +44,11 @@ static GET_HTTP_PATH_ONCE: LazyLock<String> =
 /// environment variables normally accessible via `std::env::var()`, or interfaces across the WASI
 /// bridge. For best practices/avoiding variable typos, a constructor has been provided:
 /// ```rust,no_run
-/// use momento_functions_host::web_extensions::FunctionEnvironment;
-/// let function_environment = FunctionEnvironment::get_function_environment();
+/// use momento_functions_guest_web::WebEnvironment;
+/// let env = WebEnvironment::load();
 ///
-/// // Examples
-/// log::info!("Cache: {}", function_environment::cache());
-/// log::info!("Invocation ID: {}", function_environment::invocation_id());
-///
-/// let joined_query_parameters = function_environment::query_parameters()
-///     .iter()
-///     .map(|(k, v)| format!("{k}={v}"))
-///     .collect::<Vec<_>>()
-///     .join(", ");
-/// log::info!("Called with query parameters: {joined_query_parameters}");
+/// let cache = env.cache_name();
+/// let invocation_id = env.invocation_id();
 /// ```
 pub struct WebEnvironment {
     cache_name: String,
@@ -73,52 +65,40 @@ impl WebEnvironment {
     }
 
     /// The name of the cache this function belongs to. You can also access this via:
-    /// ```rust
-    /// let cache_name = std:env::var("__CACHE_NAME").unwrap_or_default();
+    /// ```rust,no_run
+    /// let cache_name = std::env::var("__CACHE_NAME").unwrap_or_default();
     /// ```
     pub fn cache_name(&self) -> &String {
         &self.cache_name
     }
 
     /// The name of the function. You can also access this via:
-    /// ```rust
-    /// let function_name = std:env::var("__FUNCTION_NAME").unwrap_or_default();
+    /// ```rust,no_run
+    /// let function_name = std::env::var("__FUNCTION_NAME").unwrap_or_default();
     /// ```
     pub fn function_name(&self) -> &String {
         &self.function_name
     }
 
     /// The ID of the currently executing invocation. You can also access this via:
-    /// ```rust
-    /// let invocation_id = std:env::var("__INVOCATION_ID").unwrap_or_default();
+    /// ```rust,no_run
+    /// let invocation_id = std::env::var("__INVOCATION_ID").unwrap_or_default();
     /// ```
     pub fn invocation_id(&self) -> &String {
         &self.invocation_id
     }
 
-    /// A map of the headers used in the request when the function was invoked. You can also access this via:
-    /// ```rust,no_run
-    /// use momento_functions_host::web_extensions::headers;
-    /// let headers = headers();
-    /// ```
+    /// A map of the headers used in the request when the function was invoked.
     pub fn headers(&self) -> &HashMap<String, String> {
         headers()
     }
 
-    /// A map of the query parameters used in the request when the function was invoked. You can also access this via:
-    /// ```rust,no_run
-    /// use momento_functions_host::web_extensions::query_parameters;
-    /// let query_parameters = query_parameters();
-    /// ```
+    /// A map of the query parameters used in the request when the function was invoked.
     pub fn query_parameters(&self) -> &HashMap<String, String> {
         query_parameters()
     }
 
-    /// The metadata within the caller's token, if present. You can also access this via:
-    /// ```rust,no_run
-    /// use momento_functions_host::web_extensions::token_metadata;
-    /// let token_metadata = token_metadata();
-    /// ```
+    /// The metadata within the caller's token, if present.
     pub fn token_metadata(&self) -> &Option<String> {
         token_metadata()
     }

@@ -27,6 +27,6 @@ jobs:
         cargo clippy --version
         cargo clippy --all-targets --all-features -- -D warnings -W clippy::unwrap_used
 
-    # Need to work something out here for the `wasm32-wasip2` target
-    # - name: Run tests
-    #   run: cargo test --verbose
+    - name: Doc tests
+      # The default target is our wasm target, which won't compile
+      run: cargo test --doc --target x86_64-unknown-linux-gnu

@@ -35,13 +35,12 @@ where
 impl LambdaClient {
     /// Create a new Lambda client.
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// # use momento_functions_host::aws::lambda::LambdaClient;
-    /// # use momento_functions_host::build_environment_aws_credentials;    /// #
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    ///
-    /// fn f() -> Result<(), AuthError> {
+    /// # use momento_functions_host::build_environment_aws_credentials;
+    /// # use momento_functions_wit::host::momento::host::aws_auth::AuthError;
+    /// # fn f() -> Result<(), AuthError> {
     /// let client = LambdaClient::new(
     ///     &AwsCredentialsProvider::new(
     ///         "us-east-1",
@@ -63,11 +62,11 @@ impl LambdaClient {
     ///
     /// Examples:
     /// ________
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_host::aws::lambda::{InvokeError, LambdaClient};
     /// use momento_functions_host::encoding::Json;
     ///
-    /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<&str>> {
+    /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<std::convert::Infallible>> {
     /// // With a payload
     /// client.invoke(
     ///     "my_lambda_function",
@@ -95,7 +94,7 @@ impl LambdaClient {
     /// ```
     /// ________
     /// With json-encoded payloads
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_host::aws::lambda::{InvokeError, LambdaClient};
     /// use momento_functions_host::encoding::Json;
     ///
@@ -108,19 +107,21 @@ impl LambdaClient {
     ///     message: String
     /// }
     ///
-    /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<Json<MyStruct>>> {
+    /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<serde_json::Error>> {
     /// // Just a request payload, encoded as JSON
     /// client.invoke(
     ///     "my_lambda_function",
     ///     Json(MyStruct { hello: "hello".to_string() }),
     /// )?;
+    /// # Ok(())}
     ///
+    /// # fn g(client: &LambdaClient) -> Result<(), InvokeError<serde_json::Error>> {
     /// // Request and response payload, both encoded as JSON
-    /// let Json(reply): Json<Reply> = client.invoke(
+    /// let mut response = client.invoke(
     ///     "my_lambda_function",
     ///     Json(MyStruct { hello: "hello".to_string() }),
-    /// )?
-    /// .extract()?;
+    /// )?;
+    /// let Json(reply): Json<Reply> = response.extract().expect("failed to extract reply");
     ///
     /// let message = reply.message;
     /// # Ok(())}

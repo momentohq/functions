@@ -40,7 +40,7 @@ impl From<token::GenerateDisposableTokenResponse> for GenerateDisposableTokenRes
 /// # Examples
 /// ________
 /// Generate a token with read-write cache access:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_token::{
 ///     generate_disposable_token, GenerateDisposableTokenError,
 ///     Permissions, CachePermissions,
@@ -52,7 +52,7 @@ impl From<token::GenerateDisposableTokenResponse> for GenerateDisposableTokenRes
 ///     Permissions::new().with_cache(CachePermissions::read_write()),
 ///     None,
 /// )?;
-/// log::info!("Token: {}, Endpoint: {}", response.api_key, response.endpoint);
+/// println!("Token: {}, Endpoint: {}", response.api_key, response.endpoint);
 /// # Ok(()) }
 /// ```
 pub fn generate_disposable_token(

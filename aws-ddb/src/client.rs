@@ -48,7 +48,7 @@ pub enum GetItemError<E> {
 impl DynamoDBClient {
     /// Create a new DynamoDB client.
     ///
-    /// ```rust,no_run,no_run
+    /// ```rust,no_run
     /// use momento_functions_aws_auth::{Authorization, IamRole, provider, CredentialsProvider};
     /// use momento_functions_aws_ddb::DynamoDBClient;
     ///
@@ -72,7 +72,7 @@ impl DynamoDBClient {
     /// Examples:
     /// ________
     /// Custom bound types:
-    /// ```rust,no_run,no_run
+    /// ```rust,no_run
     /// use momento_functions_aws_ddb::{AttributeValue, DynamoDBClient, DynamoDBError, GetItemError, Item};
     ///
     /// /// Look up an item from a DynamoDB table and deserialize it into a MyStruct.

@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "aws-auth",
+    "aws-ddb",
     "aws-s3",
     "bytes",
     "cache",

@@ -18,11 +18,9 @@ pub enum FunctionSpawnError<E: EncodeError> {
 
 /// Spawn a fire-and-forget Function.
 ///
-/// ```rust
-/// # use momento_functions_host::spawn::{self, FunctionSpawnError};
-///
-/// # fn f() -> Result<(), FunctionSpawnError<&'static str>> {
-/// spawn("my_function", b"a payload for my_function".as_slice())?;
+/// ```rust,no_run
+/// # fn f() -> Result<(), Box<dyn std::error::Error>> {
+/// momento_functions_host::spawn("my_function", b"a payload for my_function".as_slice())?;
 /// # Ok(()) }
 /// ```
 pub fn spawn<E: Encode>(

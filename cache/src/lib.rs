@@ -11,6 +11,11 @@ mod set_if;
 #[doc(hidden)]
 pub mod wit;
 
-pub use cache_interfaces::{get, set, set_if};
-pub use errors::{CacheGetError, CacheSetError, CacheSetIfError};
-pub use set_if::{ConditionalSetResult, SetIfCondition};
+pub use cache_interfaces::{delete, get, get_with_hash, set, set_if, set_if_hash};
+pub use errors::{
+    CacheDeleteError, CacheGetError, CacheGetWithHashError, CacheSetError, CacheSetIfError,
+    CacheSetIfHashError,
+};
+pub use set_if::{
+    ConditionalSetResult, GetWithHashValue, SetIfCondition, SetIfHashCondition, SetIfHashResult,
+};

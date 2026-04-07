@@ -43,3 +43,39 @@ pub enum CacheSetIfError<E: EncodeError> {
     #[error(transparent)]
     CacheError(#[from] cache_scalar::Error),
 }
+
+/// An error occurred when deleting a value from the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheDeleteError {
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_scalar::Error),
+}
+
+/// An error occurred when getting a value with its hash from the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheGetWithHashError<E: ExtractError> {
+    /// The value could not be extracted with the provided implementation.
+    #[error("Failed to extract value.")]
+    ExtractFailed {
+        /// The underlying error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_scalar::Error),
+}
+
+/// An error occurred when conditionally setting a value based on hash comparison.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheSetIfHashError<E: EncodeError> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_scalar::Error),
+}

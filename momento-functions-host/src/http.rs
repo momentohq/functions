@@ -24,11 +24,11 @@ impl Response {
     ///
     /// This consumes the payload; if you call it again, it will return an Error.
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use momento_functions_host::http;
     /// use momento_functions_host::encoding::Json;
     ///
-    /// # fn f() -> Result<(), serde_json::error::Error> {
+    /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
     /// #[derive(serde::Serialize)]
     /// struct Request {
     ///     message: String
@@ -63,7 +63,7 @@ pub enum HttpGetError {
 
 /// HTTP GET
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::http;
 ///
 /// # fn f() -> Result<(), http::HttpGetError> {
@@ -113,10 +113,10 @@ pub enum HttpPutError<E: EncodeError> {
 
 /// HTTP PUT
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::http;
 /// # use momento_functions_host::http::HttpPutError;
-/// # fn f() -> Result<(), HttpPutError<&'static str>> {
+/// # fn f() -> Result<(), HttpPutError<std::convert::Infallible>> {
 /// http::put("https://gomomento.com", [], b"hello".as_ref())?;
 /// # Ok(())}
 ///
@@ -126,7 +126,7 @@ pub enum HttpPutError<E: EncodeError> {
 ///     message: String
 /// }
 ///
-/// # fn g() -> Result<(), HttpPutError<Json<MyStruct>>> {
+/// # fn g() -> Result<(), HttpPutError<serde_json::Error>> {
 /// http::put(
 ///     "https://gomomento.com",
 ///     [
@@ -177,11 +177,11 @@ pub enum HttpPostError<E: EncodeError> {
 
 /// HTTP POST
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::http;
 /// # use momento_functions_host::http::HttpPostError;
 ///
-/// # fn f() -> Result<(), HttpPostError<&'static str>> {
+/// # fn f() -> Result<(), HttpPostError<std::convert::Infallible>> {
 /// http::post("https://gomomento.com", [], b"hello".as_ref())?;
 /// # Ok(())}
 ///
@@ -195,7 +195,7 @@ pub enum HttpPostError<E: EncodeError> {
 /// struct Reply {
 ///     message: String
 /// }
-/// # fn g() -> Result<(), HttpPostError<Json<Request>>> {
+/// # fn g() -> Result<(), Box<dyn std::error::Error>> {
 ///
 /// let Json(reply): Json<Reply> = http::post(
 ///     "https://gomomento.com",
@@ -242,11 +242,11 @@ pub enum HttpDeleteError {
 
 /// HTTP DELETE
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::http;
 /// # use momento_functions_host::http::HttpDeleteError;
 ///
-/// fn f() -> Result<(), HttpDeleteError> {
+/// # fn f() -> Result<(), HttpDeleteError> {
 /// http::delete("https://gomomento.com", [])?;
 /// http::delete(
 ///     "https://gomomento.com",
@@ -305,7 +305,7 @@ impl aws::auth::Credentials {
 
 /// HTTP GET with AWS SigV4 signing provided by the host
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::http;
 /// use momento_functions_host::build_environment_aws_credentials;
 ///
@@ -354,7 +354,7 @@ pub fn get_aws_sigv4(
 
 /// HTTP PUT with AWS SigV4 signing provided by the host
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::http;
 /// use momento_functions_host::encoding::Json;
 /// use momento_functions_host::build_environment_aws_credentials;
@@ -363,7 +363,7 @@ pub fn get_aws_sigv4(
 /// struct MyStruct {
 ///     message: String
 /// }
-/// # fn f() -> Result<(), http::HttpPutError<Json<MyStruct>>> {
+/// # fn f() -> Result<(), http::HttpPutError<serde_json::Error>> {
 ///
 /// http::put_aws_sigv4(
 ///     "https://gomomento.com",
@@ -407,7 +407,7 @@ pub fn put_aws_sigv4<E: Encode>(
 
 /// HTTP POST with AWS SigV4 signing provided by the host
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::http;
 /// use momento_functions_host::encoding::Json;
 /// use momento_functions_host::build_environment_aws_credentials;
@@ -416,7 +416,7 @@ pub fn put_aws_sigv4<E: Encode>(
 /// struct MyStruct {
 ///     message: String
 /// }
-/// # fn f() -> Result<(), http::HttpPostError<Json<MyStruct>>> {
+/// # fn f() -> Result<(), http::HttpPostError<serde_json::Error>> {
 ///
 /// http::post_aws_sigv4(
 ///     "https://gomomento.com",
@@ -460,7 +460,7 @@ pub fn post_aws_sigv4<E: Encode>(
 
 /// HTTP DELETE with AWS SigV4 signing provided by the host
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::http;
 /// use momento_functions_host::build_environment_aws_credentials;
 ///

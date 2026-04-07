@@ -25,7 +25,7 @@ pub struct S3Client {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_host::aws::s3::ObjectOptions;
 ///
 /// // Set only content-type
@@ -97,13 +97,12 @@ where
 impl S3Client {
     /// Create a new S3 client.
     ///
-    /// ```rust,no-run
+    /// ```rust,no_run
     /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// # use momento_functions_host::aws::s3::S3Client;
-    /// # use momento_functions_host::build_environment_aws_credentials;    /// #
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    ///
-    /// fn f() -> Result<(), AuthError> {
+    /// # use momento_functions_host::build_environment_aws_credentials;
+    /// # use momento_functions_wit::host::momento::host::aws_auth::AuthError;
+    /// # fn f() -> Result<(), AuthError> {
     /// let client = S3Client::new(
     ///     &AwsCredentialsProvider::new(
     ///         "us-east-1",
@@ -128,11 +127,11 @@ impl S3Client {
     ///
     /// Examples:
     /// ________
-    /// ```rust,no-run
+    /// ```rust,no_run
     /// use momento_functions_host::aws::s3::{S3PutError, S3Client};
     /// use momento_functions_host::encoding::Json;
     ///
-    /// # fn f(client: &S3Client) -> Result<(), S3PutError<&str>> {
+    /// # fn f(client: &S3Client) -> Result<(), S3PutError<std::convert::Infallible>> {
     /// // With a payload
     /// client.put(
     ///     "my-bucket",
@@ -144,13 +143,13 @@ impl S3Client {
     /// client.put(
     ///     "my-bucket",
     ///     "foo",
-    ///     b"bar",
+    ///     b"bar".to_vec(),
     /// )?;
     /// # Ok(())}
     /// ```
     /// ________
     /// With json-encoded payloads
-    /// ```rust,no-run
+    /// ```rust,no_run
     /// use momento_functions_host::aws::s3::{S3PutError, S3Client};
     /// use momento_functions_host::encoding::Json;
     ///
@@ -159,7 +158,7 @@ impl S3Client {
     ///     hello: String
     /// }
     ///
-    /// # fn f(client: &S3Client) -> Result<(), S3PutError<Json<MyStruct>>> {
+    /// # fn f(client: &S3Client) -> Result<(), S3PutError<serde_json::Error>> {
     ///
     /// // Just a request payload, encoded as JSON
     /// client.put(
@@ -185,14 +184,14 @@ impl S3Client {
     ///
     /// # Examples
     ///
-    /// ```rust,no-run
+    /// ```rust,no_run
     /// use momento_functions_host::aws::s3::{S3PutError, S3Client, ObjectOptions};
     ///
-    /// # fn f(client: &S3Client) -> Result<(), S3PutError<&str>> {
+    /// # fn f(client: &S3Client) -> Result<(), S3PutError<std::convert::Infallible>> {
     /// client.put_with_options(
     ///     "my-bucket",
     ///     "my-key",
-    ///     b"compressed data",
+    ///     b"compressed data".to_vec(),
     ///     ObjectOptions {
     ///         content_type: Some("application/octet-stream".to_string()),
     ///         content_encoding: Some("gzip".to_string()),
@@ -238,12 +237,12 @@ impl S3Client {
     ///
     /// Examples:
     /// ________
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_host::aws::s3::{S3GetError, S3Client};
     /// use momento_functions_host::encoding::Json;
     ///
-    /// # fn f(client: &S3Client) -> Result<(), S3GetError<&str>> {
-    /// let my_value: Option<String> = client.get(
+    /// # fn f(client: &S3Client) -> Result<(), S3GetError<std::convert::Infallible>> {
+    /// let my_value: Option<Vec<u8>> = client.get(
     ///     "my-bucket",
     ///     "foo",
     /// )?;
@@ -256,16 +255,16 @@ impl S3Client {
     /// ```
     /// ________
     /// With json-encoded payloads
-    /// ```rust
+    /// ```rust,no_run
     /// use momento_functions_host::aws::s3::{S3GetError, S3Client};
     /// use momento_functions_host::encoding::Json;
     ///
-    /// #[derive(serde::Serialize)]
+    /// #[derive(serde::Deserialize)]
     /// struct MyStruct {
     ///     hello: String
     /// }
     ///
-    /// # fn f(client: &S3Client) -> Result<(), S3GetError<Json<MyStruct>>> {
+    /// # fn f(client: &S3Client) -> Result<(), S3GetError<serde_json::Error>> {
     ///
     /// let maybe_struct: Option<MyStruct> = match client.get(
     ///     "my-bucket",
@@ -298,10 +297,10 @@ impl S3Client {
     ///
     /// # Examples
     ///
-    /// ```rust,no-run
+    /// ```rust,no_run
     /// use momento_functions_host::aws::s3::{S3GetError, S3Client, ObjectOptions};
     ///
-    /// # fn f(client: &S3Client) -> Result<(), S3GetError<&str>> {
+    /// # fn f(client: &S3Client) -> Result<(), S3GetError<std::convert::Infallible>> {
     /// let result = client.get_with_options::<Vec<u8>>(
     ///     "my-bucket",
     ///     "my-key",

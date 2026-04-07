@@ -6,6 +6,8 @@ members = [
     "aws-s3",
     "bytes",
     "cache",
+    "cache-list",
+    "collections-common",
     "guest-spawn",
     "guest-web",
     "log",
@@ -32,6 +34,7 @@ lto = true
 momento-functions-aws-auth    = { version = "0", path = "aws-auth" }
 momento-functions-aws-s3     = { version = "0", path = "aws-s3" }
 momento-functions-bytes      = { version = "0", path = "bytes" }
+momento-functions-collections-common = { version = "0", path = "collections-common" }
 momento-functions-guest-spawn = { version = "0", path = "guest-spawn" }
 momento-functions-host   = { version = "0", path = "momento-functions-host" }
 momento-functions-log   = { version = "0", path = "momento-functions-log" }

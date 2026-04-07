@@ -190,7 +190,7 @@ impl RedisClusterClient {
 
     /// Execute a single redis command
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use momento_functions_host::redis::{RedisClusterClient, Command};
     /// # use momento_functions_wit::host::momento::host;
     /// # fn f(client: &RedisClusterClient) -> Result<(), host::redis::RedisError> {
@@ -222,7 +222,7 @@ impl RedisClient {
     /// way to set up a production environment. If you want to use a private cache
     /// for a real application, please get in touch with support@momentohq.com
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use momento_functions_host::redis::RedisClient;
     /// # fn f() {
     /// let client = RedisClient::new("valkey://my.valkey.instance:6379");
@@ -321,12 +321,12 @@ impl RedisClient {
 
     /// Execute redis commands
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use momento_functions_host::redis::{RedisClient, Command};
     /// # use momento_functions_wit::host::momento::host;
     /// # fn f(client: &RedisClient) -> Result<(), host::redis::RedisError> {
     /// let response_stream = client.pipe(vec![
-    ///     Command::builder().set("my_key", "my_value")?.build(),
+    ///     Command::builder().set("my_key", "my_value").unwrap().build(),
     ///     Command::builder().get("my_key").build(),
     ///     Command::builder()
     ///         .any("FT.SEARCH")

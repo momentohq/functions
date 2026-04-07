@@ -54,7 +54,13 @@ pub enum CacheListEraseError {
 
 /// An error occurred when removing elements from a list in the cache.
 #[derive(thiserror::Error, Debug)]
-pub enum CacheListRemoveError {
+pub enum CacheListRemoveError<E: EncodeError> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E,
+    },
     /// An error occurred when calling the host cache function.
     #[error(transparent)]
     CacheError(#[from] cache_list::Error),

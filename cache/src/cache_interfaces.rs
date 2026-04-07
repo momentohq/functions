@@ -20,7 +20,7 @@ use crate::{
 /// Examples:
 /// ________
 /// Bytes:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_cache::CacheGetError;
 /// use momento_functions_cache::get;
 /// # use std::convert::Infallible;
@@ -31,7 +31,7 @@ use crate::{
 /// ```
 /// ________
 /// Json:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_cache::CacheGetError;
 /// use momento_functions_cache::get;
 /// use momento_functions_bytes::encoding::Json;
@@ -59,7 +59,7 @@ pub fn get<T: Extract>(key: impl Into<Data>) -> Result<Option<T>, CacheGetError<
 /// Examples:
 /// ________
 /// Bytes:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_cache::set;
 /// use momento_functions_cache::CacheSetError;
 /// # use std::time::Duration;
@@ -74,7 +74,7 @@ pub fn get<T: Extract>(key: impl Into<Data>) -> Result<Option<T>, CacheGetError<
 /// ```
 /// ________
 /// Json:
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_cache::set;
 /// use momento_functions_cache::CacheSetError;
 /// # use std::time::Duration;
@@ -114,7 +114,7 @@ pub fn set<E: Encode>(
 /// Examples:
 /// ________
 /// Set only if absent:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_cache::set_if;
 /// # use momento_functions_cache::{ConditionalSetResult, CacheSetIfError, SetIfCondition};
 /// # use std::time::Duration;
@@ -138,7 +138,7 @@ pub fn set<E: Encode>(
 /// ```
 /// ________
 /// Set only if present:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_cache::set_if;
 /// # use momento_functions_cache::{CacheSetIfError, SetIfCondition, ConditionalSetResult};
 /// # use std::time::Duration;
@@ -154,7 +154,7 @@ pub fn set<E: Encode>(
 /// ```
 /// ________
 /// Set only if equal to a specific value:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_cache::set_if;
 /// # use momento_functions_cache::{CacheSetIfError, SetIfCondition, ConditionalSetResult};
 /// # use std::time::Duration;
@@ -194,7 +194,7 @@ pub fn set_if<E: Encode>(
 ///
 /// Examples:
 /// ________
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_cache::CacheDeleteError;
 /// use momento_functions_cache::delete;
 ///
@@ -213,14 +213,14 @@ pub fn delete(key: impl Into<Data>) -> Result<(), CacheDeleteError> {
 ///
 /// Examples:
 /// ________
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_cache::CacheGetWithHashError;
 /// use momento_functions_cache::{get_with_hash, GetWithHashValue};
 ///
 /// # fn f() -> Result<(), CacheGetWithHashError<std::convert::Infallible>> {
 /// let result: Option<GetWithHashValue<Vec<u8>>> = get_with_hash("my_key")?;
 /// if let Some(entry) = result {
-///     log::info!("Value: {:?}, Hash: {:?}", entry.value, entry.hash);
+///     // use entry.value and entry.hash
 /// }
 /// # Ok(()) }
 /// ```
@@ -249,7 +249,7 @@ pub fn get_with_hash<T: Extract>(
 /// Examples:
 /// ________
 /// Update only if the hash matches (value hasn't changed):
-/// ```rust
+/// ```rust,no_run
 /// use momento_functions_cache::{CacheSetIfHashError, SetIfHashCondition, SetIfHashResult};
 /// use momento_functions_cache::set_if_hash;
 /// # use std::time::Duration;
@@ -267,10 +267,10 @@ pub fn get_with_hash<T: Extract>(
 /// )?;
 /// match result {
 ///     SetIfHashResult::Stored(new_hash) => {
-///         log::info!("Value updated, new hash: {:?}", new_hash);
+///         // value updated, use new_hash
 ///     }
 ///     SetIfHashResult::NotStored => {
-///         log::info!("Value was modified by another process");
+///         // value was modified by another process
 ///     }
 /// }
 /// # Ok(()) }

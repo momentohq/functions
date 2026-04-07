@@ -11,7 +11,8 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-momento-functions-bytes = { workspace = true }
+momento-functions-bytes              = { workspace = true }
+momento-functions-collections-common = { workspace = true }
 
 serde                   = { workspace = true }
 serde_json              = { workspace = true }

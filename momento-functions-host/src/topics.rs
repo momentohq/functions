@@ -24,31 +24,31 @@ pub enum PublishError<E: EncodeError> {
 /// Examples:
 /// _________
 /// String:
-/// ```rust
-/// # use momento_functions_host::topics;///
+/// ```rust,no_run
+/// # use momento_functions_host::topics;
 /// #
 /// use momento_functions_host::topics::PublishError;
 ///
-/// fn f() -> Result<(), PublishError<&'static str>> {
+/// # fn f() -> Result<(), PublishError<std::convert::Infallible>> {
 /// topics::publish("my_topic", "hello there")?;
 /// # Ok(()) }
 /// ```
 /// ________
 /// Bytes:
-/// ```rust
-/// # use momento_functions_host::topics;///
+/// ```rust,no_run
+/// # use momento_functions_host::topics;
 /// #
 /// use momento_functions_host::topics::PublishError;
 ///
-/// fn f() -> Result<(), PublishError<&'static str>> {
+/// # fn f() -> Result<(), PublishError<std::convert::Infallible>> {
 /// topics::publish("my_topic", b"hello there".to_vec())?;
 /// # Ok(()) }
 /// ```
 /// ________
 /// Json:
-/// ```rust
+/// ```rust,no_run
 /// # use momento_functions_host::topics;
-/// use momento_functions_host::encoding::Json;///
+/// use momento_functions_host::encoding::Json;
 ///
 /// use momento_functions_host::topics::PublishError;
 ///
@@ -57,7 +57,7 @@ pub enum PublishError<E: EncodeError> {
 ///    hello: String
 /// }
 ///
-/// # fn f() -> Result<(), PublishError<Json<MyStruct>>> {
+/// # fn f() -> Result<(), PublishError<serde_json::Error>> {
 /// topics::publish("my_topic", Json(MyStruct{ hello: "hello".to_string() }))?;
 /// # Ok(()) }
 /// ```

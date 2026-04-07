@@ -1,5 +1,3 @@
-use momento_functions_bytes::Data;
-
 use crate::wit::momento::cache_list::cache_list;
 
 /// Result of a pop operation on a list.
@@ -64,20 +62,6 @@ impl From<cache_list::EraseResponse> for EraseResult {
         match value {
             cache_list::EraseResponse::Found(len) => Self::Found(len),
             cache_list::EraseResponse::Missing => Self::Missing,
-        }
-    }
-}
-
-/// Specifies which elements to remove from a list.
-pub enum RemoveRange {
-    /// Remove all elements with the specified value.
-    AllElementsWithValue(Data),
-}
-
-impl From<RemoveRange> for cache_list::RemoveRange {
-    fn from(value: RemoveRange) -> Self {
-        match value {
-            RemoveRange::AllElementsWithValue(data) => Self::AllElementsWithValue(data.into()),
         }
     }
 }

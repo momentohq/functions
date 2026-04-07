@@ -1,3 +1,5 @@
+//! Common types shared across Momento Cache collection interfaces.
+
 use std::time::Duration;
 
 /// Represents the desired behavior for managing the TTL on collections.
@@ -72,4 +74,9 @@ impl CollectionTtl {
     pub fn refresh(&self) -> bool {
         self.refresh
     }
+}
+
+/// Saturate a Duration to u64 milliseconds, clamping at u64::MAX.
+pub fn saturate_ttl(ttl: Duration) -> u64 {
+    ttl.as_millis().min(u64::MAX as u128) as u64
 }

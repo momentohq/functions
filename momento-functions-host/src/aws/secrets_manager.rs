@@ -74,7 +74,7 @@ impl SecretsManagerClient {
     /// Create a new Secrets Manager client.
     ///
     ///
-    /// ```rust,no-run
+    /// ```rust,no_run
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// use momento_functions_host::aws::secrets_manager::SecretsManagerClient;
     /// use momento_functions_host::build_environment_aws_credentials;
@@ -119,6 +119,7 @@ impl SecretsManagerClient {
     ///
     /// Simple fetch:
     /// ```rust,no_run
+    /// use std::time::Duration;
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
     /// use momento_functions_host::build_environment_aws_credentials;
@@ -133,6 +134,7 @@ impl SecretsManagerClient {
     ///
     /// Fetch with version:
     /// ```rust,no_run
+    /// use std::time::Duration;
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
     /// use momento_functions_host::build_environment_aws_credentials;
@@ -158,21 +160,22 @@ impl SecretsManagerClient {
     /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
     /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
     /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
-    /// let client = SecretsManagerClient::new(&credentials, Duration::from_secs(300));
-    /// let allowed_staleness = Duration::from_mins(5);
+    /// let client = SecretsManagerClient::new(&credentials);
+    /// let allowed_staleness = Duration::from_secs(300);
     /// let secret: Vec<u8> = client.get_secret_value(GetSecretValueRequest::new("my-secret"), allowed_staleness)?;
     /// # Ok(())
     /// # }
-    ///
     /// ```
     /// Fetch with a JSON struct:
     /// ```rust,no_run
-    ///  use std::time::Duration;
-    ///  use momento_functions_host::aws::auth::AwsCredentialsProvider;
-    ///  use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
-    ///  use momento_functions_host::build_environment_aws_credentials;
-    ///  use momento_functions_wit::host::momento::host::aws_auth::AuthError;
+    /// use std::time::Duration;
+    /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
+    /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
+    /// use momento_functions_host::encoding::Json;
+    /// use momento_functions_host::build_environment_aws_credentials;
+    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
     /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
+    /// #[derive(serde::Deserialize)]
     /// struct MyPersistedSecret {
     ///     pub key: String,
     ///     pub nonce: String,
@@ -180,9 +183,9 @@ impl SecretsManagerClient {
     /// }
     ///
     /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
-    /// let client = SecretsManagerClient::new(&credentials, Duration::from_secs(300));
-    /// let allowed_staleness = Duration::from_mins(5);
-    /// let secret: MyPersistedSecret = client.get_secret_value(GetSecretValueRequest::new("my-secret"), allowed_staleness)?;
+    /// let client = SecretsManagerClient::new(&credentials);
+    /// let allowed_staleness = Duration::from_secs(300);
+    /// let Json(secret): Json<MyPersistedSecret> = client.get_secret_value(GetSecretValueRequest::new("my-secret"), allowed_staleness)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -211,7 +214,7 @@ impl SecretsManagerClient {
     /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
     /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
     /// let client = SecretsManagerClient::new(&credentials);
-    /// let secret: Vec<u8> = client.get_secret_latest_value(GetSecretValueRequest::new("my-secret"))?;
+    /// let secret: Vec<u8> = client.get_latest_secret_value(GetSecretValueRequest::new("my-secret"))?;
     /// # Ok(())
     /// # }
     /// ```

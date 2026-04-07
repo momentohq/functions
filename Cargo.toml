@@ -12,6 +12,7 @@ members = [
     "momento-functions",
     "momento-functions-host",
     "momento-functions-wit",
+    "token",
 ]
 
 [workspace.package]

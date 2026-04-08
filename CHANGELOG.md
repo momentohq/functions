@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0](https://github.com/momentohq/functions/compare/v0.16.1...v0.17.0) (2026-04-08)
+
+
+### Features
+
+* add support for cache-list in v2, complete v2 scalar support. fix our doc tests and add a pr check to ensure we catch more of these failures. ([#67](https://github.com/momentohq/functions/issues/67)) ([ba7c833](https://github.com/momentohq/functions/commit/ba7c833ae536f58754c6fdf0be29385b8e11e23d))
+* add v2 support for token ([#69](https://github.com/momentohq/functions/issues/69)) ([b7a0349](https://github.com/momentohq/functions/commit/b7a034974b26de50b184b8e3c672ecee6af87c64))
+
 ## [0.16.1](https://github.com/momentohq/functions/compare/v0.16.0...v0.16.1) (2026-04-06)
 
 

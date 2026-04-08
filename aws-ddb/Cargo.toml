@@ -1,0 +1,21 @@
+[package]
+name = "momento-functions-aws-ddb"
+description = "Host interfaces for AWS DynamoDB interactions"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+momento-functions-aws-auth = { workspace = true }
+momento-functions-bytes    = { workspace = true }
+
+base64                     = { workspace = true }
+serde                      = { workspace = true }
+serde_json                 = { workspace = true }
+thiserror                  = { workspace = true }
+wit-bindgen                = { workspace = true }

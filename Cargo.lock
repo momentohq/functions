@@ -260,6 +260,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "momento-functions-aws-ddb"
+version = "0.16.1"
+dependencies = [
+ "base64",
+ "momento-functions-aws-auth",
+ "momento-functions-bytes",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "wit-bindgen",
+]
+
+[[package]]
 name = "momento-functions-aws-s3"
 version = "0.16.1"
 dependencies = [

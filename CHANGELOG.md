@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/momentohq/functions/compare/v0.17.0...v0.18.0) (2026-04-08)
+
+
+### Features
+
+* add v2 support for aws-ddb ([#68](https://github.com/momentohq/functions/issues/68)) ([a1e0ede](https://github.com/momentohq/functions/commit/a1e0edebbe75ab9eff7d245fdb872490ece57122))
+
 ## [0.17.0](https://github.com/momentohq/functions/compare/v0.16.1...v0.17.0) (2026-04-08)
 
 

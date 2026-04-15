@@ -12,6 +12,9 @@ pub use cache_scalar::SetIfCondition;
 pub use cache_scalar::SetIfHashCondition;
 pub use cache_scalar::SetIfHashResult;
 pub use cache_scalar::SetIfResult;
+use momento_functions_wit::host::momento::functions::cache_list::{
+    EndIndex, FetchResponse, StartIndex,
+};
 
 /// An error occurred when setting a value in the cache.
 #[derive(thiserror::Error, Debug)]
@@ -572,4 +575,52 @@ pub fn list_push_front<E: Encode>(
         truncate_back_to_size.unwrap_or(0),
     )
     .map_err(Into::into)
+}
+
+/// An error occurred when fetching a list from the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheListFetchError<E: EncodeError> {
+    /// The provided value could not be encoded.
+    #[error("Failed to encode value.")]
+    EncodeFailed {
+        /// The underlying encoding error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_list::Error),
+}
+
+/// Gets a list from the cache with optional slices.
+///
+/// # Arguments
+/// * `list_name` - The name of the list.
+/// * `start_index` - The starting inclusive element of the list to fetch. Default is 0.
+/// * `end_index` - The ending exclusive element of the list to fetch. Default is up to and including end of list.
+///
+/// # Examples
+/// ________
+/// Bytes:
+/// ```rust,no_run
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::CacheListFetchError;
+///
+/// # fn f() -> Result<(), CacheListFetchError<std::convert::Infallible>> {
+/// let value: Option<Vec<Vec<u8>>> = cache::list_fetch("my_list", None, None)?;
+/// # Ok(()) }
+/// ```
+pub fn list_fetch<E: Encode>(
+    list_name: impl AsRef<[u8]>,
+    start_index: Option<i32>,
+    end_index: Option<i32>,
+) -> Result<Option<Vec<Vec<u8>>>, CacheListFetchError<E::Error>> {
+    let start_index = start_index.map_or(StartIndex::Unbounded, StartIndex::Inclusive);
+    let end_index = end_index.map_or(EndIndex::Unbounded, EndIndex::Exclusive);
+
+    Ok(
+        match cache_list::list_fetch(list_name.as_ref(), start_index, end_index)? {
+            FetchResponse::Found(list) => Some(list),
+            FetchResponse::Missing => None,
+        },
+    )
 }

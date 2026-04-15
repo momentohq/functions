@@ -12,6 +12,7 @@ pub use cache_scalar::SetIfCondition;
 pub use cache_scalar::SetIfHashCondition;
 pub use cache_scalar::SetIfHashResult;
 pub use cache_scalar::SetIfResult;
+use momento_functions_wit::host::momento::functions::cache_list::FetchResponse;
 
 /// An error occurred when setting a value in the cache.
 #[derive(thiserror::Error, Debug)]
@@ -572,4 +573,109 @@ pub fn list_push_front<E: Encode>(
         truncate_back_to_size.unwrap_or(0),
     )
     .map_err(Into::into)
+}
+
+/// The start bound for a list fetch or retain operation.
+pub enum StartIndex {
+    /// Start from the beginning of the list.
+    Unbounded,
+    /// Start from the given index (inclusive). Negative values count from the end.
+    Inclusive(i32),
+}
+
+impl From<StartIndex> for cache_list::StartIndex {
+    fn from(value: StartIndex) -> Self {
+        match value {
+            StartIndex::Unbounded => Self::Unbounded,
+            StartIndex::Inclusive(i) => Self::Inclusive(i),
+        }
+    }
+}
+
+/// The end bound for a list fetch or retain operation.
+pub enum EndIndex {
+    /// Extend to the end of the list.
+    Unbounded,
+    /// End at the given index (exclusive). Negative values count from the end.
+    Exclusive(i32),
+}
+
+impl From<EndIndex> for cache_list::EndIndex {
+    fn from(value: EndIndex) -> Self {
+        match value {
+            EndIndex::Unbounded => Self::Unbounded,
+            EndIndex::Exclusive(i) => Self::Exclusive(i),
+        }
+    }
+}
+
+/// An error occurred when fetching a list from the cache.
+#[derive(thiserror::Error, Debug)]
+pub enum CacheListFetchError<E: ExtractError> {
+    /// The value could not be extracted with the provided implementation.
+    #[error("Failed to extract value.")]
+    ExtractFailed {
+        /// The underlying error.
+        cause: E,
+    },
+    /// An error occurred when calling the host cache function.
+    #[error(transparent)]
+    CacheError(#[from] cache_list::Error),
+}
+
+/// Gets a list from the cache with optional slices.
+///
+/// # Arguments
+/// * `list_name` - The name of the list.
+/// * `start_index` - The starting inclusive element of the list to fetch. Default is 0.
+/// * `end_index` - The ending exclusive element of the list to fetch. Default is up to and including end of list.
+///
+/// # Examples
+/// ________
+/// Bytes:
+/// ```rust,no_run
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::{CacheListFetchError, StartIndex, EndIndex};
+///
+/// # fn f() -> Result<(), CacheListFetchError<std::convert::Infallible>> {
+/// if let Some(iter) = cache::list_fetch::<Vec<u8>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded)? {
+///     let values: Vec<Vec<u8>> = iter.collect::<Result<_, _>>()?;
+/// }
+/// # Ok(()) }
+/// ```
+/// ________
+/// Json:
+/// ```rust,no_run
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::{CacheListFetchError, StartIndex, EndIndex};
+/// use momento_functions_host::encoding::Json;
+///
+/// #[derive(serde::Deserialize)]
+/// struct MyStruct {
+///     message: String,
+/// }
+///
+/// # fn f() -> Result<(), CacheListFetchError<serde_json::Error>> {
+/// if let Some(iter) = cache::list_fetch::<Json<MyStruct>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded)? {
+///     let values: Vec<Json<MyStruct>> = iter.collect::<Result<_, _>>()?;
+/// }
+/// # Ok(()) }
+/// ```
+#[allow(clippy::type_complexity)]
+pub fn list_fetch<T: Extract>(
+    list_name: impl AsRef<[u8]>,
+    start_index: StartIndex,
+    end_index: EndIndex,
+) -> Result<
+    Option<impl Iterator<Item = Result<T, CacheListFetchError<T::Error>>>>,
+    CacheListFetchError<T::Error>,
+> {
+    Ok(
+        match cache_list::list_fetch(list_name.as_ref(), start_index.into(), end_index.into())? {
+            FetchResponse::Found(items) => Some(items.into_iter().map(|item| {
+                T::extract(item).map_err(|e| CacheListFetchError::ExtractFailed { cause: e })
+            })),
+            FetchResponse::Missing => None,
+        },
+    )
 }

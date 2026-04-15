@@ -638,29 +638,42 @@ pub enum CacheListFetchError<E: ExtractError> {
 /// # use momento_functions_host::cache::{CacheListFetchError, StartIndex, EndIndex};
 ///
 /// # fn f() -> Result<(), CacheListFetchError<std::convert::Infallible>> {
-/// let value: Option<Vec<Vec<u8>>> = cache::list_fetch(
-///     "my_list",
-///     StartIndex::Inclusive(0),
-///     EndIndex::Exclusive(10)
-/// )?;
+/// if let Some(iter) = cache::list_fetch::<Vec<u8>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded)? {
+///     let values: Vec<Vec<u8>> = iter.collect::<Result<_, _>>()?;
+/// }
+/// # Ok(()) }
+/// ```
+/// ________
+/// Json:
+/// ```rust,no_run
+/// # use momento_functions_host::cache;
+/// # use momento_functions_host::cache::{CacheListFetchError, StartIndex, EndIndex};
+/// use momento_functions_host::encoding::Json;
+///
+/// #[derive(serde::Deserialize)]
+/// struct MyStruct {
+///     message: String,
+/// }
+///
+/// # fn f() -> Result<(), CacheListFetchError<serde_json::Error>> {
+/// if let Some(iter) = cache::list_fetch::<Json<MyStruct>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded)? {
+///     let values: Vec<Json<MyStruct>> = iter.collect::<Result<_, _>>()?;
+/// }
 /// # Ok(()) }
 /// ```
 pub fn list_fetch<T: Extract>(
     list_name: impl AsRef<[u8]>,
     start_index: StartIndex,
     end_index: EndIndex,
-) -> Result<Option<Vec<T>>, CacheListFetchError<T::Error>> {
+) -> Result<
+    Option<impl Iterator<Item = Result<T, CacheListFetchError<T::Error>>>>,
+    CacheListFetchError<T::Error>,
+> {
     Ok(
         match cache_list::list_fetch(list_name.as_ref(), start_index.into(), end_index.into())? {
-            FetchResponse::Found(items) => Some(
-                items
-                    .into_iter()
-                    .map(|item| {
-                        T::extract(item)
-                            .map_err(|e| CacheListFetchError::ExtractFailed { cause: e })
-                    })
-                    .collect::<Result<Vec<T>, _>>()?,
-            ),
+            FetchResponse::Found(items) => Some(items.into_iter().map(|item| {
+                T::extract(item).map_err(|e| CacheListFetchError::ExtractFailed { cause: e })
+            })),
             FetchResponse::Missing => None,
         },
     )

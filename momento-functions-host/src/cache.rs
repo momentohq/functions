@@ -661,6 +661,7 @@ pub enum CacheListFetchError<E: ExtractError> {
 /// }
 /// # Ok(()) }
 /// ```
+#[allow(clippy::type_complexity)]
 pub fn list_fetch<T: Extract>(
     list_name: impl AsRef<[u8]>,
     start_index: StartIndex,

@@ -635,7 +635,7 @@ pub enum CacheListFetchError<E: ExtractError> {
 /// Bytes:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::CacheListFetchError;
+/// # use momento_functions_host::cache::{CacheListFetchError, StartIndex, EndIndex};
 ///
 /// # fn f() -> Result<(), CacheListFetchError<std::convert::Infallible>> {
 /// let value: Option<Vec<Vec<u8>>> = cache::list_fetch(

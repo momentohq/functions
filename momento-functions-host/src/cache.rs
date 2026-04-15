@@ -12,9 +12,7 @@ pub use cache_scalar::SetIfCondition;
 pub use cache_scalar::SetIfHashCondition;
 pub use cache_scalar::SetIfHashResult;
 pub use cache_scalar::SetIfResult;
-use momento_functions_wit::host::momento::functions::cache_list::{
-    EndIndex, FetchResponse, StartIndex,
-};
+use momento_functions_wit::host::momento::functions::cache_list::FetchResponse;
 
 /// An error occurred when setting a value in the cache.
 #[derive(thiserror::Error, Debug)]
@@ -577,13 +575,47 @@ pub fn list_push_front<E: Encode>(
     .map_err(Into::into)
 }
 
+/// The start bound for a list fetch or retain operation.
+pub enum StartIndex {
+    /// Start from the beginning of the list.
+    Unbounded,
+    /// Start from the given index (inclusive). Negative values count from the end.
+    Inclusive(i32),
+}
+
+impl From<StartIndex> for cache_list::StartIndex {
+    fn from(value: StartIndex) -> Self {
+        match value {
+            StartIndex::Unbounded => Self::Unbounded,
+            StartIndex::Inclusive(i) => Self::Inclusive(i),
+        }
+    }
+}
+
+/// The end bound for a list fetch or retain operation.
+pub enum EndIndex {
+    /// Extend to the end of the list.
+    Unbounded,
+    /// End at the given index (exclusive). Negative values count from the end.
+    Exclusive(i32),
+}
+
+impl From<EndIndex> for cache_list::EndIndex {
+    fn from(value: EndIndex) -> Self {
+        match value {
+            EndIndex::Unbounded => Self::Unbounded,
+            EndIndex::Exclusive(i) => Self::Exclusive(i),
+        }
+    }
+}
+
 /// An error occurred when fetching a list from the cache.
 #[derive(thiserror::Error, Debug)]
-pub enum CacheListFetchError<E: EncodeError> {
-    /// The provided value could not be encoded.
-    #[error("Failed to encode value.")]
-    EncodeFailed {
-        /// The underlying encoding error.
+pub enum CacheListFetchError<E: ExtractError> {
+    /// The value could not be extracted with the provided implementation.
+    #[error("Failed to extract value.")]
+    ExtractFailed {
+        /// The underlying error.
         cause: E,
     },
     /// An error occurred when calling the host cache function.
@@ -606,20 +638,29 @@ pub enum CacheListFetchError<E: EncodeError> {
 /// # use momento_functions_host::cache::CacheListFetchError;
 ///
 /// # fn f() -> Result<(), CacheListFetchError<std::convert::Infallible>> {
-/// let value: Option<Vec<Vec<u8>>> = cache::list_fetch("my_list", None, None)?;
+/// let value: Option<Vec<Vec<u8>>> = cache::list_fetch(
+///     "my_list",
+///     StartIndex::Inclusive(0),
+///     EndIndex::Exclusive(10)
+/// )?;
 /// # Ok(()) }
 /// ```
-pub fn list_fetch<E: Encode>(
+pub fn list_fetch<T: Extract>(
     list_name: impl AsRef<[u8]>,
-    start_index: Option<i32>,
-    end_index: Option<i32>,
-) -> Result<Option<Vec<Vec<u8>>>, CacheListFetchError<E::Error>> {
-    let start_index = start_index.map_or(StartIndex::Unbounded, StartIndex::Inclusive);
-    let end_index = end_index.map_or(EndIndex::Unbounded, EndIndex::Exclusive);
-
+    start_index: StartIndex,
+    end_index: EndIndex,
+) -> Result<Option<Vec<T>>, CacheListFetchError<T::Error>> {
     Ok(
-        match cache_list::list_fetch(list_name.as_ref(), start_index, end_index)? {
-            FetchResponse::Found(list) => Some(list),
+        match cache_list::list_fetch(list_name.as_ref(), start_index.into(), end_index.into())? {
+            FetchResponse::Found(items) => Some(
+                items
+                    .into_iter()
+                    .map(|item| {
+                        T::extract(item)
+                            .map_err(|e| CacheListFetchError::ExtractFailed { cause: e })
+                    })
+                    .collect::<Result<Vec<T>, _>>()?,
+            ),
             FetchResponse::Missing => None,
         },
     )

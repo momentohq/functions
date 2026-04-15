@@ -15,6 +15,7 @@ members = [
     "momento-functions-host",
     "momento-functions-wit",
     "token",
+    "valkey",
 ]
 
 [workspace.package]
@@ -38,6 +39,7 @@ momento-functions-collections-common = { version = "0", path = "collections-comm
 momento-functions-guest-spawn = { version = "0", path = "guest-spawn" }
 momento-functions-host   = { version = "0", path = "momento-functions-host" }
 momento-functions-log   = { version = "0", path = "momento-functions-log" }
+momento-functions-valkey = { version = "0", path = "valkey" }
 momento-functions-wit   = { version = "0", path = "momento-functions-wit" }
 
 base64                  = { version = "0" }

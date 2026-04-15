@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/momentohq/functions/compare/v0.18.0...v0.19.0) (2026-04-15)
+
+
+### Features
+
+* add v1 list fetch ([#72](https://github.com/momentohq/functions/issues/72)) ([8f41825](https://github.com/momentohq/functions/commit/8f41825be2b48be33fb534b9498625a8cce4d4ab))
+
 ## [0.18.0](https://github.com/momentohq/functions/compare/v0.17.0...v0.18.0) (2026-04-08)
 
 

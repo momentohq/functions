@@ -14,6 +14,7 @@ members = [
     "momento-functions",
     "momento-functions-host",
     "momento-functions-wit",
+    "http",
     "token",
 ]
 

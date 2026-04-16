@@ -1,8 +1,12 @@
 use momento_functions_bytes::Data;
 use thiserror::Error;
 
-use crate::wit::momento::valkey::valkey::{
-    self, ClusterClient as WitClusterClient, Command as WitCommand, Value as WitValue,
+use crate::{
+    command::Command,
+    wit::momento::valkey::valkey::{
+        self, ClusterClient as WitClusterClient, Command as WitCommand,
+        ResponseStream as WitResponseStream, Value as WitValue,
+    },
 };
 
 /// An error returned by a Valkey command.
@@ -21,6 +25,39 @@ impl From<valkey::ValkeyError> for ValkeyError {
     }
 }
 
+/// A lazy stream of [`Value`]s from a bulk Valkey response.
+///
+/// Implements [`Iterator`] so values are pulled from the host one at a time.
+/// Collect into a `Vec` if you need all values at once:
+///
+/// ```rust,no_run
+/// use momento_functions_valkey::{get_managed_cluster_client, Command, Value, ValkeyError};
+///
+/// # fn f() -> Result<(), ValkeyError> {
+/// let client = get_managed_cluster_client("my-cluster");
+/// if let Value::Bulk(bulk) = client.command(Command::get("my_key"))? {
+///     let all: Vec<Value> = bulk.collect();
+/// }
+/// # Ok(()) }
+/// ```
+pub struct Bulk {
+    stream: WitResponseStream,
+}
+
+impl Bulk {
+    fn new(stream: WitResponseStream) -> Self {
+        Self { stream }
+    }
+}
+
+impl Iterator for Bulk {
+    type Item = Value;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.stream.next().map(wit_to_valkey_value)
+    }
+}
+
 /// A response value from a Valkey command.
 pub enum Value {
     /// A nil response from the server.
@@ -28,9 +65,10 @@ pub enum Value {
     /// An integer response.
     Int(i64),
     /// Arbitrary binary data.
-    Data(Vec<u8>),
-    /// A bulk response of nested values.
-    Bulk(Vec<Value>),
+    Data(Data),
+    /// A bulk response of nested values. Implements [`Iterator`] so values
+    /// are streamed from the host rather than loaded all at once.
+    Bulk(Bulk),
     /// An OK response.
     Ok,
     /// A short, non-binary string.
@@ -39,21 +77,15 @@ pub enum Value {
     SimpleError(String),
 }
 
-fn resolve_value(value: WitValue) -> Value {
+fn wit_to_valkey_value(value: WitValue) -> Value {
     match value {
         WitValue::Nil => Value::Nil,
         WitValue::Int(i) => Value::Int(i),
-        WitValue::Data(d) => Value::Data(Data::from(d).into_bytes()),
+        WitValue::Data(d) => Value::Data(Data::from(d)),
         WitValue::Ok => Value::Ok,
         WitValue::SimpleString(s) => Value::SimpleString(s),
         WitValue::SimpleError(s) => Value::SimpleError(s),
-        WitValue::Bulk(stream) => {
-            let mut items = Vec::new();
-            while let Some(v) = stream.next() {
-                items.push(resolve_value(v));
-            }
-            Value::Bulk(items)
-        }
+        WitValue::Bulk(stream) => Value::Bulk(Bulk::new(stream)),
     }
 }
 
@@ -71,51 +103,56 @@ impl ClusterClient {
 
     /// Execute a command against the cluster.
     ///
-    /// # Arguments
-    /// * `command` - The command name (e.g. `"SET"`, `"GET"`).
-    /// * `arguments` - The command arguments.
+    /// Accepts a [`Command`] (via convenience constructors or [`Command::builder`]),
+    /// or a bare `&str` / `String` for no-argument commands.
     ///
     /// # Examples
     /// ________
-    /// Set a key:
+    /// Using a convenience constructor:
     /// ```rust,no_run
-    /// use momento_functions_valkey::{get_managed_cluster_client, ValkeyError};
+    /// use momento_functions_valkey::{get_managed_cluster_client, Command, ValkeyError};
     ///
     /// # fn f() -> Result<(), ValkeyError> {
     /// let client = get_managed_cluster_client("my-cluster");
-    /// let response = client.command("SET", vec!["my_key".into(), b"my_value".to_vec().into()])?;
+    /// client.command(Command::set("my_key", "my_value"))?;
     /// # Ok(()) }
     /// ```
-    pub fn command(
-        &self,
-        command: impl Into<String>,
-        arguments: Vec<Data>,
-    ) -> Result<Value, ValkeyError> {
+    /// ________
+    /// Using the builder for custom commands:
+    /// ```rust,no_run
+    /// use momento_functions_valkey::{get_managed_cluster_client, Command, ValkeyError};
+    ///
+    /// # fn f() -> Result<(), ValkeyError> {
+    /// let client = get_managed_cluster_client("my-cluster");
+    /// let mut cmd = Command::builder("ZADD");
+    /// cmd.argument("my_sorted_set").argument("1.0").argument("member");
+    /// client.command(cmd)?;
+    /// # Ok(()) }
+    /// ```
+    pub fn command(&self, command: impl Into<Command>) -> Result<Value, ValkeyError> {
+        let cmd: Command = command.into();
         let wit_command = WitCommand {
-            command: command.into(),
-            arguments: arguments.into_iter().map(|d| d.into()).collect(),
+            command: cmd.command,
+            arguments: cmd.arguments.into_iter().map(|d| d.into()).collect(),
         };
         self.inner
             .command(wit_command)
-            .map(resolve_value)
+            .map(wit_to_valkey_value)
             .map_err(Into::into)
     }
 }
 
 /// Get a client to the managed Valkey cluster with the given name.
 ///
-/// # Arguments
-/// * `cluster_name` - The name of the managed Valkey cluster.
-///
 /// # Examples
 /// ________
-/// Get a cluster client and execute a ping:
+/// Execute a ping using a bare string:
 /// ```rust,no_run
 /// use momento_functions_valkey::{get_managed_cluster_client, Value, ValkeyError};
 ///
 /// # fn f() -> Result<(), ValkeyError> {
 /// let client = get_managed_cluster_client("my-cluster");
-/// let response = client.command("PING", vec![])?;
+/// let response = client.command("PING")?;
 /// match response {
 ///     Value::SimpleString(s) => println!("Received: {s}"),
 ///     _ => println!("Unexpected response"),

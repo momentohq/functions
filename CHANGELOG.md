@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/momentohq/functions/compare/v0.19.0...v0.20.0) (2026-04-16)
+
+
+### Features
+
+* add v2 support for topics ([#75](https://github.com/momentohq/functions/issues/75)) ([a94d867](https://github.com/momentohq/functions/commit/a94d8679569c56f3ac3476e4a109ca998bc64c51))
+
 ## [0.19.0](https://github.com/momentohq/functions/compare/v0.18.0...v0.19.0) (2026-04-15)
 
 

@@ -1,0 +1,78 @@
+package momento:http@1.0.0;
+
+interface http {
+    use momento:bytes/bytes@1.0.0.{data};
+
+    record request {
+        url: string,
+        verb: string,
+        headers: list<tuple<string, string>>,
+        body: data,
+        authorization: authorization,
+    }
+
+    /// A response returned from the server.
+    record response {
+        status: u16,
+        headers: list<tuple<string, string>>,
+        body: data,
+    }
+
+    record invalid-url {
+        url: string,
+        error: string,
+    }
+
+    record invalid-header-name {
+        header: string,
+        error: string,
+    }
+
+    record invalid-header-value {
+        value: string,
+        error: string,
+    }
+
+    /// An error while trying to make an http call.
+    variant error {
+        /// An internal error occurred within Momento.
+        internal-error,
+        /// An error while making a request. Under construction, may become structured errors in the future.
+        request-error(string),
+        /// The provided URL was not valid.
+        invalid-url(invalid-url),
+        /// A provided header name was not valid.
+        invalid-header-name(invalid-header-name),
+        /// A provided header value was not valid.
+        invalid-header-value(invalid-header-value),
+    }
+
+    variant authorization {
+        /// No special authorization behavior. You can still set an authorization header if you want.
+        none,
+        /// Explicit sigv4 signed request
+        aws-sigv4-secret(aws-sigv4-secret),
+        /// IAM role that Momento will federate into
+        federated(iam-role)
+    }
+
+    record aws-sigv4-secret {
+        access-key-id: string,
+        secret-access-key: string,
+        region: string,
+        service: string,
+    }
+
+    record iam-role {
+        role-arn: string,
+        service: string,
+    }
+
+    /// Send a web request
+    invoke: func(request: request) -> result<response, error>;
+}
+
+world imports {
+    import momento:bytes/bytes@1.0.0;
+    import http;
+}

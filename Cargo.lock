@@ -348,6 +348,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "momento-functions-http"
+version = "0.19.0"
+dependencies = [
+ "momento-functions-bytes",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "wit-bindgen",
+]
+
+[[package]]
 name = "momento-functions-log"
 version = "0.20.0"
 dependencies = [

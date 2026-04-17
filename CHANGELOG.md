@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/momentohq/functions/compare/v0.21.0...v0.22.0) (2026-04-17)
+
+
+### Features
+
+* add v2 support for valkey ([#74](https://github.com/momentohq/functions/issues/74)) ([14fcd9b](https://github.com/momentohq/functions/commit/14fcd9b07feca8441ba246eff9e7407bb2d6b25c))
+
 ## [0.21.0](https://github.com/momentohq/functions/compare/v0.20.1...v0.21.0) (2026-04-17)
 
 

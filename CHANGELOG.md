@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.1](https://github.com/momentohq/functions/compare/v0.20.0...v0.20.1) (2026-04-17)
+
+
+### Miscellaneous
+
+* carry over v1 list optimizations to v2 ([#77](https://github.com/momentohq/functions/issues/77)) ([3f32d73](https://github.com/momentohq/functions/commit/3f32d73f9114a0b5127ca6de48811c6786ecf812))
+
 ## [0.20.0](https://github.com/momentohq/functions/compare/v0.19.0...v0.20.0) (2026-04-16)
 
 

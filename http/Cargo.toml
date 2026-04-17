@@ -13,5 +13,7 @@ categories.workspace = true
 [dependencies]
 momento-functions-bytes = { workspace = true }
 
+serde                   = { workspace = true }
+serde_json              = { workspace = true }
 thiserror               = { workspace = true }
 wit-bindgen             = { workspace = true }

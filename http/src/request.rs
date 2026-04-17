@@ -1,4 +1,7 @@
-use momento_functions_bytes::Data;
+use momento_functions_bytes::{
+    Data,
+    encoding::{Encode, Json},
+};
 
 use crate::wit::momento::http::http;
 
@@ -63,27 +66,24 @@ impl From<Authorization> for http::Authorization {
 }
 
 /// An HTTP request.
+///
+/// Construct with [`Request::new`] and configure using the builder methods.
 pub struct Request {
-    /// The target URL.
-    pub url: String,
-    /// The HTTP verb (e.g. `"GET"`, `"POST"`).
-    pub verb: String,
-    /// Request headers as name-value pairs.
-    pub headers: Vec<(String, String)>,
-    /// The request body.
-    pub body: Data,
-    /// The authorization strategy.
-    pub authorization: Authorization,
+    url: String,
+    verb: String,
+    headers: Vec<(String, String)>,
+    body: Data,
+    authorization: Authorization,
 }
 
 impl Request {
-    /// Create a new request builder with no body and no authorization.
+    /// Create a new request with no body and no authorization.
     ///
     /// # Examples
     /// ________
     /// Build a GET request:
     /// ```rust,no_run
-    /// use momento_functions_http::{Request, Authorization};
+    /// use momento_functions_http::Request;
     ///
     /// let request = Request::new("https://example.com/api", "GET");
     /// ```
@@ -101,6 +101,62 @@ impl Request {
     pub fn with_header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.push((name.into(), value.into()));
         self
+    }
+
+    /// Add multiple headers to the request at once.
+    ///
+    /// # Examples
+    /// ________
+    /// ```rust,no_run
+    /// use momento_functions_http::Request;
+    ///
+    /// let request = Request::new("https://example.com/api", "POST")
+    ///     .with_headers([
+    ///         ("Content-Type", "application/json"),
+    ///         ("Accept", "application/json"),
+    ///     ]);
+    /// ```
+    pub fn with_headers<K, V>(mut self, headers: impl IntoIterator<Item = (K, V)>) -> Self
+    where
+        K: Into<String>,
+        V: Into<String>,
+    {
+        self.headers
+            .extend(headers.into_iter().map(|(k, v)| (k.into(), v.into())));
+        self
+    }
+
+    /// Set the request body to a JSON-serialized value, and set the
+    /// `content-type` header to `application/json`.
+    ///
+    /// # Examples
+    /// ________
+    /// ```rust,no_run
+    /// use momento_functions_http::{Request, HttpError};
+    /// use momento_functions_bytes::encoding::Json;
+    ///
+    /// #[derive(serde::Serialize)]
+    /// struct Payload { message: String }
+    ///
+    /// # fn f() -> Result<(), HttpError> {
+    /// let request = Request::new("https://example.com/api", "POST")
+    ///     .json(Json(Payload { message: "hello".to_string() }))
+    ///     .map_err(|_| HttpError::InternalError)?;
+    /// # Ok(()) }
+    /// ```
+    pub fn json<T: serde::Serialize>(mut self, body: Json<T>) -> Result<Self, serde_json::Error> {
+        self.body = body.try_serialize()?;
+        if let Some(entry) = self
+            .headers
+            .iter_mut()
+            .find(|(k, _)| k.eq_ignore_ascii_case("content-type"))
+        {
+            entry.1 = "application/json".to_string();
+        } else {
+            self.headers
+                .push(("content-type".to_string(), "application/json".to_string()));
+        }
+        Ok(self)
     }
 
     /// Set the request body.

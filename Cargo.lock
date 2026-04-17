@@ -379,6 +379,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "momento-functions-topic"
+version = "0.19.0"
+dependencies = [
+ "momento-functions-bytes",
+ "thiserror",
+ "wit-bindgen",
+]
+
+[[package]]
 name = "momento-functions-wit"
 version = "0.19.0"
 dependencies = [

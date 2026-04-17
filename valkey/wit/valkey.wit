@@ -1,0 +1,64 @@
+package momento:valkey@1.0.0;
+
+// Momento host support for talking to valkey clusters from Functions
+interface valkey {
+    use momento:bytes/bytes@1.0.0.{data};
+
+    // An error from valkey
+    variant valkey-error {
+        // The request failed for some other reason.
+        other(string),
+    }
+
+    // A data tuple describing a command to be sent to valkey.
+    record command {
+        // The command name to execute
+        command: string,
+        // These are passed as you pass them. Mind your types and encodings,
+        // as correctness is between you and the valkey cluster.
+        arguments: list<data>,
+    }
+
+    // A stream of values from valkey
+    resource response-stream {
+        // The next result row of a query
+        //
+        // Returns None if there are no more rows
+        next: func() -> option<value>;
+    }
+
+    // A response from valkey
+    variant value {
+        // A nil response from the server.
+        nil,
+        // An integer response. Note that there are a few situations
+        // in which valkey actually returns a string for an integer.
+        int(s64),
+        // Arbitary binary data.
+        data(data),
+        // A bulk response of more data. This is generally used by valkey
+        // to express nested structures.
+        bulk(response-stream),
+        // An OK from valkey.
+        ok,
+        // Short, non-binary strings with minimal overhead
+        simple-string(string),
+        // Short, non-binary strings to describe an error
+        simple-error(string),
+    }
+
+    // A client to a valkey cluster
+    resource cluster-client {
+        // Execute a command against the cluster
+        // Only request/reply commands are supported here.
+        command: func(command: command) -> result<value, valkey-error>;
+    }
+
+    // Get a client to the cluster in your account with this name
+    get-managed-cluster-client: func(cluster-name: string) -> cluster-client;
+}
+
+world imports {
+    import momento:bytes/bytes@1.0.0;
+    import valkey;
+}

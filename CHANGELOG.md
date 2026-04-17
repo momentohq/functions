@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/momentohq/functions/compare/v0.20.1...v0.21.0) (2026-04-17)
+
+
+### Features
+
+* add v2 support for momento http crate ([#76](https://github.com/momentohq/functions/issues/76)) ([ad24a36](https://github.com/momentohq/functions/commit/ad24a36e8a1e3473c658d80294935085fba2d04f))
+
 ## [0.20.1](https://github.com/momentohq/functions/compare/v0.20.0...v0.20.1) (2026-04-17)
 
 

@@ -238,48 +238,59 @@ pub fn list_remove<E: Encode>(
 
 /// Fetches elements from a list within the specified index range.
 ///
+/// Returns:
+/// * `Err` — the request failed.
+/// * `Ok(None)` — the list does not exist.
+/// * `Ok(Some(iter))` — an iterator over `Result<T, T::Error>`, yielding each
+///   element lazily. Extraction and allocation only occur as items are consumed.
+///
+/// `i32` values convert directly: positive indices count from the front,
+/// negative from the back. A plain integer start is inclusive; a plain integer
+/// end is exclusive.
+///
 /// # Examples:
 /// ________
-/// Fetch all elements:
+/// Collect a slice into a `Vec`, defaulting to empty if the list is missing:
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_fetch, CacheListFetchError, StartIndex, EndIndex};
+/// use momento_functions_cache_list::{list_fetch, CacheListFetchError};
 ///
-/// # fn f() -> Result<(), CacheListFetchError<std::convert::Infallible>> {
-/// let result: Option<Vec<Vec<u8>>> = list_fetch(
-///     "my_list",
-///     StartIndex::Unbounded,
-///     EndIndex::Unbounded,
-/// )?;
+/// # fn f() -> Result<(), CacheListFetchError> {
+/// let items: Vec<Vec<u8>> = list_fetch("my_list", 0, 10)?
+///     .into_iter()
+///     .flatten()
+///     .collect::<Result<_, _>>()
+///     .unwrap_or_default();
 /// # Ok(()) }
 /// ```
 /// ________
-/// Fetch a slice:
+/// Stream elements one at a time without collecting:
 /// ```rust,no_run
 /// use momento_functions_cache_list::{list_fetch, CacheListFetchError, StartIndex, EndIndex};
 ///
-/// # fn f() -> Result<(), CacheListFetchError<std::convert::Infallible>> {
-/// let result: Option<Vec<Vec<u8>>> = list_fetch(
-///     "my_list",
-///     StartIndex::Inclusive(0),
-///     EndIndex::Exclusive(10),
-/// )?;
+/// # fn f() -> Result<(), CacheListFetchError> {
+/// if let Some(items) = list_fetch::<Vec<u8>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded)? {
+///     for result in items {
+///         match result {
+///             Ok(value) => { /* use value */ }
+///             Err(e) => { /* handle extraction error */ }
+///         }
+///     }
+/// }
 /// # Ok(()) }
 /// ```
 pub fn list_fetch<T: Extract>(
     list_name: impl Into<Data>,
-    start: StartIndex,
-    end: EndIndex,
-) -> Result<Option<Vec<T>>, CacheListFetchError<T::Error>> {
-    match cache_list::list_fetch(list_name.into().into(), start.into(), end.into())? {
-        cache_list::FetchResponse::Found(items) => {
-            let mut result = Vec::with_capacity(items.len());
-            for item in items {
-                let value = T::extract(Data::from(item))
-                    .map_err(|e| CacheListFetchError::ExtractFailed { cause: e })?;
-                result.push(value);
-            }
-            Ok(Some(result))
-        }
+    start: impl Into<StartIndex>,
+    end: impl Into<EndIndex>,
+) -> Result<Option<impl Iterator<Item = Result<T, T::Error>>>, CacheListFetchError> {
+    match cache_list::list_fetch(
+        list_name.into().into(),
+        start.into().into(),
+        end.into().into(),
+    )? {
+        cache_list::FetchResponse::Found(items) => Ok(Some(
+            items.into_iter().map(|item| T::extract(Data::from(item))),
+        )),
         cache_list::FetchResponse::Missing => Ok(None),
     }
 }
@@ -334,7 +345,7 @@ pub fn list_length(list_name: impl Into<Data>) -> Result<LengthResult, CacheList
 /// ```
 pub fn list_concatenate_front<E: Encode>(
     list_name: impl Into<Data>,
-    values: Vec<E>,
+    values: impl IntoIterator<Item = E>,
     collection_ttl: CollectionTtl,
     truncate_back_to_size: Option<u32>,
 ) -> Result<u32, CacheListConcatenateError<E::Error>> {
@@ -381,7 +392,7 @@ pub fn list_concatenate_front<E: Encode>(
 /// ```
 pub fn list_concatenate_back<E: Encode>(
     list_name: impl Into<Data>,
-    values: Vec<E>,
+    values: impl IntoIterator<Item = E>,
     collection_ttl: CollectionTtl,
     truncate_front_to_size: Option<u32>,
 ) -> Result<u32, CacheListConcatenateError<E::Error>> {

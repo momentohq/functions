@@ -91,6 +91,13 @@ pub enum StartIndex {
     Inclusive(i32),
 }
 
+/// Convert an `i32` directly into an inclusive [`StartIndex`].
+impl From<i32> for StartIndex {
+    fn from(i: i32) -> Self {
+        StartIndex::Inclusive(i)
+    }
+}
+
 impl From<StartIndex> for cache_list::StartIndex {
     fn from(value: StartIndex) -> Self {
         match value {
@@ -106,6 +113,13 @@ pub enum EndIndex {
     Unbounded,
     /// End at the given index (exclusive). Negative values count from the end.
     Exclusive(i32),
+}
+
+/// Convert an `i32` directly into an exclusive [`EndIndex`].
+impl From<i32> for EndIndex {
+    fn from(i: i32) -> Self {
+        EndIndex::Exclusive(i)
+    }
 }
 
 impl From<EndIndex> for cache_list::EndIndex {

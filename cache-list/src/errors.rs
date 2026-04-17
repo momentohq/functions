@@ -67,14 +67,11 @@ pub enum CacheListRemoveError<E: EncodeError> {
 }
 
 /// An error occurred when fetching elements from a list in the cache.
+///
+/// Extraction errors from individual items surface as `Result::Err` values
+/// within the iterator returned by [`list_fetch`](crate::list_fetch).
 #[derive(thiserror::Error, Debug)]
-pub enum CacheListFetchError<E: ExtractError> {
-    /// The value could not be extracted with the provided implementation.
-    #[error("Failed to extract value.")]
-    ExtractFailed {
-        /// The underlying error.
-        cause: E,
-    },
+pub enum CacheListFetchError {
     /// An error occurred when calling the host cache function.
     #[error(transparent)]
     CacheError(#[from] cache_list::Error),

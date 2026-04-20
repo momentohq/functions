@@ -132,17 +132,21 @@ impl Request {
     /// # Examples
     /// ________
     /// ```rust,no_run
-    /// use momento_functions_http::{Request, HttpError};
+    /// use momento_functions_http::Request;
     /// use momento_functions_bytes::encoding::Json;
     ///
     /// #[derive(serde::Serialize)]
     /// struct Payload { message: String }
     ///
-    /// # fn f() -> Result<(), HttpError> {
-    /// let request = Request::new("https://example.com/api", "POST")
+    /// let request = match Request::new("https://example.com/api", "POST")
     ///     .json(Json(Payload { message: "hello".to_string() }))
-    ///     .map_err(|_| HttpError::InternalError)?;
-    /// # Ok(()) }
+    /// {
+    ///     Ok(request) => request,
+    ///     Err(e) => {
+    ///         log::error!("failed to serialize body: {e}");
+    ///         return;
+    ///     }
+    /// };
     /// ```
     pub fn json<T: serde::Serialize>(mut self, body: Json<T>) -> Result<Self, serde_json::Error> {
         self.body = body.try_serialize()?;

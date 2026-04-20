@@ -39,16 +39,17 @@ impl LambdaClient {
     /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// # use momento_functions_host::aws::lambda::LambdaClient;
     /// # use momento_functions_host::build_environment_aws_credentials;
-    /// # use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    /// # fn f() -> Result<(), AuthError> {
-    /// let client = LambdaClient::new(
-    ///     &AwsCredentialsProvider::new(
-    ///         "us-east-1",
-    ///         build_environment_aws_credentials!()
-    ///     )?
-    /// );
-    /// # Ok(())
-    /// # }
+    /// let credentials = match AwsCredentialsProvider::new(
+    ///     "us-east-1",
+    ///     build_environment_aws_credentials!(),
+    /// ) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
+    /// let client = LambdaClient::new(&credentials);
     /// ```
     pub fn new(credentials: &auth::AwsCredentialsProvider) -> Self {
         Self {
@@ -63,39 +64,48 @@ impl LambdaClient {
     /// Examples:
     /// ________
     /// ```rust,no_run
-    /// use momento_functions_host::aws::lambda::{InvokeError, LambdaClient};
-    /// use momento_functions_host::encoding::Json;
-    ///
-    /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<std::convert::Infallible>> {
+    /// # use momento_functions_host::aws::lambda::LambdaClient;
+    /// # let client: LambdaClient = todo!();
     /// // With a payload
-    /// client.invoke(
+    /// match client.invoke(
     ///     "my_lambda_function",
     ///     "hello world",
-    /// )?;
+    /// ) {
+    ///     Ok(_response) => {}
+    ///     Err(e) => log::error!("invoke failed: {e}"),
+    /// }
     ///
     /// // With a payload and a qualifier
-    /// client.invoke(
+    /// match client.invoke(
     ///     ("my_lambda_function", "v1"),
     ///     "hello world",
-    /// )?;
+    /// ) {
+    ///     Ok(_response) => {}
+    ///     Err(e) => log::error!("invoke failed: {e}"),
+    /// }
     ///
     /// // Without a payload
-    /// client.invoke(
+    /// match client.invoke(
     ///     "my_lambda_function",
     ///     (),
-    /// )?;
+    /// ) {
+    ///     Ok(_response) => {}
+    ///     Err(e) => log::error!("invoke failed: {e}"),
+    /// }
     ///
     /// // With literal bytes
-    /// client.invoke(
+    /// match client.invoke(
     ///     "my_lambda_function",
     ///     b"some literal bytes".to_vec(),
-    /// )?;
-    /// # Ok(())}
+    /// ) {
+    ///     Ok(_response) => {}
+    ///     Err(e) => log::error!("invoke failed: {e}"),
+    /// }
     /// ```
     /// ________
     /// With json-encoded payloads
     /// ```rust,no_run
-    /// use momento_functions_host::aws::lambda::{InvokeError, LambdaClient};
+    /// # use momento_functions_host::aws::lambda::LambdaClient;
     /// use momento_functions_host::encoding::Json;
     ///
     /// #[derive(serde::Serialize)]
@@ -107,24 +117,29 @@ impl LambdaClient {
     ///     message: String
     /// }
     ///
-    /// # fn f(client: &LambdaClient) -> Result<(), InvokeError<serde_json::Error>> {
+    /// # let client: LambdaClient = todo!();
     /// // Just a request payload, encoded as JSON
-    /// client.invoke(
+    /// match client.invoke(
     ///     "my_lambda_function",
     ///     Json(MyStruct { hello: "hello".to_string() }),
-    /// )?;
-    /// # Ok(())}
+    /// ) {
+    ///     Ok(_response) => {}
+    ///     Err(e) => log::error!("invoke failed: {e}"),
+    /// }
     ///
-    /// # fn g(client: &LambdaClient) -> Result<(), InvokeError<serde_json::Error>> {
     /// // Request and response payload, both encoded as JSON
-    /// let mut response = client.invoke(
+    /// match client.invoke(
     ///     "my_lambda_function",
     ///     Json(MyStruct { hello: "hello".to_string() }),
-    /// )?;
-    /// let Json(reply): Json<Reply> = response.extract().expect("failed to extract reply");
-    ///
-    /// let message = reply.message;
-    /// # Ok(())}
+    /// ) {
+    ///     Ok(mut response) => match response.extract::<Json<Reply>>() {
+    ///         Ok(Json(reply)) => {
+    ///             let message = reply.message;
+    ///         }
+    ///         Err(e) => log::error!("failed to extract reply: {e}"),
+    ///     },
+    ///     Err(e) => log::error!("invoke failed: {e}"),
+    /// }
     /// ```
     pub fn invoke<E: Encode>(
         &self,

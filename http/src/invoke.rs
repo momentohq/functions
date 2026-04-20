@@ -77,26 +77,26 @@ impl From<http::Response> for Response {
 /// ________
 /// Send a GET request:
 /// ```rust,no_run
-/// use momento_functions_http::{invoke, Request, HttpError};
+/// use momento_functions_http::{invoke, Request};
 ///
-/// # fn f() -> Result<(), HttpError> {
-/// let response = invoke(Request::new("https://example.com/api", "GET"))?;
-/// println!("status: {}", response.status);
-/// # Ok(()) }
+/// match invoke(Request::new("https://example.com/api", "GET")) {
+///     Ok(response) => println!("status: {}", response.status),
+///     Err(e) => log::error!("request failed: {e}"),
+/// }
 /// ```
 ///
 /// Send a POST request with a JSON body:
 /// ```rust,no_run
-/// use momento_functions_http::{invoke, Request, HttpError};
+/// use momento_functions_http::{invoke, Request};
 ///
-/// # fn f() -> Result<(), HttpError> {
-/// let response = invoke(
+/// match invoke(
 ///     Request::new("https://example.com/api", "POST")
 ///         .with_header("Content-Type", "application/json")
 ///         .with_body(b"{\"key\": \"value\"}".to_vec()),
-/// )?;
-/// println!("status: {}", response.status);
-/// # Ok(()) }
+/// ) {
+///     Ok(response) => println!("status: {}", response.status),
+///     Err(e) => log::error!("request failed: {e}"),
+/// }
 /// ```
 pub fn invoke(request: Request) -> Result<Response, HttpError> {
     http::invoke(request.into())

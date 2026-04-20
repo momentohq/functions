@@ -29,17 +29,17 @@ use crate::{
 /// ________
 /// Prepend a value to the front of a list:
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_push_front, CacheListPushFrontError, CollectionTtl};
+/// use momento_functions_cache_list::{list_push_front, CollectionTtl};
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheListPushFrontError<std::convert::Infallible>> {
-/// let list_length = list_push_front(
+/// match list_push_front(
 ///     "my_list",
 ///     b"new_value".to_vec(),
 ///     CollectionTtl::of(Duration::from_secs(60)),
 ///     None,
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(list_length) => { /* use list_length */ }
+///     Err(e) => log::error!("list_push_front failed: {e}"),
+/// }
 /// ```
 pub fn list_push_front<E: Encode>(
     list_name: impl Into<Data>,
@@ -72,17 +72,17 @@ pub fn list_push_front<E: Encode>(
 /// ________
 /// Append a value to the back of a list:
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_push_back, CacheListPushBackError, CollectionTtl};
+/// use momento_functions_cache_list::{list_push_back, CollectionTtl};
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheListPushBackError<std::convert::Infallible>> {
-/// let list_length = list_push_back(
+/// match list_push_back(
 ///     "my_list",
 ///     b"new_value".to_vec(),
 ///     CollectionTtl::of(Duration::from_secs(60)),
 ///     None,
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(list_length) => { /* use list_length */ }
+///     Err(e) => log::error!("list_push_back failed: {e}"),
+/// }
 /// ```
 pub fn list_push_back<E: Encode>(
     list_name: impl Into<Data>,
@@ -108,19 +108,17 @@ pub fn list_push_back<E: Encode>(
 /// # Examples:
 /// ________
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_pop_front, CacheListPopError, PopResult};
+/// use momento_functions_cache_list::{list_pop_front, PopResult};
 ///
-/// # fn f() -> Result<(), CacheListPopError<std::convert::Infallible>> {
-/// let result: PopResult<Vec<u8>> = list_pop_front("my_list")?;
-/// match result {
-///     PopResult::Found { value, list_length } => {
+/// match list_pop_front::<Vec<u8>>("my_list") {
+///     Ok(PopResult::Found { value, list_length }) => {
 ///         // use the popped value
 ///     }
-///     PopResult::Missing => {
+///     Ok(PopResult::Missing) => {
 ///         // list not found
 ///     }
+///     Err(e) => log::error!("pop failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn list_pop_front<T: Extract>(
     list_name: impl Into<Data>,
@@ -143,19 +141,17 @@ pub fn list_pop_front<T: Extract>(
 /// # Examples:
 /// ________
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_pop_back, CacheListPopError, PopResult};
+/// use momento_functions_cache_list::{list_pop_back, PopResult};
 ///
-/// # fn f() -> Result<(), CacheListPopError<std::convert::Infallible>> {
-/// let result: PopResult<Vec<u8>> = list_pop_back("my_list")?;
-/// match result {
-///     PopResult::Found { value, list_length } => {
+/// match list_pop_back::<Vec<u8>>("my_list") {
+///     Ok(PopResult::Found { value, list_length }) => {
 ///         // use the popped value
 ///     }
-///     PopResult::Missing => {
+///     Ok(PopResult::Missing) => {
 ///         // list not found
 ///     }
+///     Err(e) => log::error!("pop failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn list_pop_back<T: Extract>(
     list_name: impl Into<Data>,
@@ -179,23 +175,25 @@ pub fn list_pop_back<T: Extract>(
 /// ________
 /// Erase all elements:
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_erase, CacheListEraseError, EraseRange};
+/// use momento_functions_cache_list::{list_erase, EraseRange};
 ///
-/// # fn f() -> Result<(), CacheListEraseError> {
-/// let result = list_erase("my_list", EraseRange::All)?;
-/// # Ok(()) }
+/// match list_erase("my_list", EraseRange::All) {
+///     Ok(result) => { /* inspect result */ }
+///     Err(e) => log::error!("erase failed: {e}"),
+/// }
 /// ```
 /// ________
 /// Erase specific ranges:
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_erase, CacheListEraseError, EraseRange, ListRange};
+/// use momento_functions_cache_list::{list_erase, EraseRange, ListRange};
 ///
-/// # fn f() -> Result<(), CacheListEraseError> {
-/// let result = list_erase(
+/// match list_erase(
 ///     "my_list",
 ///     EraseRange::Ranges(vec![ListRange { begin_index: 0, count: 2 }]),
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(result) => { /* inspect result */ }
+///     Err(e) => log::error!("erase failed: {e}"),
+/// }
 /// ```
 pub fn list_erase(
     list_name: impl Into<Data>,
@@ -212,14 +210,15 @@ pub fn list_erase(
 /// # Examples:
 /// ________
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_remove, CacheListRemoveError, RemoveResult};
+/// use momento_functions_cache_list::list_remove;
 ///
-/// # fn f() -> Result<(), CacheListRemoveError<std::convert::Infallible>> {
-/// let result = list_remove(
+/// match list_remove(
 ///     "my_list",
 ///     "unwanted",
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(result) => { /* inspect result */ }
+///     Err(e) => log::error!("remove failed: {e}"),
+/// }
 /// ```
 pub fn list_remove<E: Encode>(
     list_name: impl Into<Data>,
@@ -252,31 +251,37 @@ pub fn list_remove<E: Encode>(
 /// ________
 /// Collect a slice into a `Vec`, defaulting to empty if the list is missing:
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_fetch, CacheListFetchError};
+/// use momento_functions_cache_list::list_fetch;
 ///
-/// # fn f() -> Result<(), CacheListFetchError> {
-/// let items: Vec<Vec<u8>> = list_fetch("my_list", 0, 10)?
-///     .into_iter()
-///     .flatten()
-///     .collect::<Result<_, _>>()
-///     .unwrap_or_default();
-/// # Ok(()) }
+/// let items: Vec<Vec<u8>> = match list_fetch("my_list", 0, 10) {
+///     Ok(maybe_iter) => maybe_iter
+///         .into_iter()
+///         .flatten()
+///         .collect::<Result<_, _>>()
+///         .unwrap_or_default(),
+///     Err(e) => {
+///         log::error!("fetch failed: {e}");
+///         Vec::new()
+///     }
+/// };
 /// ```
 /// ________
 /// Stream elements one at a time without collecting:
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_fetch, CacheListFetchError, StartIndex, EndIndex};
+/// use momento_functions_cache_list::{list_fetch, StartIndex, EndIndex};
 ///
-/// # fn f() -> Result<(), CacheListFetchError> {
-/// if let Some(items) = list_fetch::<Vec<u8>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded)? {
-///     for result in items {
-///         match result {
-///             Ok(value) => { /* use value */ }
-///             Err(e) => { /* handle extraction error */ }
+/// match list_fetch::<Vec<u8>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded) {
+///     Ok(Some(items)) => {
+///         for result in items {
+///             match result {
+///                 Ok(value) => { /* use value */ }
+///                 Err(e) => { /* handle extraction error */ }
+///             }
 ///         }
 ///     }
+///     Ok(None) => { /* list not found */ }
+///     Err(e) => log::error!("fetch failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn list_fetch<T: Extract>(
     list_name: impl Into<Data>,
@@ -300,19 +305,17 @@ pub fn list_fetch<T: Extract>(
 /// # Examples:
 /// ________
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_length, CacheListLengthError, LengthResult};
+/// use momento_functions_cache_list::{list_length, LengthResult};
 ///
-/// # fn f() -> Result<(), CacheListLengthError> {
-/// let result = list_length("my_list")?;
-/// match result {
-///     LengthResult::Found(len) => {
+/// match list_length("my_list") {
+///     Ok(LengthResult::Found(len)) => {
 ///         // use the length
 ///     }
-///     LengthResult::Missing => {
+///     Ok(LengthResult::Missing) => {
 ///         // list not found
 ///     }
+///     Err(e) => log::error!("length failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn list_length(list_name: impl Into<Data>) -> Result<LengthResult, CacheListLengthError> {
     cache_list::list_length(list_name.into().into())
@@ -331,17 +334,17 @@ pub fn list_length(list_name: impl Into<Data>) -> Result<LengthResult, CacheList
 /// # Examples:
 /// ________
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_concatenate_front, CacheListConcatenateError, CollectionTtl};
+/// use momento_functions_cache_list::{list_concatenate_front, CollectionTtl};
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheListConcatenateError<std::convert::Infallible>> {
-/// let list_length = list_concatenate_front(
+/// match list_concatenate_front(
 ///     "my_list",
 ///     vec![b"a".to_vec(), b"b".to_vec(), b"c".to_vec()],
 ///     CollectionTtl::of(Duration::from_secs(60)),
 ///     None,
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(list_length) => { /* use list_length */ }
+///     Err(e) => log::error!("concatenate_front failed: {e}"),
+/// }
 /// ```
 pub fn list_concatenate_front<E: Encode>(
     list_name: impl Into<Data>,
@@ -378,17 +381,17 @@ pub fn list_concatenate_front<E: Encode>(
 /// # Examples:
 /// ________
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_concatenate_back, CacheListConcatenateError, CollectionTtl};
+/// use momento_functions_cache_list::{list_concatenate_back, CollectionTtl};
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheListConcatenateError<std::convert::Infallible>> {
-/// let list_length = list_concatenate_back(
+/// match list_concatenate_back(
 ///     "my_list",
 ///     vec![b"a".to_vec(), b"b".to_vec(), b"c".to_vec()],
 ///     CollectionTtl::of(Duration::from_secs(60)),
 ///     None,
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(list_length) => { /* use list_length */ }
+///     Err(e) => log::error!("concatenate_back failed: {e}"),
+/// }
 /// ```
 pub fn list_concatenate_back<E: Encode>(
     list_name: impl Into<Data>,
@@ -420,17 +423,17 @@ pub fn list_concatenate_back<E: Encode>(
 /// ________
 /// Retain only the first 10 elements:
 /// ```rust,no_run
-/// use momento_functions_cache_list::{list_retain, CacheListRetainError, CollectionTtl, StartIndex, EndIndex};
+/// use momento_functions_cache_list::{list_retain, CollectionTtl, StartIndex, EndIndex};
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheListRetainError> {
-/// let result = list_retain(
+/// match list_retain(
 ///     "my_list",
 ///     StartIndex::Inclusive(0),
 ///     EndIndex::Exclusive(10),
 ///     CollectionTtl::of(Duration::from_secs(60)),
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(result) => { /* inspect result */ }
+///     Err(e) => log::error!("retain failed: {e}"),
+/// }
 /// ```
 pub fn list_retain(
     list_name: impl Into<Data>,

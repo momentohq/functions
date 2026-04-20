@@ -87,10 +87,13 @@ impl AwsCredentialsProvider {
     /// # // Not run because docs.rs does not run a Momento WIT host environment, of course!
     /// # // But it does at least compile, to make sure the example is correct.
     /// # use momento_functions_host::{build_environment_aws_credentials, aws::auth::{AwsCredentialsProvider}};
-    /// # fn f() -> Result<(), momento_functions_wit::host::momento::host::aws_auth::AuthError> {
-    /// let provider = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
-    /// # Ok(())
-    /// # }
+    /// let provider = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
+    ///     Ok(provider) => provider,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
     /// ```
     /// -----
     /// ### Federated IAM role

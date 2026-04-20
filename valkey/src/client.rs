@@ -31,14 +31,16 @@ impl From<valkey::ValkeyError> for ValkeyError {
 /// Collect into a `Vec` if you need all values at once:
 ///
 /// ```rust,no_run
-/// use momento_functions_valkey::{get_managed_cluster_client, Command, Value, ValkeyError};
+/// use momento_functions_valkey::{get_managed_cluster_client, Command, Value};
 ///
-/// # fn f() -> Result<(), ValkeyError> {
 /// let client = get_managed_cluster_client("my-cluster");
-/// if let Value::Bulk(bulk) = client.command(Command::get("my_key"))? {
-///     let all: Vec<Value> = bulk.collect();
+/// match client.command(Command::get("my_key")) {
+///     Ok(Value::Bulk(bulk)) => {
+///         let all: Vec<Value> = bulk.collect();
+///     }
+///     Ok(_) => {}
+///     Err(e) => log::error!("command failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub struct Bulk {
     stream: WitResponseStream,
@@ -110,24 +112,26 @@ impl ClusterClient {
     /// ________
     /// Using a convenience constructor:
     /// ```rust,no_run
-    /// use momento_functions_valkey::{get_managed_cluster_client, Command, ValkeyError};
+    /// use momento_functions_valkey::{get_managed_cluster_client, Command};
     ///
-    /// # fn f() -> Result<(), ValkeyError> {
     /// let client = get_managed_cluster_client("my-cluster");
-    /// client.command(Command::set("my_key", "my_value"))?;
-    /// # Ok(()) }
+    /// match client.command(Command::set("my_key", "my_value")) {
+    ///     Ok(_) => {}
+    ///     Err(e) => log::error!("command failed: {e}"),
+    /// }
     /// ```
     /// ________
     /// Using the builder for custom commands:
     /// ```rust,no_run
-    /// use momento_functions_valkey::{get_managed_cluster_client, Command, ValkeyError};
+    /// use momento_functions_valkey::{get_managed_cluster_client, Command};
     ///
-    /// # fn f() -> Result<(), ValkeyError> {
     /// let client = get_managed_cluster_client("my-cluster");
     /// let mut cmd = Command::builder("ZADD");
     /// cmd.argument("my_sorted_set").argument("1.0").argument("member");
-    /// client.command(cmd)?;
-    /// # Ok(()) }
+    /// match client.command(cmd) {
+    ///     Ok(_) => {}
+    ///     Err(e) => log::error!("command failed: {e}"),
+    /// }
     /// ```
     pub fn command(&self, command: impl Into<Command>) -> Result<Value, ValkeyError> {
         let cmd: Command = command.into();
@@ -148,16 +152,14 @@ impl ClusterClient {
 /// ________
 /// Execute a ping using a bare string:
 /// ```rust,no_run
-/// use momento_functions_valkey::{get_managed_cluster_client, Value, ValkeyError};
+/// use momento_functions_valkey::{get_managed_cluster_client, Value};
 ///
-/// # fn f() -> Result<(), ValkeyError> {
 /// let client = get_managed_cluster_client("my-cluster");
-/// let response = client.command("PING")?;
-/// match response {
-///     Value::SimpleString(s) => println!("Received: {s}"),
-///     _ => println!("Unexpected response"),
+/// match client.command("PING") {
+///     Ok(Value::SimpleString(s)) => println!("Received: {s}"),
+///     Ok(_) => println!("Unexpected response"),
+///     Err(e) => log::error!("ping failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn get_managed_cluster_client(cluster_name: impl Into<String>) -> ClusterClient {
     let inner = valkey::get_managed_cluster_client(&cluster_name.into());

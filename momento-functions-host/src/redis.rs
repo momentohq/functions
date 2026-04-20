@@ -223,10 +223,8 @@ impl RedisClient {
     /// for a real application, please get in touch with support@momentohq.com
     ///
     /// ```rust,no_run
-    /// # use momento_functions_host::redis::RedisClient;
-    /// # fn f() {
+    /// use momento_functions_host::redis::RedisClient;
     /// let client = RedisClient::new("valkey://my.valkey.instance:6379");
-    /// # }
     /// ```
     pub fn new(connection_string: impl Into<String>) -> Self {
         Self {

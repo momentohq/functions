@@ -48,17 +48,16 @@ pub enum CacheGetError<E: ExtractError> {
 /// Bytes:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::CacheGetError;
-///
-/// # fn f() -> Result<(), CacheGetError<std::convert::Infallible>> {
-/// let value: Option<Vec<u8>> = cache::get("my_key")?;
-/// # Ok(()) }
+/// match cache::get::<Vec<u8>>("my_key") {
+///     Ok(Some(value)) => { /* use value */ }
+///     Ok(None) => { /* key not found */ }
+///     Err(e) => log::error!("cache get failed: {e}"),
+/// }
 /// ```
 /// ________
 /// Json:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::CacheGetError;
 /// use momento_functions_host::encoding::Json;
 ///
 /// #[derive(serde::Deserialize)]
@@ -66,9 +65,11 @@ pub enum CacheGetError<E: ExtractError> {
 ///   message: String
 /// }
 ///
-/// # fn f() -> Result<(), CacheGetError<serde_json::Error>> {
-/// let value: Option<Json<MyStruct>> = cache::get("my_key")?;
-/// # Ok(()) }
+/// match cache::get::<Json<MyStruct>>("my_key") {
+///     Ok(Some(Json(value))) => { /* use value */ }
+///     Ok(None) => { /* key not found */ }
+///     Err(e) => log::error!("cache get failed: {e}"),
+/// }
 /// ```
 pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError<T::Error>> {
     match cache_scalar::get(key.as_ref())? {
@@ -86,22 +87,20 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError
 /// Bytes:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::CacheSetError;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetError<std::convert::Infallible>> {
-/// cache::set(
+/// match cache::set(
 ///     "my_key",
 ///     b"hello".to_vec(),
 ///     Duration::from_secs(60),
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(()) => {}
+///     Err(e) => log::error!("cache set failed: {e}"),
+/// }
 /// ```
 /// ________
 /// Json:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::CacheSetError;
 /// # use std::time::Duration;
 /// use momento_functions_host::encoding::Json;
 ///
@@ -110,13 +109,14 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError
 ///    hello: String
 /// }
 ///
-/// # fn f() -> Result<(), CacheSetError<serde_json::Error>> {
-/// cache::set(
+/// match cache::set(
 ///     "my_key",
 ///     Json(MyStruct { hello: "hello".to_string() }),
 ///     Duration::from_secs(60),
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(()) => {}
+///     Err(e) => log::error!("cache set failed: {e}"),
+/// }
 /// ```
 pub fn set<E: Encode>(
     key: impl AsRef<[u8]>,
@@ -167,57 +167,54 @@ pub enum CacheDeleteError {
 /// Set only if absent:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheSetIfError, SetIfCondition, SetIfResult};
+/// # use momento_functions_host::cache::{SetIfCondition, SetIfResult};
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
-/// let result: SetIfResult = cache::set_if(
+/// match cache::set_if(
 ///     "my_key",
 ///     b"hello".to_vec(),
 ///     Duration::from_secs(60),
 ///     SetIfCondition::Absent,
-/// )?;
-/// match result {
-///     SetIfResult::Stored => {
+/// ) {
+///     Ok(SetIfResult::Stored) => {
 ///         // Do something
-///     },
-///     SetIfResult::NotStored => {
+///     }
+///     Ok(SetIfResult::NotStored) => {
 ///         // Do something else
-///     },
+///     }
+///     Err(e) => log::error!("set_if failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 /// ________
 /// Set only if present:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheSetIfError, SetIfCondition, SetIfResult};
+/// # use momento_functions_host::cache::SetIfCondition;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
-/// let result = cache::set_if(
+/// match cache::set_if(
 ///     "my_key",
 ///     b"updated".to_vec(),
 ///     Duration::from_secs(60),
 ///     SetIfCondition::Present,
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(result) => { /* inspect result */ }
+///     Err(e) => log::error!("set_if failed: {e}"),
+/// }
 /// ```
 /// ________
 /// Set only if equal to a specific value:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheSetIfError, SetIfCondition, SetIfResult};
+/// # use momento_functions_host::cache::SetIfCondition;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
-/// let result = cache::set_if(
+/// match cache::set_if(
 ///     "my_key",
 ///     b"new_value".to_vec(),
 ///     Duration::from_secs(60),
 ///     SetIfCondition::Equal(b"old_value".to_vec()),
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(result) => { /* inspect result */ }
+///     Err(e) => log::error!("set_if failed: {e}"),
+/// }
 /// ```
 pub fn set_if<E: Encode>(
     key: impl AsRef<[u8]>,
@@ -246,11 +243,10 @@ pub fn set_if<E: Encode>(
 /// ________
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::CacheDeleteError;
-///
-/// # fn f() -> Result<(), CacheDeleteError> {
-/// cache::delete("my_key")?;
-/// # Ok(()) }
+/// match cache::delete("my_key") {
+///     Ok(()) => {}
+///     Err(e) => log::error!("cache delete failed: {e}"),
+/// }
 /// ```
 pub fn delete(key: impl AsRef<[u8]>) -> Result<(), CacheDeleteError> {
     cache_scalar::delete(key.as_ref()).map_err(Into::into)
@@ -301,14 +297,13 @@ pub struct GetWithHashValue<T> {
 /// ________
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheGetWithHashError, GetWithHashValue};
-///
-/// # fn f() -> Result<(), CacheGetWithHashError<std::convert::Infallible>> {
-/// let result: Option<GetWithHashValue<Vec<u8>>> = cache::get_with_hash("my_key")?;
-/// if let Some(entry) = result {
-///     log::info!("Value: {:?}, Hash: {:?}", entry.value, entry.hash);
+/// match cache::get_with_hash::<Vec<u8>>("my_key") {
+///     Ok(Some(entry)) => {
+///         log::info!("Value: {:?}, Hash: {:?}", entry.value, entry.hash);
+///     }
+///     Ok(None) => { /* key not found */ }
+///     Err(e) => log::error!("get_with_hash failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn get_with_hash<T: Extract>(
     key: impl AsRef<[u8]>,
@@ -337,29 +332,26 @@ pub fn get_with_hash<T: Extract>(
 /// Update only if the hash matches (value hasn't changed):
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheSetIfHashError, SetIfHashCondition, SetIfHashResult};
+/// # use momento_functions_host::cache::{SetIfHashCondition, SetIfHashResult};
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetIfHashError<std::convert::Infallible>> {
 /// // First, get the current value and its hash
 /// // let entry = cache::get_with_hash("my_key")?;
 /// let previous_hash = vec![1, 2, 3]; // Hash from a previous get_with_hash call
 ///
-/// let result = cache::set_if_hash(
+/// match cache::set_if_hash(
 ///     "my_key",
 ///     b"new_value".to_vec(),
 ///     Duration::from_secs(60),
 ///     SetIfHashCondition::PresentAndHashEqual(previous_hash),
-/// )?;
-/// match result {
-///     SetIfHashResult::Stored(new_hash) => {
+/// ) {
+///     Ok(SetIfHashResult::Stored(new_hash)) => {
 ///         log::info!("Value updated, new hash: {:?}", new_hash);
 ///     }
-///     SetIfHashResult::NotStored => {
+///     Ok(SetIfHashResult::NotStored) => {
 ///         log::info!("Value was modified by another process");
 ///     }
+///     Err(e) => log::error!("set_if_hash failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn set_if_hash<E: Encode>(
     key: impl AsRef<[u8]>,
@@ -494,20 +486,17 @@ pub enum CacheListPushFrontError<E: EncodeError> {
 /// Append a value to the back of a list:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheListPushBackError, CollectionTtl};
+/// # use momento_functions_host::cache::CollectionTtl;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheListPushBackError<std::convert::Infallible>> {
-///
-/// let list_length = cache::list_push_back(
+/// match cache::list_push_back(
 ///     "my_list",
 ///     b"new_value".to_vec(),
 ///     CollectionTtl::of(Duration::from_secs(60)),
 ///     None,
-/// )?;
-///
-/// log::info!("New length of my_list: {}", list_length);
-/// # Ok(()) }
+/// ) {
+///     Ok(list_length) => log::info!("New length of my_list: {}", list_length),
+///     Err(e) => log::error!("list_push_back failed: {e}"),
+/// }
 /// ```
 pub fn list_push_back<E: Encode>(
     list_name: impl AsRef<[u8]>,
@@ -541,20 +530,17 @@ pub fn list_push_back<E: Encode>(
 /// Append a value to the back of a list:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheListPushFrontError, CollectionTtl};
+/// # use momento_functions_host::cache::CollectionTtl;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheListPushFrontError<std::convert::Infallible>> {
-///
-/// let list_length = cache::list_push_front(
+/// match cache::list_push_front(
 ///     "my_list",
 ///     b"new_value".to_vec(),
 ///     CollectionTtl::of(Duration::from_secs(60)),
 ///     None,
-/// )?;
-///
-/// log::info!("New length of my_list: {}", list_length);
-/// # Ok(()) }
+/// ) {
+///     Ok(list_length) => log::info!("New length of my_list: {}", list_length),
+///     Err(e) => log::error!("list_push_front failed: {e}"),
+/// }
 /// ```
 pub fn list_push_front<E: Encode>(
     list_name: impl AsRef<[u8]>,
@@ -635,19 +621,23 @@ pub enum CacheListFetchError<E: ExtractError> {
 /// Bytes:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheListFetchError, StartIndex, EndIndex};
-///
-/// # fn f() -> Result<(), CacheListFetchError<std::convert::Infallible>> {
-/// if let Some(iter) = cache::list_fetch::<Vec<u8>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded)? {
-///     let values: Vec<Vec<u8>> = iter.collect::<Result<_, _>>()?;
+/// # use momento_functions_host::cache::{StartIndex, EndIndex};
+/// match cache::list_fetch::<Vec<u8>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded) {
+///     Ok(Some(iter)) => {
+///         match iter.collect::<Result<Vec<Vec<u8>>, _>>() {
+///             Ok(values) => { /* use values */ }
+///             Err(e) => log::error!("extract failed: {e}"),
+///         }
+///     }
+///     Ok(None) => { /* list not found */ }
+///     Err(e) => log::error!("list_fetch failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 /// ________
 /// Json:
 /// ```rust,no_run
 /// # use momento_functions_host::cache;
-/// # use momento_functions_host::cache::{CacheListFetchError, StartIndex, EndIndex};
+/// # use momento_functions_host::cache::{StartIndex, EndIndex};
 /// use momento_functions_host::encoding::Json;
 ///
 /// #[derive(serde::Deserialize)]
@@ -655,11 +645,16 @@ pub enum CacheListFetchError<E: ExtractError> {
 ///     message: String,
 /// }
 ///
-/// # fn f() -> Result<(), CacheListFetchError<serde_json::Error>> {
-/// if let Some(iter) = cache::list_fetch::<Json<MyStruct>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded)? {
-///     let values: Vec<Json<MyStruct>> = iter.collect::<Result<_, _>>()?;
+/// match cache::list_fetch::<Json<MyStruct>>("my_list", StartIndex::Unbounded, EndIndex::Unbounded) {
+///     Ok(Some(iter)) => {
+///         match iter.collect::<Result<Vec<Json<MyStruct>>, _>>() {
+///             Ok(values) => { /* use values */ }
+///             Err(e) => log::error!("extract failed: {e}"),
+///         }
+///     }
+///     Ok(None) => { /* list not found */ }
+///     Err(e) => log::error!("list_fetch failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 #[allow(clippy::type_complexity)]
 pub fn list_fetch<T: Extract>(

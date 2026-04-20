@@ -78,17 +78,18 @@ impl SecretsManagerClient {
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// use momento_functions_host::aws::secrets_manager::SecretsManagerClient;
     /// use momento_functions_host::build_environment_aws_credentials;
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
     ///
-    /// # fn f() -> Result<(), AuthError> {
-    /// let client = SecretsManagerClient::new(
-    ///     &AwsCredentialsProvider::new(
-    ///         "us-east-1",
-    ///         build_environment_aws_credentials!()
-    ///     )?
-    /// );
-    /// # Ok(())
-    /// # }
+    /// let credentials = match AwsCredentialsProvider::new(
+    ///     "us-east-1",
+    ///     build_environment_aws_credentials!(),
+    /// ) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
+    /// let client = SecretsManagerClient::new(&credentials);
     /// ```
     pub fn new(credentials: &auth::AwsCredentialsProvider) -> Self {
         Self {
@@ -123,13 +124,19 @@ impl SecretsManagerClient {
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
     /// use momento_functions_host::build_environment_aws_credentials;
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
-    /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
+    ///
+    /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
     /// let client = SecretsManagerClient::new(&credentials);
-    /// let secret: Vec<u8> = client.get_secret_value(GetSecretValueRequest::new("my-secret"), Duration::from_secs(0))?;
-    /// # Ok(())
-    /// # }
+    /// match client.get_secret_value::<Vec<u8>>(GetSecretValueRequest::new("my-secret"), Duration::from_secs(0)) {
+    ///     Ok(secret) => { /* use secret */ }
+    ///     Err(e) => log::error!("get_secret_value failed: {e}"),
+    /// }
     /// ```
     ///
     /// Fetch with version:
@@ -138,17 +145,23 @@ impl SecretsManagerClient {
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
     /// use momento_functions_host::build_environment_aws_credentials;
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
-    /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
+    ///
+    /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
     /// let client = SecretsManagerClient::new(&credentials);
-    /// let secret: Vec<u8> = client.get_secret_value(
+    /// match client.get_secret_value::<Vec<u8>>(
     ///     GetSecretValueRequest::new("my-secret")
     ///         .version_stage("AWSPENDING"),
     ///     Duration::from_secs(0),
-    /// )?;
-    /// # Ok(())
-    /// # }
+    /// ) {
+    ///     Ok(secret) => { /* use secret */ }
+    ///     Err(e) => log::error!("get_secret_value failed: {e}"),
+    /// }
     /// ```
     ///
     /// Fetch with caching:
@@ -157,14 +170,20 @@ impl SecretsManagerClient {
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
     /// use momento_functions_host::build_environment_aws_credentials;
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
-    /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
+    ///
+    /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
     /// let client = SecretsManagerClient::new(&credentials);
     /// let allowed_staleness = Duration::from_secs(300);
-    /// let secret: Vec<u8> = client.get_secret_value(GetSecretValueRequest::new("my-secret"), allowed_staleness)?;
-    /// # Ok(())
-    /// # }
+    /// match client.get_secret_value::<Vec<u8>>(GetSecretValueRequest::new("my-secret"), allowed_staleness) {
+    ///     Ok(secret) => { /* use secret */ }
+    ///     Err(e) => log::error!("get_secret_value failed: {e}"),
+    /// }
     /// ```
     /// Fetch with a JSON struct:
     /// ```rust,no_run
@@ -173,8 +192,7 @@ impl SecretsManagerClient {
     /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
     /// use momento_functions_host::encoding::Json;
     /// use momento_functions_host::build_environment_aws_credentials;
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
+    ///
     /// #[derive(serde::Deserialize)]
     /// struct MyPersistedSecret {
     ///     pub key: String,
@@ -182,12 +200,19 @@ impl SecretsManagerClient {
     ///     pub signing_key: Vec<u8>,
     /// }
     ///
-    /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
+    /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
     /// let client = SecretsManagerClient::new(&credentials);
     /// let allowed_staleness = Duration::from_secs(300);
-    /// let Json(secret): Json<MyPersistedSecret> = client.get_secret_value(GetSecretValueRequest::new("my-secret"), allowed_staleness)?;
-    /// # Ok(())
-    /// # }
+    /// match client.get_secret_value::<Json<MyPersistedSecret>>(GetSecretValueRequest::new("my-secret"), allowed_staleness) {
+    ///     Ok(Json(secret)) => { /* use secret */ }
+    ///     Err(e) => log::error!("get_secret_value failed: {e}"),
+    /// }
     /// ```
     pub fn get_secret_value<T: crate::encoding::Extract>(
         &self,
@@ -210,13 +235,19 @@ impl SecretsManagerClient {
     /// use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// use momento_functions_host::aws::secrets_manager::{SecretsManagerClient, GetSecretValueRequest};
     /// use momento_functions_host::build_environment_aws_credentials;
-    /// use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    /// # fn f() -> Result<(), Box<dyn std::error::Error>> {
-    /// let credentials = AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!())?;
+    ///
+    /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
     /// let client = SecretsManagerClient::new(&credentials);
-    /// let secret: Vec<u8> = client.get_latest_secret_value(GetSecretValueRequest::new("my-secret"))?;
-    /// # Ok(())
-    /// # }
+    /// match client.get_latest_secret_value::<Vec<u8>>(GetSecretValueRequest::new("my-secret")) {
+    ///     Ok(secret) => { /* use secret */ }
+    ///     Err(e) => log::error!("get_latest_secret_value failed: {e}"),
+    /// }
     /// ```
     pub fn get_latest_secret_value<T: crate::encoding::Extract>(
         &self,

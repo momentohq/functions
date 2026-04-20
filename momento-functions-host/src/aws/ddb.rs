@@ -59,16 +59,17 @@ impl DynamoDBClient {
     /// # use momento_functions_host::aws::auth::AwsCredentialsProvider;
     /// # use momento_functions_host::aws::ddb::DynamoDBClient;
     /// # use momento_functions_host::build_environment_aws_credentials;
-    /// # use momento_functions_wit::host::momento::host::aws_auth::AuthError;
-    /// # fn f() -> Result<(), AuthError> {
-    /// let client = DynamoDBClient::new(
-    ///     &AwsCredentialsProvider::new(
-    ///         "us-east-1",
-    ///         build_environment_aws_credentials!()
-    ///     )?
-    /// );
-    /// # Ok(())
-    /// # }
+    /// let credentials = match AwsCredentialsProvider::new(
+    ///     "us-east-1",
+    ///     build_environment_aws_credentials!(),
+    /// ) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         log::error!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
+    /// let client = DynamoDBClient::new(&credentials);
     /// ```
     pub fn new(credentials: &auth::AwsCredentialsProvider) -> Self {
         Self {

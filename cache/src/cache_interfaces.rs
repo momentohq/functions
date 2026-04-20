@@ -21,18 +21,17 @@ use crate::{
 /// ________
 /// Bytes:
 /// ```rust,no_run
-/// use momento_functions_cache::CacheGetError;
 /// use momento_functions_cache::get;
-/// # use std::convert::Infallible;
 ///
-/// # fn f() -> Result<(), CacheGetError<Infallible>> {
-/// let value: Option<Vec<u8>> = get("my_key")?;
-/// # Ok(()) }
+/// match get::<Vec<u8>>("my_key") {
+///     Ok(Some(value)) => { /* use value */ }
+///     Ok(None) => { /* key not found */ }
+///     Err(e) => eprintln!("cache get failed: {e}"),
+/// }
 /// ```
 /// ________
 /// Json:
 /// ```rust,no_run
-/// use momento_functions_cache::CacheGetError;
 /// use momento_functions_cache::get;
 /// use momento_functions_bytes::encoding::Json;
 ///
@@ -41,9 +40,11 @@ use crate::{
 ///   message: String
 /// }
 ///
-/// # fn f() -> Result<(), CacheGetError<serde_json::Error>> {
-/// let value: Option<Json<MyStruct>> = get("my_key")?;
-/// # Ok(()) }
+/// match get::<Json<MyStruct>>("my_key") {
+///     Ok(Some(Json(value))) => { /* use value */ }
+///     Ok(None) => { /* key not found */ }
+///     Err(e) => eprintln!("cache get failed: {e}"),
+/// }
 /// ```
 pub fn get<T: Extract>(key: impl Into<Data>) -> Result<Option<T>, CacheGetError<T::Error>> {
     match cache_scalar::get(key.into().into())? {
@@ -61,22 +62,20 @@ pub fn get<T: Extract>(key: impl Into<Data>) -> Result<Option<T>, CacheGetError<
 /// Bytes:
 /// ```rust,no_run
 /// use momento_functions_cache::set;
-/// use momento_functions_cache::CacheSetError;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetError<std::convert::Infallible>> {
-/// set(
+/// match set(
 ///     "my_key",
 ///     b"hello".to_vec(),
 ///     Duration::from_secs(60),
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(()) => {}
+///     Err(e) => eprintln!("cache set failed: {e}"),
+/// }
 /// ```
 /// ________
 /// Json:
 /// ```rust,no_run
 /// use momento_functions_cache::set;
-/// use momento_functions_cache::CacheSetError;
 /// # use std::time::Duration;
 /// use momento_functions_bytes::encoding::Json;
 ///
@@ -85,13 +84,14 @@ pub fn get<T: Extract>(key: impl Into<Data>) -> Result<Option<T>, CacheGetError<
 ///    hello: String
 /// }
 ///
-/// # fn f() -> Result<(), CacheSetError<serde_json::Error>> {
-/// set(
+/// match set(
 ///     "my_key",
 ///     Json(MyStruct { hello: "hello".to_string() }),
 ///     Duration::from_secs(60),
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(()) => {}
+///     Err(e) => eprintln!("cache set failed: {e}"),
+/// }
 /// ```
 pub fn set<E: Encode>(
     key: impl Into<Data>,
@@ -116,57 +116,54 @@ pub fn set<E: Encode>(
 /// Set only if absent:
 /// ```rust,no_run
 /// # use momento_functions_cache::set_if;
-/// # use momento_functions_cache::{ConditionalSetResult, CacheSetIfError, SetIfCondition};
+/// # use momento_functions_cache::{ConditionalSetResult, SetIfCondition};
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
-/// let result: ConditionalSetResult<()> = set_if(
+/// match set_if(
 ///     "my_key",
 ///     b"hello".to_vec(),
 ///     Duration::from_secs(60),
 ///     SetIfCondition::Absent,
-/// )?;
-/// match result {
-///     ConditionalSetResult::Stored(_) => {
+/// ) {
+///     Ok(ConditionalSetResult::Stored(_)) => {
 ///         // Do something
-///     },
-///     ConditionalSetResult::NotStored => {
+///     }
+///     Ok(ConditionalSetResult::NotStored) => {
 ///         // Do something else
-///     },
+///     }
+///     Err(e) => eprintln!("set_if failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 /// ________
 /// Set only if present:
 /// ```rust,no_run
 /// # use momento_functions_cache::set_if;
-/// # use momento_functions_cache::{CacheSetIfError, SetIfCondition, ConditionalSetResult};
+/// # use momento_functions_cache::SetIfCondition;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
-/// let result = set_if(
+/// match set_if(
 ///     "my_key",
 ///     b"updated".to_vec(),
 ///     Duration::from_secs(60),
 ///     SetIfCondition::Present,
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(result) => { /* inspect result */ }
+///     Err(e) => eprintln!("set_if failed: {e}"),
+/// }
 /// ```
 /// ________
 /// Set only if equal to a specific value:
 /// ```rust,no_run
 /// # use momento_functions_cache::set_if;
-/// # use momento_functions_cache::{CacheSetIfError, SetIfCondition, ConditionalSetResult};
+/// # use momento_functions_cache::SetIfCondition;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetIfError<std::convert::Infallible>> {
-/// let result = set_if(
+/// match set_if(
 ///     "my_key",
 ///     b"new_value".to_vec(),
 ///     Duration::from_secs(60),
 ///     SetIfCondition::Equal("old_value".into()),
-/// )?;
-/// # Ok(()) }
+/// ) {
+///     Ok(result) => { /* inspect result */ }
+///     Err(e) => eprintln!("set_if failed: {e}"),
+/// }
 /// ```
 pub fn set_if<E: Encode>(
     key: impl Into<Data>,
@@ -195,12 +192,12 @@ pub fn set_if<E: Encode>(
 /// Examples:
 /// ________
 /// ```rust,no_run
-/// use momento_functions_cache::CacheDeleteError;
 /// use momento_functions_cache::delete;
 ///
-/// # fn f() -> Result<(), CacheDeleteError> {
-/// delete("my_key")?;
-/// # Ok(()) }
+/// match delete("my_key") {
+///     Ok(()) => {}
+///     Err(e) => eprintln!("cache delete failed: {e}"),
+/// }
 /// ```
 pub fn delete(key: impl Into<Data>) -> Result<(), CacheDeleteError> {
     cache_scalar::delete(key.into().into()).map_err(Into::into)
@@ -214,15 +211,15 @@ pub fn delete(key: impl Into<Data>) -> Result<(), CacheDeleteError> {
 /// Examples:
 /// ________
 /// ```rust,no_run
-/// use momento_functions_cache::CacheGetWithHashError;
 /// use momento_functions_cache::{get_with_hash, GetWithHashValue};
 ///
-/// # fn f() -> Result<(), CacheGetWithHashError<std::convert::Infallible>> {
-/// let result: Option<GetWithHashValue<Vec<u8>>> = get_with_hash("my_key")?;
-/// if let Some(entry) = result {
-///     // use entry.value and entry.hash
+/// match get_with_hash::<Vec<u8>>("my_key") {
+///     Ok(Some(entry)) => {
+///         // use entry.value and entry.hash
+///     }
+///     Ok(None) => { /* key not found */ }
+///     Err(e) => eprintln!("get_with_hash failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn get_with_hash<T: Extract>(
     key: impl Into<Data>,
@@ -250,30 +247,27 @@ pub fn get_with_hash<T: Extract>(
 /// ________
 /// Update only if the hash matches (value hasn't changed):
 /// ```rust,no_run
-/// use momento_functions_cache::{CacheSetIfHashError, SetIfHashCondition, SetIfHashResult};
+/// use momento_functions_cache::{SetIfHashCondition, SetIfHashResult};
 /// use momento_functions_cache::set_if_hash;
 /// # use std::time::Duration;
-///
-/// # fn f() -> Result<(), CacheSetIfHashError<std::convert::Infallible>> {
 /// // First, get the current value and its hash
 /// // let entry = get_with_hash("my_key")?;
 /// let previous_hash = vec![1, 2, 3]; // Hash from a previous get_with_hash call
 ///
-/// let result = set_if_hash(
+/// match set_if_hash(
 ///     "my_key",
 ///     b"new_value".to_vec(),
 ///     Duration::from_secs(60),
 ///     SetIfHashCondition::PresentAndHashEqual(previous_hash.into()),
-/// )?;
-/// match result {
-///     SetIfHashResult::Stored(new_hash) => {
+/// ) {
+///     Ok(SetIfHashResult::Stored(new_hash)) => {
 ///         // value updated, use new_hash
 ///     }
-///     SetIfHashResult::NotStored => {
+///     Ok(SetIfHashResult::NotStored) => {
 ///         // value was modified by another process
 ///     }
+///     Err(e) => eprintln!("set_if_hash failed: {e}"),
 /// }
-/// # Ok(()) }
 /// ```
 pub fn set_if_hash<E: Encode>(
     key: impl Into<Data>,

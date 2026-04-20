@@ -42,18 +42,17 @@ impl From<token::GenerateDisposableTokenResponse> for GenerateDisposableTokenRes
 /// Generate a token with read-write cache access:
 /// ```rust,no_run
 /// use momento_functions_token::{
-///     generate_disposable_token, GenerateDisposableTokenError,
-///     Permissions, CachePermissions,
+///     generate_disposable_token, Permissions, CachePermissions,
 /// };
 ///
-/// # fn f() -> Result<(), GenerateDisposableTokenError> {
-/// let response = generate_disposable_token(
+/// match generate_disposable_token(
 ///     300,
 ///     Permissions::new().with_cache(CachePermissions::read_write()),
 ///     None,
-/// )?;
-/// println!("Token: {}, Endpoint: {}", response.api_key, response.endpoint);
-/// # Ok(()) }
+/// ) {
+///     Ok(response) => println!("Token: {}, Endpoint: {}", response.api_key, response.endpoint),
+///     Err(e) => eprintln!("failed to generate token: {e}"),
+/// }
 /// ```
 pub fn generate_disposable_token(
     valid_for_seconds: u32,

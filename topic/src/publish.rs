@@ -57,11 +57,12 @@ impl From<topic::Error> for TopicError {
 /// ________
 /// Publish a message:
 /// ```rust,no_run
-/// use momento_functions_topic::{publish, TopicError};
+/// use momento_functions_topic::publish;
 ///
-/// # fn f() -> Result<(), TopicError> {
-/// publish("my-topic", "hello world")?;
-/// # Ok(()) }
+/// match publish("my-topic", "hello world") {
+///     Ok(()) => {}
+///     Err(e) => eprintln!("publish failed: {e}"),
+/// }
 /// ```
 pub fn publish(topic_name: impl Into<String>, value: impl Into<String>) -> Result<(), TopicError> {
     topic::publish(&topic_name.into(), &value.into()).map_err(Into::into)
@@ -77,11 +78,12 @@ pub fn publish(topic_name: impl Into<String>, value: impl Into<String>) -> Resul
 /// ________
 /// Publish binary data:
 /// ```rust,no_run
-/// use momento_functions_topic::{publish_bytes, TopicError};
+/// use momento_functions_topic::publish_bytes;
 ///
-/// # fn f() -> Result<(), TopicError> {
-/// publish_bytes("my-topic", b"binary data".to_vec())?;
-/// # Ok(()) }
+/// match publish_bytes("my-topic", b"binary data".to_vec()) {
+///     Ok(()) => {}
+///     Err(e) => eprintln!("publish failed: {e}"),
+/// }
 /// ```
 pub fn publish_bytes(
     topic_name: impl Into<String>,

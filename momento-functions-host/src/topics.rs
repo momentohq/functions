@@ -26,23 +26,19 @@ pub enum PublishError<E: EncodeError> {
 /// String:
 /// ```rust,no_run
 /// # use momento_functions_host::topics;
-/// #
-/// use momento_functions_host::topics::PublishError;
-///
-/// # fn f() -> Result<(), PublishError<std::convert::Infallible>> {
-/// topics::publish("my_topic", "hello there")?;
-/// # Ok(()) }
+/// match topics::publish("my_topic", "hello there") {
+///     Ok(()) => {}
+///     Err(e) => eprintln!("failed to publish: {e}"),
+/// }
 /// ```
 /// ________
 /// Bytes:
 /// ```rust,no_run
 /// # use momento_functions_host::topics;
-/// #
-/// use momento_functions_host::topics::PublishError;
-///
-/// # fn f() -> Result<(), PublishError<std::convert::Infallible>> {
-/// topics::publish("my_topic", b"hello there".to_vec())?;
-/// # Ok(()) }
+/// match topics::publish("my_topic", b"hello there".to_vec()) {
+///     Ok(()) => {}
+///     Err(e) => eprintln!("failed to publish: {e}"),
+/// }
 /// ```
 /// ________
 /// Json:
@@ -50,16 +46,15 @@ pub enum PublishError<E: EncodeError> {
 /// # use momento_functions_host::topics;
 /// use momento_functions_host::encoding::Json;
 ///
-/// use momento_functions_host::topics::PublishError;
-///
 /// #[derive(serde::Serialize)]
 /// struct MyStruct {
 ///    hello: String
 /// }
 ///
-/// # fn f() -> Result<(), PublishError<serde_json::Error>> {
-/// topics::publish("my_topic", Json(MyStruct{ hello: "hello".to_string() }))?;
-/// # Ok(()) }
+/// match topics::publish("my_topic", Json(MyStruct{ hello: "hello".to_string() })) {
+///     Ok(()) => {}
+///     Err(e) => eprintln!("failed to publish: {e}"),
+/// }
 /// ```
 pub fn publish<T: PublishKind>(
     topic: impl AsRef<str>,

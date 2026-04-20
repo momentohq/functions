@@ -49,17 +49,20 @@ impl DynamoDBClient {
     /// Create a new DynamoDB client.
     ///
     /// ```rust,no_run
-    /// use momento_functions_aws_auth::{Authorization, IamRole, provider, CredentialsProvider};
+    /// use momento_functions_aws_auth::{Authorization, IamRole, provider};
     /// use momento_functions_aws_ddb::DynamoDBClient;
     ///
-    /// # fn f() -> Result<(), momento_functions_aws_auth::AuthError> {
-    /// let credentials = provider(
+    /// let credentials = match provider(
     ///     &Authorization::Federated(IamRole { role_arn: "arn:aws:iam::123456789012:role/my-role".to_string() }),
     ///     "us-east-1",
-    /// )?;
+    /// ) {
+    ///     Ok(credentials) => credentials,
+    ///     Err(e) => {
+    ///         eprintln!("failed to build credentials: {e}");
+    ///         return;
+    ///     }
+    /// };
     /// let client = DynamoDBClient::new(&credentials);
-    /// # Ok(())
-    /// # }
     /// ```
     pub fn new(credentials: &CredentialsProvider) -> Self {
         Self {

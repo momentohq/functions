@@ -38,7 +38,7 @@ use crate::{
 ///     None,
 /// ) {
 ///     Ok(list_length) => { /* use list_length */ }
-///     Err(e) => log::error!("list_push_front failed: {e}"),
+///     Err(e) => eprintln!("list_push_front failed: {e}"),
 /// }
 /// ```
 pub fn list_push_front<E: Encode>(
@@ -81,7 +81,7 @@ pub fn list_push_front<E: Encode>(
 ///     None,
 /// ) {
 ///     Ok(list_length) => { /* use list_length */ }
-///     Err(e) => log::error!("list_push_back failed: {e}"),
+///     Err(e) => eprintln!("list_push_back failed: {e}"),
 /// }
 /// ```
 pub fn list_push_back<E: Encode>(
@@ -117,7 +117,7 @@ pub fn list_push_back<E: Encode>(
 ///     Ok(PopResult::Missing) => {
 ///         // list not found
 ///     }
-///     Err(e) => log::error!("pop failed: {e}"),
+///     Err(e) => eprintln!("pop failed: {e}"),
 /// }
 /// ```
 pub fn list_pop_front<T: Extract>(
@@ -150,7 +150,7 @@ pub fn list_pop_front<T: Extract>(
 ///     Ok(PopResult::Missing) => {
 ///         // list not found
 ///     }
-///     Err(e) => log::error!("pop failed: {e}"),
+///     Err(e) => eprintln!("pop failed: {e}"),
 /// }
 /// ```
 pub fn list_pop_back<T: Extract>(
@@ -179,7 +179,7 @@ pub fn list_pop_back<T: Extract>(
 ///
 /// match list_erase("my_list", EraseRange::All) {
 ///     Ok(result) => { /* inspect result */ }
-///     Err(e) => log::error!("erase failed: {e}"),
+///     Err(e) => eprintln!("erase failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -192,7 +192,7 @@ pub fn list_pop_back<T: Extract>(
 ///     EraseRange::Ranges(vec![ListRange { begin_index: 0, count: 2 }]),
 /// ) {
 ///     Ok(result) => { /* inspect result */ }
-///     Err(e) => log::error!("erase failed: {e}"),
+///     Err(e) => eprintln!("erase failed: {e}"),
 /// }
 /// ```
 pub fn list_erase(
@@ -217,7 +217,7 @@ pub fn list_erase(
 ///     "unwanted",
 /// ) {
 ///     Ok(result) => { /* inspect result */ }
-///     Err(e) => log::error!("remove failed: {e}"),
+///     Err(e) => eprintln!("remove failed: {e}"),
 /// }
 /// ```
 pub fn list_remove<E: Encode>(
@@ -260,7 +260,7 @@ pub fn list_remove<E: Encode>(
 ///         .collect::<Result<_, _>>()
 ///         .unwrap_or_default(),
 ///     Err(e) => {
-///         log::error!("fetch failed: {e}");
+///         eprintln!("fetch failed: {e}");
 ///         Vec::new()
 ///     }
 /// };
@@ -280,7 +280,7 @@ pub fn list_remove<E: Encode>(
 ///         }
 ///     }
 ///     Ok(None) => { /* list not found */ }
-///     Err(e) => log::error!("fetch failed: {e}"),
+///     Err(e) => eprintln!("fetch failed: {e}"),
 /// }
 /// ```
 pub fn list_fetch<T: Extract>(
@@ -314,7 +314,7 @@ pub fn list_fetch<T: Extract>(
 ///     Ok(LengthResult::Missing) => {
 ///         // list not found
 ///     }
-///     Err(e) => log::error!("length failed: {e}"),
+///     Err(e) => eprintln!("length failed: {e}"),
 /// }
 /// ```
 pub fn list_length(list_name: impl Into<Data>) -> Result<LengthResult, CacheListLengthError> {
@@ -343,7 +343,7 @@ pub fn list_length(list_name: impl Into<Data>) -> Result<LengthResult, CacheList
 ///     None,
 /// ) {
 ///     Ok(list_length) => { /* use list_length */ }
-///     Err(e) => log::error!("concatenate_front failed: {e}"),
+///     Err(e) => eprintln!("concatenate_front failed: {e}"),
 /// }
 /// ```
 pub fn list_concatenate_front<E: Encode>(
@@ -390,7 +390,7 @@ pub fn list_concatenate_front<E: Encode>(
 ///     None,
 /// ) {
 ///     Ok(list_length) => { /* use list_length */ }
-///     Err(e) => log::error!("concatenate_back failed: {e}"),
+///     Err(e) => eprintln!("concatenate_back failed: {e}"),
 /// }
 /// ```
 pub fn list_concatenate_back<E: Encode>(
@@ -432,7 +432,7 @@ pub fn list_concatenate_back<E: Encode>(
 ///     CollectionTtl::of(Duration::from_secs(60)),
 /// ) {
 ///     Ok(result) => { /* inspect result */ }
-///     Err(e) => log::error!("retain failed: {e}"),
+///     Err(e) => eprintln!("retain failed: {e}"),
 /// }
 /// ```
 pub fn list_retain(

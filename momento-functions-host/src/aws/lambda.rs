@@ -45,7 +45,7 @@ impl LambdaClient {
     /// ) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };
@@ -72,7 +72,7 @@ impl LambdaClient {
     ///     "hello world",
     /// ) {
     ///     Ok(_response) => {}
-    ///     Err(e) => log::error!("invoke failed: {e}"),
+    ///     Err(e) => eprintln!("invoke failed: {e}"),
     /// }
     ///
     /// // With a payload and a qualifier
@@ -81,7 +81,7 @@ impl LambdaClient {
     ///     "hello world",
     /// ) {
     ///     Ok(_response) => {}
-    ///     Err(e) => log::error!("invoke failed: {e}"),
+    ///     Err(e) => eprintln!("invoke failed: {e}"),
     /// }
     ///
     /// // Without a payload
@@ -90,7 +90,7 @@ impl LambdaClient {
     ///     (),
     /// ) {
     ///     Ok(_response) => {}
-    ///     Err(e) => log::error!("invoke failed: {e}"),
+    ///     Err(e) => eprintln!("invoke failed: {e}"),
     /// }
     ///
     /// // With literal bytes
@@ -99,7 +99,7 @@ impl LambdaClient {
     ///     b"some literal bytes".to_vec(),
     /// ) {
     ///     Ok(_response) => {}
-    ///     Err(e) => log::error!("invoke failed: {e}"),
+    ///     Err(e) => eprintln!("invoke failed: {e}"),
     /// }
     /// ```
     /// ________
@@ -124,7 +124,7 @@ impl LambdaClient {
     ///     Json(MyStruct { hello: "hello".to_string() }),
     /// ) {
     ///     Ok(_response) => {}
-    ///     Err(e) => log::error!("invoke failed: {e}"),
+    ///     Err(e) => eprintln!("invoke failed: {e}"),
     /// }
     ///
     /// // Request and response payload, both encoded as JSON
@@ -136,9 +136,9 @@ impl LambdaClient {
     ///         Ok(Json(reply)) => {
     ///             let message = reply.message;
     ///         }
-    ///         Err(e) => log::error!("failed to extract reply: {e}"),
+    ///         Err(e) => eprintln!("failed to extract reply: {e}"),
     ///     },
-    ///     Err(e) => log::error!("invoke failed: {e}"),
+    ///     Err(e) => eprintln!("invoke failed: {e}"),
     /// }
     /// ```
     pub fn invoke<E: Encode>(

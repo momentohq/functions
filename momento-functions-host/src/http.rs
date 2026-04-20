@@ -46,9 +46,9 @@ impl Response {
     /// ) {
     ///     Ok(mut response) => match response.extract::<Json<Reply>>() {
     ///         Ok(Json(reply)) => { /* use reply */ }
-    ///         Err(e) => log::error!("decode failed: {e}"),
+    ///         Err(e) => eprintln!("decode failed: {e}"),
     ///     },
-    ///     Err(e) => log::error!("post failed: {e}"),
+    ///     Err(e) => eprintln!("post failed: {e}"),
     /// }
     /// ```
     pub fn extract<E: Extract>(&mut self) -> Result<E, E::Error> {
@@ -70,7 +70,7 @@ pub enum HttpGetError {
 /// # use momento_functions_host::http;
 /// match http::get("https://gomomento.com", []) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("get failed: {e}"),
+///     Err(e) => eprintln!("get failed: {e}"),
 /// }
 /// match http::get(
 ///     "https://gomomento.com",
@@ -79,7 +79,7 @@ pub enum HttpGetError {
 ///     ]
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("get failed: {e}"),
+///     Err(e) => eprintln!("get failed: {e}"),
 /// }
 /// ```
 pub fn get(
@@ -123,7 +123,7 @@ pub enum HttpPutError<E: EncodeError> {
 /// # use momento_functions_host::http;
 /// match http::put("https://gomomento.com", [], b"hello".as_ref()) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("put failed: {e}"),
+///     Err(e) => eprintln!("put failed: {e}"),
 /// }
 ///
 /// use momento_functions_host::encoding::Json;
@@ -140,7 +140,7 @@ pub enum HttpPutError<E: EncodeError> {
 ///     Json(MyStruct { message: "hello".to_string() })
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("put failed: {e}"),
+///     Err(e) => eprintln!("put failed: {e}"),
 /// }
 /// ```
 pub fn put<E: Encode>(
@@ -188,7 +188,7 @@ pub enum HttpPostError<E: EncodeError> {
 /// # use momento_functions_host::http;
 /// match http::post("https://gomomento.com", [], b"hello".as_ref()) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("post failed: {e}"),
+///     Err(e) => eprintln!("post failed: {e}"),
 /// }
 ///
 /// use momento_functions_host::encoding::Json;
@@ -211,9 +211,9 @@ pub enum HttpPostError<E: EncodeError> {
 /// ) {
 ///     Ok(mut response) => match response.extract::<Json<Reply>>() {
 ///         Ok(Json(reply)) => { /* use reply */ }
-///         Err(e) => log::error!("decode failed: {e}"),
+///         Err(e) => eprintln!("decode failed: {e}"),
 ///     },
-///     Err(e) => log::error!("post failed: {e}"),
+///     Err(e) => eprintln!("post failed: {e}"),
 /// }
 /// ```
 pub fn post<E: Encode>(
@@ -255,7 +255,7 @@ pub enum HttpDeleteError {
 /// # use momento_functions_host::http;
 /// match http::delete("https://gomomento.com", []) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("delete failed: {e}"),
+///     Err(e) => eprintln!("delete failed: {e}"),
 /// }
 /// match http::delete(
 ///     "https://gomomento.com",
@@ -264,7 +264,7 @@ pub enum HttpDeleteError {
 ///     ]
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("delete failed: {e}"),
+///     Err(e) => eprintln!("delete failed: {e}"),
 /// }
 /// ```
 pub fn delete(
@@ -328,7 +328,7 @@ impl aws::auth::Credentials {
 ///     "bedrock",
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("get failed: {e}"),
+///     Err(e) => eprintln!("get failed: {e}"),
 /// }
 /// match http::get_aws_sigv4(
 ///     "https://bedrock-runtime.us-west-2.amazonaws.com/model/us.amazon.nova-pro-v1:0/invoke",
@@ -340,7 +340,7 @@ impl aws::auth::Credentials {
 ///     "bedrock",
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("get failed: {e}"),
+///     Err(e) => eprintln!("get failed: {e}"),
 /// }
 /// ```
 pub fn get_aws_sigv4(
@@ -390,7 +390,7 @@ pub fn get_aws_sigv4(
 ///     Json(MyStruct { message: "hello".to_string() })
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("put failed: {e}"),
+///     Err(e) => eprintln!("put failed: {e}"),
 /// }
 /// ```
 pub fn put_aws_sigv4<E: Encode>(
@@ -444,7 +444,7 @@ pub fn put_aws_sigv4<E: Encode>(
 ///     Json(MyStruct { message: "hello".to_string() })
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("post failed: {e}"),
+///     Err(e) => eprintln!("post failed: {e}"),
 /// }
 /// ```
 pub fn post_aws_sigv4<E: Encode>(
@@ -489,7 +489,7 @@ pub fn post_aws_sigv4<E: Encode>(
 ///     "bedrock",
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("delete failed: {e}"),
+///     Err(e) => eprintln!("delete failed: {e}"),
 /// }
 /// match http::delete_aws_sigv4(
 ///     "https://bedrock-runtime.us-west-2.amazonaws.com/model/us.amazon.nova-pro-v1:0/invoke",
@@ -501,7 +501,7 @@ pub fn post_aws_sigv4<E: Encode>(
 ///     "bedrock",
 /// ) {
 ///     Ok(response) => { /* use response */ }
-///     Err(e) => log::error!("delete failed: {e}"),
+///     Err(e) => eprintln!("delete failed: {e}"),
 /// }
 /// ```
 pub fn delete_aws_sigv4(

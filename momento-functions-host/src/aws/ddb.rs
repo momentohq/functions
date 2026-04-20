@@ -65,7 +65,7 @@ impl DynamoDBClient {
     /// ) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };

@@ -51,7 +51,7 @@ impl From<token::GenerateDisposableTokenResponse> for GenerateDisposableTokenRes
 ///     None,
 /// ) {
 ///     Ok(response) => println!("Token: {}, Endpoint: {}", response.api_key, response.endpoint),
-///     Err(e) => log::error!("failed to generate token: {e}"),
+///     Err(e) => eprintln!("failed to generate token: {e}"),
 /// }
 /// ```
 pub fn generate_disposable_token(

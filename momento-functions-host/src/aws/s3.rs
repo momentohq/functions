@@ -107,7 +107,7 @@ impl S3Client {
     /// ) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };
@@ -138,7 +138,7 @@ impl S3Client {
     ///     "bar",
     /// ) {
     ///     Ok(()) => {}
-    ///     Err(e) => log::error!("put failed: {e}"),
+    ///     Err(e) => eprintln!("put failed: {e}"),
     /// }
     ///
     /// // With literal bytes
@@ -148,7 +148,7 @@ impl S3Client {
     ///     b"bar".to_vec(),
     /// ) {
     ///     Ok(()) => {}
-    ///     Err(e) => log::error!("put failed: {e}"),
+    ///     Err(e) => eprintln!("put failed: {e}"),
     /// }
     /// ```
     /// ________
@@ -170,7 +170,7 @@ impl S3Client {
     ///     Json(MyStruct { hello: "hello".to_string() }),
     /// ) {
     ///     Ok(()) => {}
-    ///     Err(e) => log::error!("put failed: {e}"),
+    ///     Err(e) => eprintln!("put failed: {e}"),
     /// }
     /// ```
     pub fn put<E: Encode>(
@@ -203,7 +203,7 @@ impl S3Client {
     ///     },
     /// ) {
     ///     Ok(()) => {}
-    ///     Err(e) => log::error!("put_with_options failed: {e}"),
+    ///     Err(e) => eprintln!("put_with_options failed: {e}"),
     /// }
     /// ```
     pub fn put_with_options<E: Encode>(
@@ -252,7 +252,7 @@ impl S3Client {
     /// ) {
     ///     Ok(Some(my_value)) => { /* use my_value */ }
     ///     Ok(None) => { /* key not found */ }
-    ///     Err(e) => log::error!("get failed: {e}"),
+    ///     Err(e) => eprintln!("get failed: {e}"),
     /// }
     ///
     /// match client.get::<Vec<u8>>(
@@ -261,7 +261,7 @@ impl S3Client {
     /// ) {
     ///     Ok(Some(another_value)) => { /* use another_value */ }
     ///     Ok(None) => { /* key not found */ }
-    ///     Err(e) => log::error!("get failed: {e}"),
+    ///     Err(e) => eprintln!("get failed: {e}"),
     /// }
     /// ```
     /// ________
@@ -282,7 +282,7 @@ impl S3Client {
     /// ) {
     ///     Ok(Some(Json(my_struct))) => { /* use my_struct */ }
     ///     Ok(None) => { /* key not found */ }
-    ///     Err(e) => log::error!("get failed: {e}"),
+    ///     Err(e) => eprintln!("get failed: {e}"),
     /// }
     /// ```
     pub fn get<T: Extract>(
@@ -317,7 +317,7 @@ impl S3Client {
     ///         println!("body length: {}", output.value.len());
     ///     }
     ///     Ok(None) => { /* key not found */ }
-    ///     Err(e) => log::error!("get_with_options failed: {e}"),
+    ///     Err(e) => eprintln!("get_with_options failed: {e}"),
     /// }
     /// ```
     pub fn get_with_options<T: Extract>(

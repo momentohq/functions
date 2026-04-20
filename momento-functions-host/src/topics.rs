@@ -28,7 +28,7 @@ pub enum PublishError<E: EncodeError> {
 /// # use momento_functions_host::topics;
 /// match topics::publish("my_topic", "hello there") {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("failed to publish: {e}"),
+///     Err(e) => eprintln!("failed to publish: {e}"),
 /// }
 /// ```
 /// ________
@@ -37,7 +37,7 @@ pub enum PublishError<E: EncodeError> {
 /// # use momento_functions_host::topics;
 /// match topics::publish("my_topic", b"hello there".to_vec()) {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("failed to publish: {e}"),
+///     Err(e) => eprintln!("failed to publish: {e}"),
 /// }
 /// ```
 /// ________
@@ -53,7 +53,7 @@ pub enum PublishError<E: EncodeError> {
 ///
 /// match topics::publish("my_topic", Json(MyStruct{ hello: "hello".to_string() })) {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("failed to publish: {e}"),
+///     Err(e) => eprintln!("failed to publish: {e}"),
 /// }
 /// ```
 pub fn publish<T: PublishKind>(

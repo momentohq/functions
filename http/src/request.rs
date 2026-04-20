@@ -143,7 +143,7 @@ impl Request {
     /// {
     ///     Ok(request) => request,
     ///     Err(e) => {
-    ///         log::error!("failed to serialize body: {e}");
+    ///         eprintln!("failed to serialize body: {e}");
     ///         return;
     ///     }
     /// };

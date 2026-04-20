@@ -21,7 +21,7 @@ pub enum FunctionSpawnError<E: EncodeError> {
 /// ```rust,no_run
 /// match momento_functions_host::spawn("my_function", b"a payload for my_function".as_slice()) {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("failed to spawn function: {e}"),
+///     Err(e) => eprintln!("failed to spawn function: {e}"),
 /// }
 /// ```
 pub fn spawn<E: Encode>(

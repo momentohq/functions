@@ -39,7 +39,7 @@ impl From<valkey::ValkeyError> for ValkeyError {
 ///         let all: Vec<Value> = bulk.collect();
 ///     }
 ///     Ok(_) => {}
-///     Err(e) => log::error!("command failed: {e}"),
+///     Err(e) => eprintln!("command failed: {e}"),
 /// }
 /// ```
 pub struct Bulk {
@@ -117,7 +117,7 @@ impl ClusterClient {
     /// let client = get_managed_cluster_client("my-cluster");
     /// match client.command(Command::set("my_key", "my_value")) {
     ///     Ok(_) => {}
-    ///     Err(e) => log::error!("command failed: {e}"),
+    ///     Err(e) => eprintln!("command failed: {e}"),
     /// }
     /// ```
     /// ________
@@ -130,7 +130,7 @@ impl ClusterClient {
     /// cmd.argument("my_sorted_set").argument("1.0").argument("member");
     /// match client.command(cmd) {
     ///     Ok(_) => {}
-    ///     Err(e) => log::error!("command failed: {e}"),
+    ///     Err(e) => eprintln!("command failed: {e}"),
     /// }
     /// ```
     pub fn command(&self, command: impl Into<Command>) -> Result<Value, ValkeyError> {
@@ -158,7 +158,7 @@ impl ClusterClient {
 /// match client.command("PING") {
 ///     Ok(Value::SimpleString(s)) => println!("Received: {s}"),
 ///     Ok(_) => println!("Unexpected response"),
-///     Err(e) => log::error!("ping failed: {e}"),
+///     Err(e) => eprintln!("ping failed: {e}"),
 /// }
 /// ```
 pub fn get_managed_cluster_client(cluster_name: impl Into<String>) -> ClusterClient {

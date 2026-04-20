@@ -51,7 +51,7 @@ pub enum CacheGetError<E: ExtractError> {
 /// match cache::get::<Vec<u8>>("my_key") {
 ///     Ok(Some(value)) => { /* use value */ }
 ///     Ok(None) => { /* key not found */ }
-///     Err(e) => log::error!("cache get failed: {e}"),
+///     Err(e) => eprintln!("cache get failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -68,7 +68,7 @@ pub enum CacheGetError<E: ExtractError> {
 /// match cache::get::<Json<MyStruct>>("my_key") {
 ///     Ok(Some(Json(value))) => { /* use value */ }
 ///     Ok(None) => { /* key not found */ }
-///     Err(e) => log::error!("cache get failed: {e}"),
+///     Err(e) => eprintln!("cache get failed: {e}"),
 /// }
 /// ```
 pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError<T::Error>> {
@@ -94,7 +94,7 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError
 ///     Duration::from_secs(60),
 /// ) {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("cache set failed: {e}"),
+///     Err(e) => eprintln!("cache set failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -115,7 +115,7 @@ pub fn get<T: Extract>(key: impl AsRef<[u8]>) -> Result<Option<T>, CacheGetError
 ///     Duration::from_secs(60),
 /// ) {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("cache set failed: {e}"),
+///     Err(e) => eprintln!("cache set failed: {e}"),
 /// }
 /// ```
 pub fn set<E: Encode>(
@@ -181,7 +181,7 @@ pub enum CacheDeleteError {
 ///     Ok(SetIfResult::NotStored) => {
 ///         // Do something else
 ///     }
-///     Err(e) => log::error!("set_if failed: {e}"),
+///     Err(e) => eprintln!("set_if failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -197,7 +197,7 @@ pub enum CacheDeleteError {
 ///     SetIfCondition::Present,
 /// ) {
 ///     Ok(result) => { /* inspect result */ }
-///     Err(e) => log::error!("set_if failed: {e}"),
+///     Err(e) => eprintln!("set_if failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -213,7 +213,7 @@ pub enum CacheDeleteError {
 ///     SetIfCondition::Equal(b"old_value".to_vec()),
 /// ) {
 ///     Ok(result) => { /* inspect result */ }
-///     Err(e) => log::error!("set_if failed: {e}"),
+///     Err(e) => eprintln!("set_if failed: {e}"),
 /// }
 /// ```
 pub fn set_if<E: Encode>(
@@ -245,7 +245,7 @@ pub fn set_if<E: Encode>(
 /// # use momento_functions_host::cache;
 /// match cache::delete("my_key") {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("cache delete failed: {e}"),
+///     Err(e) => eprintln!("cache delete failed: {e}"),
 /// }
 /// ```
 pub fn delete(key: impl AsRef<[u8]>) -> Result<(), CacheDeleteError> {
@@ -302,7 +302,7 @@ pub struct GetWithHashValue<T> {
 ///         log::info!("Value: {:?}, Hash: {:?}", entry.value, entry.hash);
 ///     }
 ///     Ok(None) => { /* key not found */ }
-///     Err(e) => log::error!("get_with_hash failed: {e}"),
+///     Err(e) => eprintln!("get_with_hash failed: {e}"),
 /// }
 /// ```
 pub fn get_with_hash<T: Extract>(
@@ -350,7 +350,7 @@ pub fn get_with_hash<T: Extract>(
 ///     Ok(SetIfHashResult::NotStored) => {
 ///         log::info!("Value was modified by another process");
 ///     }
-///     Err(e) => log::error!("set_if_hash failed: {e}"),
+///     Err(e) => eprintln!("set_if_hash failed: {e}"),
 /// }
 /// ```
 pub fn set_if_hash<E: Encode>(
@@ -495,7 +495,7 @@ pub enum CacheListPushFrontError<E: EncodeError> {
 ///     None,
 /// ) {
 ///     Ok(list_length) => log::info!("New length of my_list: {}", list_length),
-///     Err(e) => log::error!("list_push_back failed: {e}"),
+///     Err(e) => eprintln!("list_push_back failed: {e}"),
 /// }
 /// ```
 pub fn list_push_back<E: Encode>(
@@ -539,7 +539,7 @@ pub fn list_push_back<E: Encode>(
 ///     None,
 /// ) {
 ///     Ok(list_length) => log::info!("New length of my_list: {}", list_length),
-///     Err(e) => log::error!("list_push_front failed: {e}"),
+///     Err(e) => eprintln!("list_push_front failed: {e}"),
 /// }
 /// ```
 pub fn list_push_front<E: Encode>(
@@ -626,11 +626,11 @@ pub enum CacheListFetchError<E: ExtractError> {
 ///     Ok(Some(iter)) => {
 ///         match iter.collect::<Result<Vec<Vec<u8>>, _>>() {
 ///             Ok(values) => { /* use values */ }
-///             Err(e) => log::error!("extract failed: {e}"),
+///             Err(e) => eprintln!("extract failed: {e}"),
 ///         }
 ///     }
 ///     Ok(None) => { /* list not found */ }
-///     Err(e) => log::error!("list_fetch failed: {e}"),
+///     Err(e) => eprintln!("list_fetch failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -649,11 +649,11 @@ pub enum CacheListFetchError<E: ExtractError> {
 ///     Ok(Some(iter)) => {
 ///         match iter.collect::<Result<Vec<Json<MyStruct>>, _>>() {
 ///             Ok(values) => { /* use values */ }
-///             Err(e) => log::error!("extract failed: {e}"),
+///             Err(e) => eprintln!("extract failed: {e}"),
 ///         }
 ///     }
 ///     Ok(None) => { /* list not found */ }
-///     Err(e) => log::error!("list_fetch failed: {e}"),
+///     Err(e) => eprintln!("list_fetch failed: {e}"),
 /// }
 /// ```
 #[allow(clippy::type_complexity)]

@@ -81,7 +81,7 @@ impl From<http::Response> for Response {
 ///
 /// match invoke(Request::new("https://example.com/api", "GET")) {
 ///     Ok(response) => println!("status: {}", response.status),
-///     Err(e) => log::error!("request failed: {e}"),
+///     Err(e) => eprintln!("request failed: {e}"),
 /// }
 /// ```
 ///
@@ -95,7 +95,7 @@ impl From<http::Response> for Response {
 ///         .with_body(b"{\"key\": \"value\"}".to_vec()),
 /// ) {
 ///     Ok(response) => println!("status: {}", response.status),
-///     Err(e) => log::error!("request failed: {e}"),
+///     Err(e) => eprintln!("request failed: {e}"),
 /// }
 /// ```
 pub fn invoke(request: Request) -> Result<Response, HttpError> {

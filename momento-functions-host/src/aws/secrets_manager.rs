@@ -85,7 +85,7 @@ impl SecretsManagerClient {
     /// ) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };
@@ -128,14 +128,14 @@ impl SecretsManagerClient {
     /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };
     /// let client = SecretsManagerClient::new(&credentials);
     /// match client.get_secret_value::<Vec<u8>>(GetSecretValueRequest::new("my-secret"), Duration::from_secs(0)) {
     ///     Ok(secret) => { /* use secret */ }
-    ///     Err(e) => log::error!("get_secret_value failed: {e}"),
+    ///     Err(e) => eprintln!("get_secret_value failed: {e}"),
     /// }
     /// ```
     ///
@@ -149,7 +149,7 @@ impl SecretsManagerClient {
     /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };
@@ -160,7 +160,7 @@ impl SecretsManagerClient {
     ///     Duration::from_secs(0),
     /// ) {
     ///     Ok(secret) => { /* use secret */ }
-    ///     Err(e) => log::error!("get_secret_value failed: {e}"),
+    ///     Err(e) => eprintln!("get_secret_value failed: {e}"),
     /// }
     /// ```
     ///
@@ -174,7 +174,7 @@ impl SecretsManagerClient {
     /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };
@@ -182,7 +182,7 @@ impl SecretsManagerClient {
     /// let allowed_staleness = Duration::from_secs(300);
     /// match client.get_secret_value::<Vec<u8>>(GetSecretValueRequest::new("my-secret"), allowed_staleness) {
     ///     Ok(secret) => { /* use secret */ }
-    ///     Err(e) => log::error!("get_secret_value failed: {e}"),
+    ///     Err(e) => eprintln!("get_secret_value failed: {e}"),
     /// }
     /// ```
     /// Fetch with a JSON struct:
@@ -203,7 +203,7 @@ impl SecretsManagerClient {
     /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };
@@ -211,7 +211,7 @@ impl SecretsManagerClient {
     /// let allowed_staleness = Duration::from_secs(300);
     /// match client.get_secret_value::<Json<MyPersistedSecret>>(GetSecretValueRequest::new("my-secret"), allowed_staleness) {
     ///     Ok(Json(secret)) => { /* use secret */ }
-    ///     Err(e) => log::error!("get_secret_value failed: {e}"),
+    ///     Err(e) => eprintln!("get_secret_value failed: {e}"),
     /// }
     /// ```
     pub fn get_secret_value<T: crate::encoding::Extract>(
@@ -239,14 +239,14 @@ impl SecretsManagerClient {
     /// let credentials = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
     ///     Ok(credentials) => credentials,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };
     /// let client = SecretsManagerClient::new(&credentials);
     /// match client.get_latest_secret_value::<Vec<u8>>(GetSecretValueRequest::new("my-secret")) {
     ///     Ok(secret) => { /* use secret */ }
-    ///     Err(e) => log::error!("get_latest_secret_value failed: {e}"),
+    ///     Err(e) => eprintln!("get_latest_secret_value failed: {e}"),
     /// }
     /// ```
     pub fn get_latest_secret_value<T: crate::encoding::Extract>(

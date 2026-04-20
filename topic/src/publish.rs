@@ -61,7 +61,7 @@ impl From<topic::Error> for TopicError {
 ///
 /// match publish("my-topic", "hello world") {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("publish failed: {e}"),
+///     Err(e) => eprintln!("publish failed: {e}"),
 /// }
 /// ```
 pub fn publish(topic_name: impl Into<String>, value: impl Into<String>) -> Result<(), TopicError> {
@@ -82,7 +82,7 @@ pub fn publish(topic_name: impl Into<String>, value: impl Into<String>) -> Resul
 ///
 /// match publish_bytes("my-topic", b"binary data".to_vec()) {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("publish failed: {e}"),
+///     Err(e) => eprintln!("publish failed: {e}"),
 /// }
 /// ```
 pub fn publish_bytes(

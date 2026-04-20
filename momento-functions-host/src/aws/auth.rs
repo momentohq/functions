@@ -90,7 +90,7 @@ impl AwsCredentialsProvider {
     /// let provider = match AwsCredentialsProvider::new("us-east-1", build_environment_aws_credentials!()) {
     ///     Ok(provider) => provider,
     ///     Err(e) => {
-    ///         log::error!("failed to build credentials: {e}");
+    ///         eprintln!("failed to build credentials: {e}");
     ///         return;
     ///     }
     /// };

@@ -26,7 +26,7 @@ use crate::{
 /// match get::<Vec<u8>>("my_key") {
 ///     Ok(Some(value)) => { /* use value */ }
 ///     Ok(None) => { /* key not found */ }
-///     Err(e) => log::error!("cache get failed: {e}"),
+///     Err(e) => eprintln!("cache get failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -43,7 +43,7 @@ use crate::{
 /// match get::<Json<MyStruct>>("my_key") {
 ///     Ok(Some(Json(value))) => { /* use value */ }
 ///     Ok(None) => { /* key not found */ }
-///     Err(e) => log::error!("cache get failed: {e}"),
+///     Err(e) => eprintln!("cache get failed: {e}"),
 /// }
 /// ```
 pub fn get<T: Extract>(key: impl Into<Data>) -> Result<Option<T>, CacheGetError<T::Error>> {
@@ -69,7 +69,7 @@ pub fn get<T: Extract>(key: impl Into<Data>) -> Result<Option<T>, CacheGetError<
 ///     Duration::from_secs(60),
 /// ) {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("cache set failed: {e}"),
+///     Err(e) => eprintln!("cache set failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -90,7 +90,7 @@ pub fn get<T: Extract>(key: impl Into<Data>) -> Result<Option<T>, CacheGetError<
 ///     Duration::from_secs(60),
 /// ) {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("cache set failed: {e}"),
+///     Err(e) => eprintln!("cache set failed: {e}"),
 /// }
 /// ```
 pub fn set<E: Encode>(
@@ -130,7 +130,7 @@ pub fn set<E: Encode>(
 ///     Ok(ConditionalSetResult::NotStored) => {
 ///         // Do something else
 ///     }
-///     Err(e) => log::error!("set_if failed: {e}"),
+///     Err(e) => eprintln!("set_if failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -146,7 +146,7 @@ pub fn set<E: Encode>(
 ///     SetIfCondition::Present,
 /// ) {
 ///     Ok(result) => { /* inspect result */ }
-///     Err(e) => log::error!("set_if failed: {e}"),
+///     Err(e) => eprintln!("set_if failed: {e}"),
 /// }
 /// ```
 /// ________
@@ -162,7 +162,7 @@ pub fn set<E: Encode>(
 ///     SetIfCondition::Equal("old_value".into()),
 /// ) {
 ///     Ok(result) => { /* inspect result */ }
-///     Err(e) => log::error!("set_if failed: {e}"),
+///     Err(e) => eprintln!("set_if failed: {e}"),
 /// }
 /// ```
 pub fn set_if<E: Encode>(
@@ -196,7 +196,7 @@ pub fn set_if<E: Encode>(
 ///
 /// match delete("my_key") {
 ///     Ok(()) => {}
-///     Err(e) => log::error!("cache delete failed: {e}"),
+///     Err(e) => eprintln!("cache delete failed: {e}"),
 /// }
 /// ```
 pub fn delete(key: impl Into<Data>) -> Result<(), CacheDeleteError> {
@@ -218,7 +218,7 @@ pub fn delete(key: impl Into<Data>) -> Result<(), CacheDeleteError> {
 ///         // use entry.value and entry.hash
 ///     }
 ///     Ok(None) => { /* key not found */ }
-///     Err(e) => log::error!("get_with_hash failed: {e}"),
+///     Err(e) => eprintln!("get_with_hash failed: {e}"),
 /// }
 /// ```
 pub fn get_with_hash<T: Extract>(
@@ -266,7 +266,7 @@ pub fn get_with_hash<T: Extract>(
 ///     Ok(SetIfHashResult::NotStored) => {
 ///         // value was modified by another process
 ///     }
-///     Err(e) => log::error!("set_if_hash failed: {e}"),
+///     Err(e) => eprintln!("set_if_hash failed: {e}"),
 /// }
 /// ```
 pub fn set_if_hash<E: Encode>(

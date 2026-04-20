@@ -136,7 +136,7 @@ impl LambdaClient {
     ///         Ok(Json(reply)) => {
     ///             let message = reply.message;
     ///         }
-    ///         Err(e) => eprintln!("failed to extract reply: {e}"),
+    ///         Err(e) => eprintln!("failed to extract reply: {e:?}"),
     ///     },
     ///     Err(e) => eprintln!("invoke failed: {e}"),
     /// }

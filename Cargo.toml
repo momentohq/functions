@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "aws-auth",
     "aws-s3",
+    "aws-secrets-manager",
     "bytes",
     "cache",
     "cache-list",
@@ -36,6 +37,7 @@ lto = true
 [workspace.dependencies]
 momento-functions-aws-auth    = { version = "0", path = "aws-auth" }
 momento-functions-aws-s3     = { version = "0", path = "aws-s3" }
+momento-functions-aws-secrets-manager = { version = "0", path = "aws-secrets-manager" }
 momento-functions-bytes      = { version = "0", path = "bytes" }
 momento-functions-collections-common = { version = "0", path = "collections-common" }
 momento-functions-guest-spawn = { version = "0", path = "guest-spawn" }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.1](https://github.com/momentohq/functions/compare/v0.23.0...v0.23.1) (2026-04-21)
+
+
+### Miscellaneous
+
+* release-please should also bump the Cargo.lock ([#85](https://github.com/momentohq/functions/issues/85)) ([369f6f0](https://github.com/momentohq/functions/commit/369f6f0a1ae1df0c609612cbf15e977dcc0b91f6))
+
 ## [0.23.0](https://github.com/momentohq/functions/compare/v0.22.0...v0.23.0) (2026-04-21)
 
 

@@ -22,7 +22,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.23.1" # x-release-please-version
+version = "0.23.2" # x-release-please-version
 authors = ["momentohq", "kvc0", "tylerburdsall"]
 repository = "https://github.com/momentohq/functions"
 edition = "2024"

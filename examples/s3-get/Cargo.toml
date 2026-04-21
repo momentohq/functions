@@ -1,0 +1,18 @@
+[package]
+name = "example-s3-get"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+momento-functions-aws-auth  = { workspace = true }
+momento-functions-aws-s3    = { workspace = true }
+momento-functions-bytes     = { workspace = true }
+momento-functions-guest-web = { workspace = true }
+momento-functions-host-log  = { workspace = true }
+
+log                         = { workspace = true }
+serde                       = { workspace = true }

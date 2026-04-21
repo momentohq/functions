@@ -1,0 +1,12 @@
+[package]
+name = "example-spawn-function"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+momento-functions-bytes       = { workspace = true }
+momento-functions-guest-spawn = { workspace = true }

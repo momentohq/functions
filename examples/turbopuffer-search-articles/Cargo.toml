@@ -1,0 +1,19 @@
+[package]
+name = "example-turbopuffer-search-articles"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+momento-functions-bytes     = { workspace = true }
+momento-functions-cache     = { workspace = true }
+momento-functions-guest-web = { workspace = true }
+momento-functions-host-log  = { workspace = true }
+momento-functions-http      = { workspace = true }
+
+log                         = { workspace = true }
+serde                       = { workspace = true }
+serde_json                  = { workspace = true }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/momentohq/functions/compare/v0.22.0...v0.23.0) (2026-04-21)
+
+
+### Features
+
+* add v2 support for aws secrets manager ([#83](https://github.com/momentohq/functions/issues/83)) ([5db15af](https://github.com/momentohq/functions/commit/5db15afc91e105300f2e4e51b4bbf1eda46f2908))
+
 ## [0.22.0](https://github.com/momentohq/functions/compare/v0.21.0...v0.22.0) (2026-04-17)
 
 

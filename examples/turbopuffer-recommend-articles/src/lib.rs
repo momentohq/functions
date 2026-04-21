@@ -118,7 +118,8 @@ fn get_article_embeddings(
 
     let cache_misses: Vec<String> = embeddings_map
         .iter()
-        .filter_map(|(id, e)| e.is_none().then(|| id.clone()))
+        .filter(|(_, e)| e.is_none())
+        .map(|(id, _)| id.clone())
         .collect();
 
     if !cache_misses.is_empty() {

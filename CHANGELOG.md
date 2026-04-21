@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.2](https://github.com/momentohq/functions/compare/v0.23.1...v0.23.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* release please should use our user ([#87](https://github.com/momentohq/functions/issues/87)) ([5a11e86](https://github.com/momentohq/functions/commit/5a11e860c30bca65452578fdf6b9b5694219aa73))
+
 ## [0.23.1](https://github.com/momentohq/functions/compare/v0.23.0...v0.23.1) (2026-04-21)
 
 

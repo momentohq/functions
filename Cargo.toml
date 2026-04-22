@@ -19,6 +19,33 @@ members = [
     "token",
     "topic",
     "valkey",
+
+    # V2 examples
+    "examples/cache-scalar",
+    "examples/dynamodb-accelerator",
+    "examples/environment-variables",
+    "examples/fine-foods-embeddings",
+    "examples/function-environment",
+    "examples/logging",
+    "examples/logging-extended",
+    "examples/reading-and-sending-headers",
+    "examples/s3-get",
+    "examples/s3-put",
+    "examples/secrets-manager-get",
+    "examples/spawn-function",
+    "examples/spawn-function-json",
+    "examples/token-vending-machine",
+    "examples/turbopuffer-index",
+    "examples/turbopuffer-index-articles",
+    "examples/turbopuffer-recommend-articles",
+    "examples/turbopuffer-search",
+    "examples/turbopuffer-search-articles",
+    "examples/valkey-cluster-vector-index",
+    "examples/valkey-cluster-vector-search",
+    "examples/valkey-vector-embeddings",
+    "examples/web-function",
+    "examples/web-function-json-greeter",
+    "examples/web-function-token-metadata",
 ]
 
 [workspace.package]
@@ -39,10 +66,15 @@ momento-functions-aws-auth    = { version = "0", path = "aws-auth" }
 momento-functions-aws-s3     = { version = "0", path = "aws-s3" }
 momento-functions-aws-secrets-manager = { version = "0", path = "aws-secrets-manager" }
 momento-functions-bytes      = { version = "0", path = "bytes" }
+momento-functions-cache      = { version = "0", path = "cache" }
 momento-functions-collections-common = { version = "0", path = "collections-common" }
 momento-functions-guest-spawn = { version = "0", path = "guest-spawn" }
+momento-functions-guest-web  = { version = "0", path = "guest-web" }
 momento-functions-host   = { version = "0", path = "momento-functions-host" }
+momento-functions-host-log = { version = "0", path = "log" }
+momento-functions-http   = { version = "0", path = "http" }
 momento-functions-log   = { version = "0", path = "momento-functions-log" }
+momento-functions-token  = { version = "0", path = "token" }
 momento-functions-valkey = { version = "0", path = "valkey" }
 momento-functions-wit   = { version = "0", path = "momento-functions-wit" }
 

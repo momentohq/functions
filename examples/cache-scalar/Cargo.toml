@@ -1,0 +1,13 @@
+[package]
+name = "example-cache-scalar"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+momento-functions-bytes     = { workspace = true }
+momento-functions-cache     = { workspace = true }
+momento-functions-guest-web = { workspace = true }

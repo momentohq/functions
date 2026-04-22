@@ -12,7 +12,7 @@ Functions run on Momento's service hosts, and offer a powerful scripting capabil
 
 This repository holds crates for Momento Functions guest code.
 
-To see some of what you can do with Functions, you can look at [the examples](./momento-functions/examples/).
+To see some of what you can do with Functions, you can look at [the examples](./examples/).
 
 ## Getting started
 
@@ -43,24 +43,62 @@ Add this to build the right kind of artifact:
 crate-type = ["cdylib"]
 ```
 
-Import the Functions support library and WIT library.
+Pull in only the crates you actually need. For a basic web function, the
+guest macro and the off-guest buffer crate are enough:
 
 ```toml
 [dependencies]
-momento-functions = { version = "0" }
-momento-functions-wit = { version = "0" }
+momento-functions-bytes     = { version = "0" }
+momento-functions-guest-web = { version = "0" }
 ```
+
+For a Spawn function, swap `guest-web` for `guest-spawn`. Other capabilities
+live in their own focused crates — add them as you go: `momento-functions-cache`,
+`momento-functions-http`, `momento-functions-token`, `momento-functions-topic`,
+`momento-functions-valkey`, `momento-functions-aws-s3`,
+`momento-functions-aws-secrets-manager`, `momento-functions-aws-auth`,
+`momento-functions-host-log`.
 
 ### Write a Function
 
 The simplest function is a pong response web function. You can put this in `lib.rs`.
 
 ```rust
-momento_functions::post!(ping);
-fn ping(_payload: Vec<u8>) -> &'static str {
+use momento_functions_bytes::Data;
+use momento_functions_guest_web::invoke;
+
+invoke!(ping);
+fn ping(_payload: Data) -> &'static str {
     "pong"
 }
 ```
+
+`Data` is a buffer that can stay on the host instead of being copied into your
+function's memory — useful when you're just passing bodies through. Call
+`Data::into_bytes()` when you actually need the bytes.
+
+For typed JSON in/out, swap the payload type for `momento_functions_bytes::encoding::Json<T>`:
+
+```rust
+use momento_functions_bytes::encoding::Json;
+use momento_functions_guest_web::invoke;
+
+#[derive(serde::Deserialize)]
+struct Request { name: String }
+
+#[derive(serde::Serialize)]
+struct Response { message: String }
+
+invoke!(greet);
+fn greet(Json(request): Json<Request>) -> Json<Response> {
+    Json(Response { message: format!("Hello, {}!", request.name) })
+}
+```
+
+For a portfolio of more substantial v2 Functions — cache, Valkey, HTTP
+integrations (Turbopuffer, OpenAI), AWS S3 / Secrets Manager, disposable
+token vending, structured logging, Spawn — see [`examples/`](./examples/).
+Each is its own minimal crate so you can copy a `Cargo.toml` as a starter.
 
 ### Build and deploy
 
@@ -109,7 +147,7 @@ curl \
 
 ### Going further
 
-From here, you should look at [the examples](./momento-functions/examples/). Momento Functions are a limited
+From here, you should look at [the examples](./examples/). Momento Functions are a limited
 environment, but the supported feature set is growing.
 
 ## Developing a Function

@@ -11,6 +11,3 @@ crate-type = ["cdylib"]
 momento-functions-bytes     = { workspace = true }
 momento-functions-cache     = { workspace = true }
 momento-functions-guest-web = { workspace = true }
-momento-functions-host-log  = { workspace = true }
-
-log                         = { workspace = true }

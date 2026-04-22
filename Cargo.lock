@@ -124,11 +124,9 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 name = "example-cache-scalar"
 version = "0.0.0"
 dependencies = [
- "log",
  "momento-functions-bytes",
  "momento-functions-cache",
  "momento-functions-guest-web",
- "momento-functions-host-log",
 ]
 
 [[package]]

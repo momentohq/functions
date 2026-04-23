@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/momentohq/functions/compare/v0.23.2...v0.24.0) (2026-04-23)
+
+
+### Features
+
+* properly port over metadata manipulation for v2 s3 ([#90](https://github.com/momentohq/functions/issues/90)) ([d924d7f](https://github.com/momentohq/functions/commit/d924d7f2a3b6cbe47e0417d47e42f786e5e74c21))
+
 ## [0.23.2](https://github.com/momentohq/functions/compare/v0.23.1...v0.23.2) (2026-04-21)
 
 

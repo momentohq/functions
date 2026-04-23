@@ -15,6 +15,8 @@ struct Request {
 #[derive(Debug, Serialize)]
 struct Response {
     message: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    metadata: Vec<(String, String)>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -41,32 +43,40 @@ fn s3_get(Json(request): Json<Request>) -> WebResult<WebResponse> {
         &request.bucket,
         &request.key
     );
-    let response: MyStructure = match client.get(&request.bucket, &request.key) {
-        Ok(Some(Json(r))) => r,
-        Ok(None) => {
-            return Ok(WebResponse::new()
-                .with_status(404)
-                .with_body(Json(Response {
-                    message: "Not found".to_string(),
-                }))?);
-        }
-        Err(e) => {
-            return Ok(WebResponse::new()
-                .with_status(500)
-                .with_body(Json(Response {
-                    message: format!("Failed to get object from S3: {e:?}"),
-                }))?);
-        }
-    };
+    let (response, metadata): (MyStructure, Vec<(String, String)>) =
+        match client.get(&request.bucket, &request.key) {
+            Ok(Some(r)) => {
+                let Json(value) = r.body;
+                (value, r.metadata)
+            }
+            Ok(None) => {
+                return Ok(WebResponse::new()
+                    .with_status(404)
+                    .with_body(Json(Response {
+                        message: "Not found".to_string(),
+                        metadata: Vec::new(),
+                    }))?);
+            }
+            Err(e) => {
+                return Ok(WebResponse::new()
+                    .with_status(500)
+                    .with_body(Json(Response {
+                        message: format!("Failed to get object from S3: {e:?}"),
+                        metadata: Vec::new(),
+                    }))?);
+            }
+        };
 
     log::info!(
-        "found response with a_number: {}, a_string: {}",
+        "found response with a_number: {}, a_string: {}, metadata entries: {}",
         response.a_number,
-        response.a_string
+        response.a_string,
+        metadata.len()
     );
     Ok(WebResponse::new()
         .with_status(200)
         .with_body(Json(Response {
             message: format!("Found: {response:?}"),
+            metadata,
         }))?)
 }

@@ -101,6 +101,16 @@ pub struct GetObjectResponse<T> {
     pub metadata: Vec<(String, String)>,
 }
 
+/// The response from a successful S3 put.
+pub struct PutObjectResponse {
+    /// Entity tag assigned by S3 to the stored object.
+    pub etag: Option<String>,
+    /// Version identifier assigned by S3 when bucket versioning is enabled.
+    pub version_id: Option<String>,
+    /// Expiration metadata returned by S3, when a lifecycle rule applies.
+    pub expiration: Option<String>,
+}
+
 impl S3Client {
     /// Create a new S3 client.
     pub fn new(credentials: &CredentialsProvider) -> Self {
@@ -114,12 +124,16 @@ impl S3Client {
     /// Build the request with [`PutObjectRequest::new`] and, if needed,
     /// [`PutObjectRequest::with_metadata`]. You can use strings, bytes, or
     /// structs that implement [`Encode`] as the body.
-    pub fn put<E: Encode>(&self, request: PutObjectRequest<E>) -> Result<(), S3PutError<E::Error>> {
+    pub fn put<E: Encode>(
+        &self,
+        request: PutObjectRequest<E>,
+    ) -> Result<PutObjectResponse, S3PutError<E::Error>> {
         let body_data: Data = request
             .body
             .try_serialize()
             .map_err(|e| S3PutError::EncodeFailed { cause: e })?;
-        self.client
+        let output = self
+            .client
             .put(aws_s3::PutObjectRequest {
                 bucket: request.bucket,
                 key: request.key,
@@ -127,7 +141,11 @@ impl S3Client {
                 metadata: request.metadata,
             })
             .map_err(S3PutError::from)?;
-        Ok(())
+        Ok(PutObjectResponse {
+            etag: output.etag,
+            version_id: output.version_id,
+            expiration: output.expiration,
+        })
     }
 
     /// Get an object from an S3 bucket along with its user-defined metadata.

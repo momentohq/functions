@@ -18,6 +18,12 @@ struct Request {
 #[derive(Debug, Serialize)]
 struct Response {
     message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    etag: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    version_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expiration: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -46,7 +52,7 @@ fn s3_put(Json(request): Json<Request>) -> WebResult<WebResponse> {
         &request.value.len()
     );
 
-    if let Err(e) = client.put(
+    let put_response = match client.put(
         PutObjectRequest::new(
             &request.bucket,
             &request.key,
@@ -57,16 +63,31 @@ fn s3_put(Json(request): Json<Request>) -> WebResult<WebResponse> {
         )
         .with_metadata(request.metadata),
     ) {
-        return Ok(WebResponse::new()
-            .with_status(500)
-            .with_body(Json(Response {
-                message: format!("Failed to put object {e:?}"),
-            }))?);
-    }
+        Ok(response) => response,
+        Err(e) => {
+            return Ok(WebResponse::new()
+                .with_status(500)
+                .with_body(Json(Response {
+                    message: format!("Failed to put object {e:?}"),
+                    etag: None,
+                    version_id: None,
+                    expiration: None,
+                }))?);
+        }
+    };
+
+    log::info!(
+        "put object succeeded, etag: {:?}, version_id: {:?}",
+        put_response.etag,
+        put_response.version_id,
+    );
 
     Ok(WebResponse::new()
         .with_status(200)
         .with_body(Json(Response {
             message: "Successfully put object".to_string(),
+            etag: put_response.etag,
+            version_id: put_response.version_id,
+            expiration: put_response.expiration,
         }))?)
 }

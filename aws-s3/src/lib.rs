@@ -13,7 +13,9 @@ mod client;
 #[doc(hidden)]
 pub mod wit;
 
-pub use client::{GetObjectResponse, PutObjectRequest, S3Client, S3GetError, S3PutError};
+pub use client::{
+    GetObjectResponse, PutObjectRequest, PutObjectResponse, S3Client, S3GetError, S3PutError,
+};
 
 pub use momento_functions_aws_auth::{
     AuthError, Authorization, Credentials, CredentialsProvider, IamRole, provider,

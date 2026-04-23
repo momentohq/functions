@@ -17,6 +17,7 @@ interface aws-s3 {
      bucket: string,
      key: string,
      body: data,
+     metadata: list<tuple<string, string>>,
    }
 
    record put-object-output {
@@ -35,6 +36,7 @@ interface aws-s3 {
      etag: option<string>,
      version-id: option<string>,
      expiration: option<string>,
+     metadata: list<tuple<string, string>>,
    }
 
    resource client {

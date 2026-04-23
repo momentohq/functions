@@ -1,5 +1,5 @@
 use momento_functions_aws_auth::{Authorization, IamRole, provider};
-use momento_functions_aws_s3::S3Client;
+use momento_functions_aws_s3::{PutObjectRequest, S3Client};
 use momento_functions_bytes::encoding::Json;
 use momento_functions_guest_web::{WebEnvironment, WebResponse, WebResult, invoke};
 use momento_functions_host_log::{LogDestination, configure_logs};
@@ -11,6 +11,8 @@ struct Request {
     bucket: String,
     key: String,
     value: String,
+    #[serde(default)]
+    metadata: Vec<(String, String)>,
 }
 
 #[derive(Debug, Serialize)]
@@ -45,12 +47,15 @@ fn s3_put(Json(request): Json<Request>) -> WebResult<WebResponse> {
     );
 
     if let Err(e) = client.put(
-        &request.bucket,
-        &request.key,
-        Json(MyStructure {
-            a_number: 42,
-            a_string: request.value,
-        }),
+        PutObjectRequest::new(
+            &request.bucket,
+            &request.key,
+            Json(MyStructure {
+                a_number: 42,
+                a_string: request.value,
+            }),
+        )
+        .with_metadata(request.metadata),
     ) {
         return Ok(WebResponse::new()
             .with_status(500)

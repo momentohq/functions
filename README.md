@@ -145,6 +145,15 @@ curl \
   -d 'ping'
 ```
 
+Alternatively, you can use the CLI:
+
+```bash
+momento preview function invoke-function \
+  --cache-name "$MOMENTO_CACHE_NAME" \
+  --name ping
+  --data 'ping'
+```
+
 ### Going further
 
 From here, you should look at [the examples](./examples/). Momento Functions are a limited

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/momentohq/functions/compare/v0.24.0...v0.25.0) (2026-05-13)
+
+
+### Features
+
+* publish aws-ddb functions package ([#93](https://github.com/momentohq/functions/issues/93)) ([f44c0bc](https://github.com/momentohq/functions/commit/f44c0bccf94b40b83e0891f48ca9507403fda952))
+
 ## [0.24.0](https://github.com/momentohq/functions/compare/v0.23.2...v0.24.0) (2026-04-23)
 
 

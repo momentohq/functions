@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "aws-auth",
+    "aws-ddb",
     "aws-s3",
     "aws-secrets-manager",
     "bytes",
@@ -63,6 +64,7 @@ lto = true
 
 [workspace.dependencies]
 momento-functions-aws-auth    = { version = "0", path = "aws-auth" }
+momento-functions-aws-ddb    = { version = "0", path = "aws-ddb" }
 momento-functions-aws-s3     = { version = "0", path = "aws-s3" }
 momento-functions-aws-secrets-manager = { version = "0", path = "aws-secrets-manager" }
 momento-functions-bytes      = { version = "0", path = "bytes" }

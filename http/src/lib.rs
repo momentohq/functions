@@ -5,6 +5,7 @@
 
 mod invoke;
 mod request;
+pub mod sse;
 
 /// Internal module for WIT bindings.
 #[doc(hidden)]

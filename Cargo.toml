@@ -35,6 +35,7 @@ members = [
     "examples/secrets-manager-get",
     "examples/spawn-function",
     "examples/spawn-function-json",
+    "examples/sse-proxy",
     "examples/token-vending-machine",
     "examples/turbopuffer-index",
     "examples/turbopuffer-index-articles",

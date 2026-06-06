@@ -25,6 +25,81 @@ interface web-function-support {
     }
 }
 
+interface web-function-stream {
+    use momento:bytes/bytes@1.0.0.{data};
+    use web-function-support.{header};
+
+    // Send a Server-Sent Events (SSE) event on the response stream.
+    //
+    // The first call to send-sse() changes the in-flight web invocation to an
+    // SSE response and commits these headers:
+    // ```text
+    // content-type: text/event-stream
+    // cache-control: no-cache
+    // connection: keep-alive
+    // ```
+    //
+    // For SSE responses, the `response` returned by `invoke` is handled as follows:
+    // - Returned headers are dropped (the SSE headers above were already sent).
+    // - If `status` is 2xx, the stream closes with no trailing event.
+    // - Otherwise, a final event named `http-error` is emitted with `data` set
+    //   to an error response, with non-utf-8 characters replaced by the replacement
+    //   character U+FFFD.
+    //
+    // ## `http-error` event
+    // The host-provided `http-error` event `data` has the format:
+    // ```text
+    // HTTP <status>: <body-as-utf8-with-replacement>
+    // ```
+    // Error bodies with newlines are allowed.
+    // Errors are summarily truncated to a length of 1MiB. Don't send huge error bodies or
+    // else you'll get incomplete messages.
+    //
+    // ## `send-sse()` errors
+    // Error strings from `send-sse()` are informational and may change. Possibilities
+    // include strings like:
+    // * Missing event or data: "event or data must be provided"
+    // * Invalid event name: "bad event name: <reason>"
+    // * Invalid event id: "bad event id: <reason>"
+    // * Invalid data: "bad data: <reason>"
+    //
+    // ## `event`
+    // If `event` is none, the SSE `event:` field is omitted. Interpretation is up to the
+    // client, but typically this means the event is treated as a "message" event.
+    // `event` must not contain `\n`, `\r`, or null bytes, and must be at most 512 bytes.
+    //
+    // ## `data`
+    // Empty `data` is legal, and produces an event line like `data:\n` (an event with
+    // an empty data field). A none `data` produces no `data:` line at all.
+    // Interpretation is up to the client. Often a none `data` is used for heartbeats.
+    // `data` must be valid utf-8, and newlines are allowed. Individual `data` frames must
+    // be at most 1MiB.
+    // Data payloads with `\n`, `\r`, or `\r\n` sequences are split on those tokens and
+    // emitted as multiple `data:` lines in the same event. Every send-sse() call produces
+    // 1 event. You cannot send multiple events in one `send-sse` call by embedding newlines
+    // in the data. If you want to send multiple events, you must call `send-sse` multiple
+    // times.
+    //
+    // ## `event-id`
+    // `event-id` is emitted as the SSE `id:` wire field. A send-sse() with both `event`
+    // and `event-id` set to none is legal. Interpretation is up to the client.
+    // `event-id` must not contain `\n`, `\r`, or null bytes, and must be at most 512 bytes.
+    //
+    // ## Notes
+    // * You need to provide at least one of `event` or `data`.
+    // * As with all Web Functions, the request is dropped if the client quits listening.
+    send-sse: func(event: option<string>, event-id: option<string>, data: option<data>) -> result<_, string>;
+
+    // when you want to return a streaming response body, the first step is to return the
+    // start line and headers. After this you can send body data.
+    // You can only call `send-response-start` once, and it must be called before any calls to `send-data`.
+    send-response-start: func(status: u16, headers: list<header>) -> result<_, string>;
+    // After sending the response start, you can send zero or more data frames. These are
+    // The data is sent verbatim, with no additional framing or chunking.
+    // You must call `send-response-start` once before calling `send-data`.
+    send-data: func(data: data) -> result<_, string>;
+}
+
 interface guest-function-web {
     use momento:bytes/bytes@1.0.0.{data};
     use web-function-support.{header};
@@ -40,5 +115,6 @@ interface guest-function-web {
 
 world web-function {
     import web-function-support;
+    import web-function-stream;
     export guest-function-web;
 }

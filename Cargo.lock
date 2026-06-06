@@ -263,6 +263,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-sse-proxy"
+version = "0.0.0"
+dependencies = [
+ "momento-functions-bytes",
+ "momento-functions-guest-web",
+ "momento-functions-http",
+]
+
+[[package]]
 name = "example-token-vending-machine"
 version = "0.0.0"
 dependencies = [

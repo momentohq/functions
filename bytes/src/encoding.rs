@@ -75,9 +75,8 @@ impl Encode for serde_json::Value {
 /// Required to be implemented by extract error types.
 pub trait ExtractError: std::error::Error + 'static {}
 
-impl ExtractError for Infallible {}
-
-impl ExtractError for serde_json::Error {}
+// Blanket implementation for any trivially suitable error type
+impl<T> ExtractError for T where T: std::error::Error + 'static {}
 
 /// Payload extractor for encodings
 pub trait Extract: Sized {
@@ -91,6 +90,13 @@ impl Extract for Vec<u8> {
     type Error = Infallible;
     fn extract(payload: Data) -> Result<Self, Self::Error> {
         Ok(payload.into_bytes())
+    }
+}
+
+impl Extract for String {
+    type Error = std::string::FromUtf8Error;
+    fn extract(payload: Data) -> Result<Self, Self::Error> {
+        String::from_utf8(payload.into_bytes())
     }
 }
 

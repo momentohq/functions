@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.25.1](https://github.com/momentohq/functions/compare/v0.25.0...v0.25.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* sse buffer resize limit ([#98](https://github.com/momentohq/functions/issues/98)) ([df76e47](https://github.com/momentohq/functions/commit/df76e47f3ca23f699556fb2ed966e6cd1bb7e1d7))
+
+
+### Miscellaneous
+
+* add streaming web responses and sse http client helper ([#96](https://github.com/momentohq/functions/issues/96)) ([b61f8e5](https://github.com/momentohq/functions/commit/b61f8e51ebc5004d5a550f63d744c7bb61d99bcc))
+
 ## [0.25.0](https://github.com/momentohq/functions/compare/v0.24.0...v0.25.0) (2026-05-13)
 
 

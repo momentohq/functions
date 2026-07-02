@@ -173,9 +173,9 @@ Using `wasm32-wasip2`, you have access to `std::time`. Most other `std` wasip2 i
 | exit                 | unsupported - it does panic though, which may work well enough for you     |
 | filesystem_preopens  | unsupported                                                                |
 | filesystem_types     | unsupported                                                                |
-| stderr               | unsupported                                                                |
+| stderr               | supported, but just outputs to system log                                  |
 | stdin                | unsupported                                                                |
-| stdout               | unsupported                                                                |
+| stdout               | supported, but just outputs to system log                                  |
 | streams              | unsupported                                                                |
 
 Other wasi interfaces are not defined and will result in a linking error when you upload your Function.

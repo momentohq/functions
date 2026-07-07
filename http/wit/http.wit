@@ -70,6 +70,8 @@ interface http {
 
     /// Send a web request
     invoke: func(request: request) -> result<response, error>;
+    /// Send a web request with a total per-request timeout, in milliseconds.
+    invoke-with-timeout: func(request: request, timeout-milliseconds: u64) -> result<response, error>;
 }
 
 world imports {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/momentohq/functions/compare/v0.25.1...v0.26.0) (2026-07-07)
+
+
+### Features
+
+* add support for request timeout duration with the http client ([#101](https://github.com/momentohq/functions/issues/101)) ([3502337](https://github.com/momentohq/functions/commit/3502337235b31a3d313bd9e73e189e8a4937d993))
+
 ## [0.25.1](https://github.com/momentohq/functions/compare/v0.25.0...v0.25.1) (2026-06-27)
 
 

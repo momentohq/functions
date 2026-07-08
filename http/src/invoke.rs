@@ -99,7 +99,15 @@ impl From<http::Response> for Response {
 /// }
 /// ```
 pub fn invoke(request: Request) -> Result<Response, HttpError> {
-    http::invoke(request.into())
-        .map(Into::into)
-        .map_err(Into::into)
+    match request.request_timeout() {
+        // Saturate rather than wrap: a duration beyond u64::MAX ms is still an
+        // effectively-unbounded timeout, so clamping to the max is the safe read.
+        Some(timeout) => {
+            let timeout_milliseconds = u64::try_from(timeout.as_millis()).unwrap_or(u64::MAX);
+            http::invoke_with_timeout(request.into(), timeout_milliseconds)
+        }
+        None => http::invoke(request.into()),
+    }
+    .map(Into::into)
+    .map_err(Into::into)
 }

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use momento_functions_bytes::{
     Data,
     encoding::{Encode, Json},
@@ -74,6 +76,7 @@ pub struct Request {
     headers: Vec<(String, String)>,
     body: Data,
     authorization: Authorization,
+    request_timeout: Option<Duration>,
 }
 
 impl Request {
@@ -94,6 +97,7 @@ impl Request {
             headers: Vec::new(),
             body: Data::from(vec![]),
             authorization: Authorization::None,
+            request_timeout: None,
         }
     }
 
@@ -173,6 +177,30 @@ impl Request {
     pub fn with_authorization(mut self, authorization: Authorization) -> Self {
         self.authorization = authorization;
         self
+    }
+
+    /// Set a total timeout for the request. If the whole request — connecting,
+    /// sending, and receiving the full response — does not complete within this
+    /// duration, it fails with a timeout error. The duration is converted to
+    /// whole milliseconds when handed to the host.
+    ///
+    /// # Examples
+    /// ________
+    /// ```rust,no_run
+    /// use std::time::Duration;
+    /// use momento_functions_http::Request;
+    ///
+    /// let request = Request::new("https://example.com/api", "GET")
+    ///     .with_request_timeout(Duration::from_secs(5));
+    /// ```
+    pub fn with_request_timeout(mut self, timeout: Duration) -> Self {
+        self.request_timeout = Some(timeout);
+        self
+    }
+
+    /// The configured total request timeout, if any.
+    pub(crate) fn request_timeout(&self) -> Option<Duration> {
+        self.request_timeout
     }
 }
 

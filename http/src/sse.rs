@@ -189,7 +189,7 @@ impl SseStream {
         // allow larger chunks if this sse stream is loading a lot - but ensure at least 1kb.
         // if the buffer has already grown past 1kb, we can go ahead and let it fill up. No
         // sense in doing more syscalls or more allocation than necessary.
-        let chunk_size = 1024.max(self.buffer.capacity());
+        let chunk_size = 1024.max(self.buffer.capacity() - self.buffer.len());
         self.buffer.resize(starting_length + chunk_size, 0);
         let bytes_read = std::io::Read::read(&mut self.data, &mut self.buffer[starting_length..])
             .map_err(|e| {

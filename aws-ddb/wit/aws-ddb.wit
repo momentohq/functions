@@ -92,10 +92,57 @@ interface aws-ddb {
         consumed-capacity: option<consumed-capacity>,
     }
 
+    record query-request {
+        table-name: string,
+        /// Query a secondary index instead of the base table. `none` queries the table itself.
+        /// A global secondary index is eventually consistent, so `consistent-read` must be false
+        /// when this names one.
+        index-name: option<string>,
+        /// Required. Constrains the partition key and optionally the sort key, e.g.
+        /// `"pk = :id AND sk BETWEEN :lo AND :hi"`. Only KEY attributes may appear here —
+        /// everything else belongs in `filter-expression`.
+        key-condition-expression: string,
+        /// Placeholder values the expressions reference, as a dynamodb-json item whose keys are the
+        /// `:name` placeholders — e.g. `{":id": {"S": "abc"}, ":lo": {"N": "17"}}`.
+        expression-attribute-values: option<item>,
+        expression-attribute-names: option<list<tuple<string, string>>>,
+        /// Applied AFTER the key condition, on the server. It reduces what is RETURNED, never what
+        /// is READ — a filtered-out item still costs read capacity and still counts toward the 1 MB
+        /// page cap, so a selective filter can yield an EMPTY page that still carries a
+        /// `last-evaluated-key`.
+        filter-expression: option<string>,
+        projection-expression: option<string>,
+        /// Cap on items EVALUATED per page (before `filter-expression`), not on items returned.
+        limit: option<u32>,
+        /// Sort-key order: `none` / `some(true)` ascending, `some(false)` descending.
+        scan-index-forward: option<bool>,
+        /// Invalid when `index-name` names a global secondary index.
+        consistent-read: bool,
+        /// Resume a paginated query: pass the previous page's `last-evaluated-key` verbatim.
+        exclusive-start-key: option<list<key-attribute>>,
+        return-consumed-capacity: return-consumed-capacity,
+    }
+    record query-output {
+        /// The matching items, in sort-key order. May be EMPTY while `last-evaluated-key` is set —
+        /// that means "this page was entirely filtered out", NOT "no more results". A caller
+        /// collecting a complete result set must loop until `last-evaluated-key` is `none`.
+        items: list<item>,
+        /// Items returned in this page (after `filter-expression`).
+        count: u32,
+        /// Items evaluated in this page (before `filter-expression`). Equals `count` when no filter
+        /// is set; a large gap means the query reads far more than it returns.
+        scanned-count: u32,
+        /// `some` when the page stopped early — at `limit`, or at DynamoDB's 1 MB page cap. Feed it
+        /// back as `exclusive-start-key` to continue. `none` means the result set is complete.
+        last-evaluated-key: option<list<key-attribute>>,
+        consumed-capacity: option<consumed-capacity>,
+    }
+
     resource client {
         constructor(credentials: borrow<credentials-provider>);
         put-item: func(request: put-item-request) -> result<put-item-output, ddb-error>;
         get-item: func(request: get-item-request) -> result<get-item-output, ddb-error>;
+        query: func(request: query-request) -> result<query-output, ddb-error>;
     }
 }
 

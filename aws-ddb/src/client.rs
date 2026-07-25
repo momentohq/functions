@@ -1,7 +1,8 @@
-use crate::types::{Item, Key};
+use crate::types::{AttributeValue, Item, Key};
 use crate::wit::momento::aws_ddb::aws_ddb::{self as aws_ddb};
 use momento_functions_aws_auth::CredentialsProvider;
 use momento_functions_bytes::Data;
+use std::collections::HashMap;
 
 /// DynamoDB client for host interfaces.
 ///
@@ -211,5 +212,221 @@ impl DynamoDBClient {
         })?;
 
         Ok(())
+    }
+
+    /// Query a table or a secondary index — ONE page of results.
+    ///
+    /// Unlike [`get_item_raw`](Self::get_item_raw), this is a paginated call: DynamoDB stops at
+    /// `limit` or at its 1 MB page cap, whichever comes first. Check
+    /// [`QueryPage::last_evaluated_key`] and pass it back via [`Query::start_after`] to continue.
+    /// **A page can be empty while more results remain** (everything in it was filtered out), so
+    /// looping on "items is empty" instead of on the key silently truncates the result set.
+    ///
+    /// Examples:
+    /// ________
+    /// One page:
+    /// ```rust,no_run
+    /// use momento_functions_aws_ddb::{DynamoDBClient, DynamoDBError, Query};
+    ///
+    /// # fn recent_for(client: &DynamoDBClient, id: &str) -> Result<(), DynamoDBError> {
+    /// let page = client.query(
+    ///     Query::new("my_table", "pk = :id")
+    ///         .index("my_index")
+    ///         .value(":id", id)
+    ///         .limit(100),
+    /// )?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// ________
+    /// Every page — the shape a total (a count, a sum) must use to be correct:
+    /// ```rust,no_run
+    /// # use momento_functions_aws_ddb::{DynamoDBClient, DynamoDBError, Item, Query};
+    /// # fn all_for(client: &DynamoDBClient, id: &str) -> Result<Vec<Item>, DynamoDBError> {
+    /// let mut all = Vec::new();
+    /// let mut start_key = None;
+    /// loop {
+    ///     let mut query = Query::new("my_table", "pk = :id").value(":id", id);
+    ///     if let Some(key) = start_key {
+    ///         query = query.start_after(key);
+    ///     }
+    ///     let page = client.query(query)?;
+    ///     all.extend(page.items);
+    ///     start_key = page.last_evaluated_key;
+    ///     if start_key.is_none() {
+    ///         break;
+    ///     }
+    /// }
+    /// # Ok(all)
+    /// # }
+    /// ```
+    pub fn query(&self, query: Query) -> Result<QueryPage, DynamoDBError> {
+        let Query {
+            table_name,
+            index_name,
+            key_condition_expression,
+            expression_attribute_values,
+            expression_attribute_names,
+            filter_expression,
+            projection_expression,
+            limit,
+            scan_index_forward,
+            consistent_read,
+            exclusive_start_key,
+        } = query;
+
+        let expression_attribute_values = match expression_attribute_values {
+            Some(attributes) => Some(aws_ddb::Item::Json(
+                Data::from(serde_json::to_vec(&Item { attributes })?).into(),
+            )),
+            None => None,
+        };
+
+        let output = self.client.query(aws_ddb::QueryRequest {
+            table_name,
+            index_name,
+            key_condition_expression,
+            expression_attribute_values,
+            expression_attribute_names,
+            filter_expression,
+            projection_expression,
+            limit,
+            scan_index_forward,
+            consistent_read,
+            exclusive_start_key,
+            return_consumed_capacity: aws_ddb::ReturnConsumedCapacity::None,
+        })?;
+
+        let mut items = Vec::with_capacity(output.items.len());
+        for item in output.items {
+            match item {
+                aws_ddb::Item::Json(data) => {
+                    let bytes = Data::from(data).into_bytes();
+                    items.push(serde_json::from_slice(&bytes)?);
+                }
+            }
+        }
+
+        Ok(QueryPage {
+            items,
+            count: output.count,
+            scanned_count: output.scanned_count,
+            last_evaluated_key: output.last_evaluated_key,
+        })
+    }
+}
+
+/// One page of a [`DynamoDBClient::query`].
+#[derive(Debug)]
+pub struct QueryPage {
+    /// The matching items, in sort-key order. May be empty while [`Self::last_evaluated_key`] is
+    /// `Some` — that page was entirely filtered out, which is NOT the end of the result set.
+    pub items: Vec<Item>,
+    /// Items returned in this page (after any filter expression).
+    pub count: u32,
+    /// Items evaluated in this page (before any filter expression).
+    pub scanned_count: u32,
+    /// `Some` when more pages remain — pass it to [`Query::start_after`]. `None` means complete.
+    pub last_evaluated_key: Option<Vec<aws_ddb::KeyAttribute>>,
+}
+
+/// A DynamoDB query. Built fluently; `table_name` and the key-condition expression are required
+/// because a query without them is not expressible.
+#[derive(Debug)]
+pub struct Query {
+    table_name: String,
+    index_name: Option<String>,
+    key_condition_expression: String,
+    expression_attribute_values: Option<HashMap<String, AttributeValue>>,
+    expression_attribute_names: Option<Vec<(String, String)>>,
+    filter_expression: Option<String>,
+    projection_expression: Option<String>,
+    limit: Option<u32>,
+    scan_index_forward: Option<bool>,
+    consistent_read: bool,
+    exclusive_start_key: Option<Vec<aws_ddb::KeyAttribute>>,
+}
+
+impl Query {
+    /// A query over `table_name` constrained by `key_condition_expression` (e.g. `"pk = :id"`).
+    /// Bind every `:placeholder` it references with [`value`](Self::value).
+    pub fn new(table_name: impl Into<String>, key_condition_expression: impl Into<String>) -> Self {
+        Query {
+            table_name: table_name.into(),
+            index_name: None,
+            key_condition_expression: key_condition_expression.into(),
+            expression_attribute_values: None,
+            expression_attribute_names: None,
+            filter_expression: None,
+            projection_expression: None,
+            limit: None,
+            scan_index_forward: None,
+            consistent_read: false,
+            exclusive_start_key: None,
+        }
+    }
+
+    /// Query a secondary index instead of the base table.
+    pub fn index(mut self, index_name: impl Into<String>) -> Self {
+        self.index_name = Some(index_name.into());
+        self
+    }
+
+    /// Bind one `:placeholder` used by the key condition or filter, e.g.
+    /// `.value(":id", ("S", "abc"))`.
+    pub fn value(
+        mut self,
+        placeholder: impl Into<String>,
+        value: impl Into<AttributeValue>,
+    ) -> Self {
+        self.expression_attribute_values
+            .get_or_insert_with(HashMap::new)
+            .insert(placeholder.into(), value.into());
+        self
+    }
+
+    /// Alias a reserved word used in an expression, e.g. `.name("#n", "name")`.
+    pub fn name(mut self, placeholder: impl Into<String>, attribute: impl Into<String>) -> Self {
+        self.expression_attribute_names
+            .get_or_insert_with(Vec::new)
+            .push((placeholder.into(), attribute.into()));
+        self
+    }
+
+    /// Filter results server-side AFTER the key condition. Does not reduce read cost — see the
+    /// `filter-expression` note on the host interface.
+    pub fn filter(mut self, filter_expression: impl Into<String>) -> Self {
+        self.filter_expression = Some(filter_expression.into());
+        self
+    }
+
+    /// Return only these attributes.
+    pub fn project(mut self, projection_expression: impl Into<String>) -> Self {
+        self.projection_expression = Some(projection_expression.into());
+        self
+    }
+
+    /// Cap items EVALUATED per page (before the filter), not items returned.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Walk the sort key in descending order (newest-first, for a timestamp sort key).
+    pub fn descending(mut self) -> Self {
+        self.scan_index_forward = Some(false);
+        self
+    }
+
+    /// Read strongly-consistently. Invalid against a global secondary index.
+    pub fn consistent_read(mut self) -> Self {
+        self.consistent_read = true;
+        self
+    }
+
+    /// Continue from a previous page's [`QueryPage::last_evaluated_key`].
+    pub fn start_after(mut self, exclusive_start_key: Vec<aws_ddb::KeyAttribute>) -> Self {
+        self.exclusive_start_key = Some(exclusive_start_key);
+        self
     }
 }

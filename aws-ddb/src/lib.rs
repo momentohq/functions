@@ -1,6 +1,6 @@
 //! Host interfaces for working with AWS DynamoDB.
 //!
-//! This crate provides a [`DynamoDBClient`] for putting and getting items in DynamoDB,
+//! This crate provides a [`DynamoDBClient`] for putting, getting and querying items in DynamoDB,
 //! using Momento's host-provided AWS communication channel.
 
 mod client;
@@ -10,7 +10,7 @@ mod types;
 #[doc(hidden)]
 pub mod wit;
 
-pub use client::{DynamoDBClient, DynamoDBError, GetItemError};
+pub use client::{DynamoDBClient, DynamoDBError, GetItemError, Query, QueryPage};
 pub use types::{
     AttributeValue, BinaryConversionError, ConversionError, Item, Key, KeyValue,
     NumericConversionError,

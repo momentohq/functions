@@ -24,6 +24,10 @@ pub enum HttpError {
     /// The request did not complete within the allotted time. Often transient.
     #[error("request timed out: {0}")]
     Timeout(String),
+    /// The connection to the server was not established within the allotted
+    /// time. Often transient.
+    #[error("connect timed out: {0}")]
+    ConnectTimeout(String),
     /// Failed to establish a connection to the server (DNS resolution or TCP
     /// connect failed). Often transient.
     #[error("connection failed: {0}")]
@@ -61,6 +65,7 @@ impl From<http::Error> for HttpError {
                 error: v.error,
             },
             http::Error::Timeout(s) => HttpError::Timeout(s),
+            http::Error::ConnectTimeout(s) => HttpError::ConnectTimeout(s),
             http::Error::ConnectionFailed(s) => HttpError::ConnectionFailed(s),
             http::Error::ConnectionInterrupted(s) => HttpError::ConnectionInterrupted(s),
             http::Error::TlsError(s) => HttpError::TlsError(s),

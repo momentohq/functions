@@ -40,8 +40,8 @@ fn s3_get(Json(request): Json<Request>) -> WebResult<WebResponse> {
 
     log::info!(
         "getting object from s3, bucket {}, key {}",
-        &request.bucket,
-        &request.key
+        request.bucket,
+        request.key
     );
     let (response, metadata): (MyStructure, Vec<(String, String)>) =
         match client.get(&request.bucket, &request.key) {

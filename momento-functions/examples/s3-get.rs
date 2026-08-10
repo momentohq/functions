@@ -40,8 +40,8 @@ fn s3_put(Json(request): Json<Request>) -> WebResult<WebResponse> {
 
     log::info!(
         "getting object from s3, bucket {}, key {}",
-        &request.bucket,
-        &request.key
+        request.bucket,
+        request.key
     );
     let response: MyStructure = match client.get(&request.bucket, &request.key) {
         Ok(resp) => match resp {

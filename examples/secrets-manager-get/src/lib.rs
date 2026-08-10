@@ -51,7 +51,7 @@ fn secrets_manager_get(Json(request): Json<Request>) -> WebResult<WebResponse> {
     // How long the in-context secret cache may be reused before refetching.
     let allowed_staleness = Duration::from_secs(5 * 60);
 
-    log::info!("Retrieving secret: {}", &request.secret_name);
+    log::info!("Retrieving secret: {}", request.secret_name);
 
     let Json(secret): Json<MySecret> = match client.get_secret_value(
         GetSecretValueRequest::new(&request.secret_name),

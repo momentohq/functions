@@ -54,7 +54,7 @@ fn secrets_manager_get(Json(request): Json<Request>) -> WebResult<WebResponse> {
     // regardless of the function invocation.
     let allowed_staleness = Duration::from_mins(5);
 
-    log::info!("Retrieving secret: {}", &request.secret_name);
+    log::info!("Retrieving secret: {}", request.secret_name);
 
     let Json(secret): Json<MySecret> = match client.get_secret_value(
         GetSecretValueRequest::new(&request.secret_name),

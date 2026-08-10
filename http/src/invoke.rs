@@ -21,6 +21,30 @@ pub enum HttpError {
     /// A provided header value was not valid.
     #[error("invalid header value '{value}': {error}")]
     InvalidHeaderValue { value: String, error: String },
+    /// The request did not complete within the allotted time. Often transient.
+    #[error("request timed out: {0}")]
+    Timeout(String),
+    /// The connection to the server was not established within the allotted
+    /// time. Often transient.
+    #[error("connect timed out: {0}")]
+    ConnectTimeout(String),
+    /// Failed to establish a connection to the server (DNS resolution or TCP
+    /// connect failed). Often transient.
+    #[error("connection failed: {0}")]
+    ConnectionFailed(String),
+    /// The connection was established but dropped mid-request (e.g. connection
+    /// reset by peer, broken pipe, unexpected EOF). Often transient.
+    #[error("connection interrupted: {0}")]
+    ConnectionInterrupted(String),
+    /// The TLS handshake or certificate validation failed. Not retryable.
+    #[error("tls error: {0}")]
+    TlsError(String),
+    /// The redirect limit was exceeded.
+    #[error("too many redirects: {0}")]
+    TooManyRedirects(String),
+    /// A response was received but its body could not be decoded. Not retryable.
+    #[error("malformed response: {0}")]
+    MalformedResponse(String),
 }
 
 impl From<http::Error> for HttpError {
@@ -40,6 +64,13 @@ impl From<http::Error> for HttpError {
                 value: v.value,
                 error: v.error,
             },
+            http::Error::Timeout(s) => HttpError::Timeout(s),
+            http::Error::ConnectTimeout(s) => HttpError::ConnectTimeout(s),
+            http::Error::ConnectionFailed(s) => HttpError::ConnectionFailed(s),
+            http::Error::ConnectionInterrupted(s) => HttpError::ConnectionInterrupted(s),
+            http::Error::TlsError(s) => HttpError::TlsError(s),
+            http::Error::TooManyRedirects(s) => HttpError::TooManyRedirects(s),
+            http::Error::MalformedResponse(s) => HttpError::MalformedResponse(s),
         }
     }
 }

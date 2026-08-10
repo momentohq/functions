@@ -1,4 +1,4 @@
-package momento:http@1.0.0;
+package momento:http@1.1.0;
 
 interface http {
     use momento:bytes/bytes@1.0.0.{data};
@@ -45,6 +45,20 @@ interface http {
         invalid-header-name(invalid-header-name),
         /// A provided header value was not valid.
         invalid-header-value(invalid-header-value),
+        /// The request did not complete within the allotted time.
+        timeout(string),
+        /// The connection to the server was not established within the allotted time.
+        connect-timeout(string),
+        /// Failed to establish a connection to the server (DNS resolution or TCP connect failed).
+        connection-failed(string),
+        /// The connection was established but dropped mid-request (e.g. connection reset by peer, broken pipe, unexpected EOF).
+        connection-interrupted(string),
+        /// The TLS handshake or certificate validation failed.
+        tls-error(string),
+        /// The redirect limit was exceeded.
+        too-many-redirects(string),
+        /// A response was received but its body could not be decoded.
+        malformed-response(string),
     }
 
     variant authorization {

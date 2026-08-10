@@ -41,9 +41,9 @@ fn s3_put(Json(request): Json<Request>) -> WebResult<WebResponse> {
 
     log::info!(
         "putting object to s3, bucket: {}; key {}; size of value {}",
-        &request.bucket,
-        &request.key,
-        &request.value.len()
+        request.bucket,
+        request.key,
+        request.value.len()
     );
 
     if let Err(e) = client.put(

@@ -249,13 +249,11 @@ fn get_article_embeddings_from_cache(article_id: String) -> WebResult<Option<Vec
             log::debug!("cache hit for key '{article_id}'");
             // Convert raw bytes back into our Vec<f32> type
             let embedding = hit
-                .chunks_exact(4)
-                .map(|chunk| {
-                    let arr = <[u8; 4]>::try_from(chunk)
-                        .map_err(|_| WebError::message("Chunk length should be 4"))?;
-                    Ok(f32::from_le_bytes(arr))
-                })
-                .collect::<Result<Vec<f32>, WebError>>()?;
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|chunk| f32::from_le_bytes(*chunk))
+                .collect::<Vec<f32>>();
             Ok(Some(embedding))
         }
         None => {

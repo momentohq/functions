@@ -117,14 +117,12 @@ fn get_cached_query_embedding(query: String) -> WebResult<Vec<f32>> {
     log::debug!("Checking if embeddings are already cached for \"{query}\"");
     if let Some(hit) = cache::get::<Vec<u8>>(query.clone())? {
         log::debug!("cache hit");
-        return hit
-            .chunks_exact(4)
-            .map(|chunk| {
-                let arr = <[u8; 4]>::try_from(chunk)
-                    .map_err(|_| WebError::message("Chunk length should be 4"))?;
-                Ok(f32::from_le_bytes(arr))
-            })
-            .collect();
+        return Ok(hit
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|chunk| f32::from_le_bytes(*chunk))
+            .collect());
     }
 
     log::debug!("cache miss, querying embeddings from OpenAI");

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.26.1](https://github.com/momentohq/functions/compare/v0.26.0...v0.26.1) (2026-09-03)
+
+
+### Miscellaneous
+
+* add more descriptive http errors ([#103](https://github.com/momentohq/functions/issues/103)) ([a9dcf40](https://github.com/momentohq/functions/commit/a9dcf40c10de90f73574676cef4ad65ef540a8e0))
+* bump versions for security, clippy fixes ([#107](https://github.com/momentohq/functions/issues/107)) ([1119733](https://github.com/momentohq/functions/commit/111973314add8ce2ba11e0c477adcdd02557a38c))
+* retire the machine-user release token ([#106](https://github.com/momentohq/functions/issues/106)) ([3a7fb53](https://github.com/momentohq/functions/commit/3a7fb5347ed6e004af828a9c4a93bb6d55d7cedf))
+
 ## [0.26.0](https://github.com/momentohq/functions/compare/v0.25.1...v0.26.0) (2026-07-07)
 
 

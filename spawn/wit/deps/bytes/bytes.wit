@@ -1,0 +1,36 @@
+package momento:bytes@1.0.0;
+
+interface bytes {
+    // for reading from the host
+    resource buffer {
+        // Get the number of bytes currently ready to be read.
+        //
+        // `read` can return this many bytes without blocking.
+        remaining: func() -> u32;
+
+        // Read up to `max-size` bytes from the body.
+        //
+        // It is an error to return more than `max-size` bytes.
+        //
+        // You have no guarantee that you'll get `max-size` bytes,
+        // but you will never get an empty list.
+        //
+        // Returns None if there is no more data.
+        read: func(max-size: u32) -> option<list<u8>>;
+
+        // Advance the read cursor by `size` bytes.
+        advance: func(size: u32);
+    }
+
+    // could be bytes or a buffer reference
+    variant data {
+        // use the remainder of this buffer
+        buffer(buffer),
+        // use these literal bytes
+        value(list<u8>),
+    }
+}
+
+world imports {
+    import bytes;
+}

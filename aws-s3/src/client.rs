@@ -1,3 +1,4 @@
+use crate::S3Error;
 use crate::wit::momento::aws_s3::aws_s3::{self as aws_s3};
 use momento_functions_aws_auth::CredentialsProvider;
 use momento_functions_bytes::{
@@ -29,7 +30,7 @@ where
     },
     /// An error occurred when calling the host S3 interface.
     #[error(transparent)]
-    S3Error(#[from] aws_s3::S3Error),
+    S3Error(#[from] S3Error),
 }
 
 /// An error occurred while getting an object from S3.
@@ -46,7 +47,7 @@ where
     },
     /// An error occurred when calling the host S3 interface.
     #[error(transparent)]
-    S3Error(#[from] aws_s3::S3Error),
+    S3Error(#[from] S3Error),
 }
 
 /// A request to put an object into an S3 bucket.
@@ -140,7 +141,7 @@ impl S3Client {
                 body: body_data.into(),
                 metadata: request.metadata,
             })
-            .map_err(S3PutError::from)?;
+            .map_err(S3Error::from)?;
         Ok(PutObjectResponse {
             etag: output.etag,
             version_id: output.version_id,
@@ -162,7 +163,7 @@ impl S3Client {
                 bucket: bucket.into(),
                 key: key.into(),
             })
-            .map_err(S3GetError::from)?;
+            .map_err(S3Error::from)?;
         if let Some(wit_data) = output.body {
             let data: Data = wit_data.into();
             T::extract(data)

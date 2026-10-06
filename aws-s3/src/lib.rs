@@ -8,6 +8,7 @@
 //! to describe the ABI.
 
 mod client;
+mod error;
 
 /// Internal module for WIT bindings.
 #[doc(hidden)]
@@ -16,6 +17,7 @@ pub mod wit;
 pub use client::{
     GetObjectResponse, PutObjectRequest, PutObjectResponse, S3Client, S3GetError, S3PutError,
 };
+pub use error::S3Error;
 
 pub use momento_functions_aws_auth::{
     AuthError, Authorization, Credentials, CredentialsProvider, IamRole, provider,

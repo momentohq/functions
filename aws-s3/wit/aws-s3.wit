@@ -1,4 +1,4 @@
-package momento:aws-s3@1.0.0;
+package momento:aws-s3@1.1.0;
 
 interface aws-s3 {
     use momento:aws-auth/aws-auth@1.0.0.{credentials-provider};
@@ -11,6 +11,8 @@ interface aws-s3 {
       malformed(string),
       /// The request failed for some other reason.
       other(string),
+      /// S3 is throttling requests (503 SlowDown). Transient; back off and retry.
+      throttled(string),
    }
 
    record put-object-request {

@@ -691,6 +691,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "momento-functions-spawn"
+version = "0.26.0"
+dependencies = [
+ "momento-functions-bytes",
+ "thiserror",
+ "wit-bindgen",
+]
+
+[[package]]
 name = "momento-functions-token"
 version = "0.26.0"
 dependencies = [

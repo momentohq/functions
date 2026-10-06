@@ -17,6 +17,7 @@ members = [
     "momento-functions-host",
     "momento-functions-wit",
     "http",
+    "spawn",
     "token",
     "topic",
     "valkey",

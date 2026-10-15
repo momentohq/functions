@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/momentohq/functions/compare/v0.26.1...v0.27.0) (2026-10-15)
+
+
+### Features
+
+* report host stream failures through Data's io::Read via bytes try-read ([#110](https://github.com/momentohq/functions/issues/110)) ([6704051](https://github.com/momentohq/functions/commit/6704051b0e89ca572aa42b0ef57fb1cee5705b49))
+
 ## [0.26.1](https://github.com/momentohq/functions/compare/v0.26.0...v0.26.1) (2026-10-06)
 
 

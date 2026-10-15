@@ -191,15 +191,17 @@ impl SseStream {
         // sense in doing more syscalls or more allocation than necessary.
         let chunk_size = 1024.max(self.buffer.capacity() - self.buffer.len());
         self.buffer.resize(starting_length + chunk_size, 0);
-        let bytes_read = std::io::Read::read(&mut self.data, &mut self.buffer[starting_length..])
-            .map_err(|e| {
-            SseStatus::ProtocolError(format!("Failed to read from SSE stream: {e}"))
-        })?;
-        if bytes_read == 0 {
-            return Err(SseStatus::Closed);
+        let read = std::io::Read::read(&mut self.data, &mut self.buffer[starting_length..]);
+        // Drop the unfilled tail on every outcome, so a failed or final read leaves no padding behind.
+        self.buffer
+            .truncate(starting_length + read.as_ref().map_or(0, |bytes_read| *bytes_read));
+        match read {
+            Ok(0) => Err(SseStatus::Closed),
+            Ok(_) => Ok(()),
+            Err(e) => Err(SseStatus::ProtocolError(format!(
+                "Failed to read from SSE stream: {e}"
+            ))),
         }
-        self.buffer.truncate(starting_length + bytes_read);
-        Ok(())
     }
 }
 
@@ -338,6 +340,14 @@ mod tests {
         // Per the SSE spec a block is only dispatched on a blank line, so the
         // unterminated trailing event is dropped when the stream closes.
         assert_eq!(collect_data("data: a\n\ndata: dangling\n"), vec!["a"]);
+    }
+
+    #[test]
+    fn final_read_leaves_no_padding_in_the_buffer() {
+        let mut stream = SseStream::from_data("data: a\n\ndata: dangling\n".into());
+        while stream.next().is_some() {}
+        assert!(stream.next().is_none(), "polls past the end stay None");
+        assert_eq!(stream.buffer, b"data: dangling\n");
     }
 
     #[test]

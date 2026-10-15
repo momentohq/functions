@@ -25,6 +25,10 @@ impl Data {
     ///
     /// For small buffers, this is inconsequential. For larger buffers, this may
     /// cause your function to run out of memory or to run slowly.
+    ///
+    /// If the host's source fails partway through, this returns the bytes that
+    /// arrived before the failure. Read the Data through `std::io::Read` to see
+    /// the failure instead.
     pub fn into_bytes(self) -> Vec<u8> {
         self.data.into_bytes()
     }
@@ -35,13 +39,15 @@ impl std::io::Read for Data {
     ///
     /// Always returns `Ok(0 < n)` while the stream is still open.
     /// Returns `Ok(0)` when the stream is done.
-    /// Returns `Err` if there was an error reading from the stream.
+    /// Returns `Err` if the host's source failed partway through, after the bytes that arrived
+    /// before the failure: [`std::io::ErrorKind::TimedOut`] if the call's deadline expired
+    /// while the data was still arriving, otherwise [`std::io::ErrorKind::Other`] carrying
+    /// the host's message.
     #[allow(
         clippy::expect_used,
         reason = "The length is checked before popping from the buffer."
     )]
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        // okay so the err thing is a lie atm but it probably won't be forever...
         match &mut self.data {
             Location::Inline { buffer } => {
                 let bytes_to_read = std::cmp::min(buf.len(), buffer.len());
@@ -50,7 +56,7 @@ impl std::io::Read for Data {
                 }
                 Ok(bytes_to_read)
             }
-            Location::OnHost { resource } => match resource.read(buf.len() as u32) {
+            Location::OnHost { resource } => match resource.try_read(buf.len() as u32)? {
                 Some(chunk) => {
                     let bytes_read = chunk.len();
                     buf[..bytes_read].copy_from_slice(&chunk);
@@ -58,6 +64,19 @@ impl std::io::Read for Data {
                 }
                 None => Ok(0),
             },
+        }
+    }
+}
+
+impl From<crate::wit::momento::bytes::bytes::StreamError> for std::io::Error {
+    fn from(error: crate::wit::momento::bytes::bytes::StreamError) -> Self {
+        match error {
+            crate::wit::momento::bytes::bytes::StreamError::TimedOut => {
+                std::io::ErrorKind::TimedOut.into()
+            }
+            crate::wit::momento::bytes::bytes::StreamError::Failed(message) => {
+                std::io::Error::other(message)
+            }
         }
     }
 }

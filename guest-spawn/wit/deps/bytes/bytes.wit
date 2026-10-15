@@ -1,6 +1,14 @@
 package momento:bytes@1.0.0;
 
 interface bytes {
+    // Why a buffer's source failed partway through.
+    variant stream-error {
+        // The call's deadline expired while the body was still arriving.
+        timed-out,
+        // The source failed for any other reason. The message is safe to log.
+        failed(string),
+    }
+
     // for reading from the host
     resource buffer {
         // Get the number of bytes currently ready to be read.
@@ -20,6 +28,13 @@ interface bytes {
 
         // Advance the read cursor by `size` bytes.
         advance: func(size: u32);
+
+        // Like `read`, but a source that fails partway through reports why
+        // instead of ending. `read` treats that failure as the end of the data.
+        //
+        // The bytes received before the failure are returned first; after
+        // them, every call returns the same error.
+        try-read: func(max-size: u32) -> result<option<list<u8>>, stream-error>;
     }
 
     // could be bytes or a buffer reference

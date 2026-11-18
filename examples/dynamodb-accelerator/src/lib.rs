@@ -25,7 +25,9 @@ fn accelerate_get_item(body: Data) -> WebResult<WebResponse> {
     setup_logging()?;
 
     let env = WebEnvironment::load();
-    let headers = env.headers();
+    let mut headers = env.headers().clone();
+    headers.retain(|name, _| !name.eq_ignore_ascii_case("x-momento-authorization"));
+    let headers = &headers;
     let body_bytes = body.into_bytes();
 
     let action = require_header("X-Amz-Target", headers)?;

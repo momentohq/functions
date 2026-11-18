@@ -3,6 +3,10 @@
 //! request for `dynamodb.<region>.amazonaws.com`; the caller rewrites the URL
 //! to point at this Function and stashes the original target in the `x-uri`
 //! header (which is added *after* signing).
+//!
+//! When calling this function, ensure you pass in your Momento API key
+//! via the `x-momento-authorization` header. To properly sign your Dynamo request,
+//! pass in your appropriate AWS credentials via the `Authorization` header.
 
 use std::{collections::HashMap, time::Duration};
 

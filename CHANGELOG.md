@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.1](https://github.com/momentohq/functions/compare/v0.27.0...v0.27.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* update ddb accelerator docs with proper header usage, strip out momento header in ddb accelerator ([#112](https://github.com/momentohq/functions/issues/112)) ([ff48550](https://github.com/momentohq/functions/commit/ff48550e46e01eea0bf937ccc7a42025c108913e))
+
 ## [0.27.0](https://github.com/momentohq/functions/compare/v0.26.1...v0.27.0) (2026-10-15)
 
 

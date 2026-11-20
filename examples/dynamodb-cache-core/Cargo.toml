@@ -1,0 +1,14 @@
+[package]
+name = "example-dynamodb-cache-core"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[dependencies]
+momento-functions-cache     = { workspace = true }
+momento-functions-guest-web = { workspace = true }
+momento-functions-http      = { workspace = true }
+
+log                         = { workspace = true }
+serde                       = { workspace = true }
+serde_json                  = { workspace = true }

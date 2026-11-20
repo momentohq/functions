@@ -141,6 +141,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-dynamodb-cache-core"
+version = "0.0.0"
+dependencies = [
+ "log",
+ "momento-functions-cache",
+ "momento-functions-guest-web",
+ "momento-functions-http",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "example-dynamodb-cache-federated"
+version = "0.0.0"
+dependencies = [
+ "example-dynamodb-cache-core",
+ "log",
+ "momento-functions-bytes",
+ "momento-functions-guest-web",
+ "momento-functions-host-log",
+ "momento-functions-http",
+]
+
+[[package]]
+name = "example-dynamodb-cache-proxy"
+version = "0.0.0"
+dependencies = [
+ "example-dynamodb-cache-core",
+ "log",
+ "momento-functions-bytes",
+ "momento-functions-guest-web",
+ "momento-functions-host-log",
+ "momento-functions-http",
+]
+
+[[package]]
 name = "example-environment-variables"
 version = "0.0.0"
 dependencies = [

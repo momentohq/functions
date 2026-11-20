@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/momentohq/functions/compare/v0.27.1...v0.28.0) (2026-11-20)
+
+
+### Features
+
+* fail extraction when a streamed body fails instead of truncating it ([#115](https://github.com/momentohq/functions/issues/115)) ([9a8f27b](https://github.com/momentohq/functions/commit/9a8f27b00e7d0fea4c251363140896604f4aa02b))
+
 ## [0.27.1](https://github.com/momentohq/functions/compare/v0.27.0...v0.27.1) (2026-11-19)
 
 

@@ -84,19 +84,31 @@ pub trait Extract: Sized {
     type Error: ExtractError;
     /// Convert from a payload to a value
     fn extract(payload: Data) -> Result<Self, Self::Error>;
-}
-
-impl Extract for Vec<u8> {
-    type Error = Infallible;
-    fn extract(payload: Data) -> Result<Self, Self::Error> {
-        Ok(payload.into_bytes())
+    /// Whether `error` means the payload did not finish arriving before the call's deadline.
+    fn timed_out(_error: &Self::Error) -> bool {
+        false
     }
 }
 
-impl Extract for String {
-    type Error = std::string::FromUtf8Error;
+impl Extract for Vec<u8> {
+    type Error = std::io::Error;
     fn extract(payload: Data) -> Result<Self, Self::Error> {
-        String::from_utf8(payload.into_bytes())
+        payload.try_into_bytes()
+    }
+    fn timed_out(error: &Self::Error) -> bool {
+        error.kind() == std::io::ErrorKind::TimedOut
+    }
+}
+
+/// Fails with [`std::io::ErrorKind::InvalidData`] if the payload is not valid UTF-8.
+impl Extract for String {
+    type Error = std::io::Error;
+    fn extract(payload: Data) -> Result<Self, Self::Error> {
+        String::from_utf8(payload.try_into_bytes()?)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+    }
+    fn timed_out(error: &Self::Error) -> bool {
+        error.kind() == std::io::ErrorKind::TimedOut
     }
 }
 
@@ -113,7 +125,11 @@ pub struct Json<T>(pub T);
 impl<T: serde::de::DeserializeOwned> Extract for Json<T> {
     type Error = serde_json::Error;
     fn extract(payload: Data) -> Result<Self, Self::Error> {
-        Ok(Json(serde_json::from_slice(&payload.into_bytes())?))
+        let bytes = payload.try_into_bytes().map_err(serde_json::Error::io)?;
+        Ok(Json(serde_json::from_slice(&bytes)?))
+    }
+    fn timed_out(error: &Self::Error) -> bool {
+        error.io_error_kind() == Some(std::io::ErrorKind::TimedOut)
     }
 }
 

@@ -27,10 +27,20 @@ impl Data {
     /// cause your function to run out of memory or to run slowly.
     ///
     /// If the host's source fails partway through, this returns the bytes that
-    /// arrived before the failure. Read the Data through `std::io::Read` to see
-    /// the failure instead.
+    /// arrived before the failure. Use [`Data::try_into_bytes`] to see the failure
+    /// instead.
     pub fn into_bytes(self) -> Vec<u8> {
         self.data.into_bytes()
+    }
+
+    /// Like [`Data::into_bytes`], but fails if the host's source fails partway
+    /// through instead of returning the bytes that arrived before the failure.
+    ///
+    /// The error is [`std::io::ErrorKind::TimedOut`] if the call's deadline expired
+    /// while the data was still arriving, otherwise [`std::io::ErrorKind::Other`]
+    /// carrying the host's message.
+    pub fn try_into_bytes(self) -> std::io::Result<Vec<u8>> {
+        self.data.try_into_bytes()
     }
 }
 
@@ -154,6 +164,19 @@ impl Location {
                     buffer.extend(chunk);
                 }
                 buffer
+            }
+        }
+    }
+
+    fn try_into_bytes(self) -> std::io::Result<Vec<u8>> {
+        match self {
+            Location::Inline { buffer } => Ok(buffer.into()),
+            Location::OnHost { resource } => {
+                let mut buffer = Vec::with_capacity(resource.remaining() as usize);
+                while let Some(chunk) = resource.try_read(resource.remaining().max(16384))? {
+                    buffer.extend(chunk);
+                }
+                Ok(buffer)
             }
         }
     }

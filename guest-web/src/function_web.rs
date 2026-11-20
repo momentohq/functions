@@ -4,11 +4,17 @@ use momento_functions_bytes::encoding::Extract;
 use crate::IntoWebResponse;
 /// Create a handler that accepts a post payload and returns a response.
 ///
-/// You can accept raw bytes (`Vec<u8>`) as input, or any type for which [Extract] is implemented.
-/// If you choose to use an extracted type, this will automatically return a 400 error containing
-/// the error details if the input bytes cannot be extracted into the specified input type.
-/// If you would rather handle extraction errors yourself, you should accept raw bytes as input
-/// and perform extraction yourself.
+/// You can accept the request body as [momento_functions_bytes::Data], or as any type for which
+/// [Extract] is implemented, such as `Vec<u8>`, `String`, or
+/// [momento_functions_bytes::encoding::Json].
+///
+/// The request body may still be arriving when your function starts. Accepting `Data` lets you
+/// read it through `std::io::Read` as it arrives. Any other type waits for the whole body first.
+///
+/// If the body cannot be extracted into your input type, this automatically returns an error
+/// response: 408 if the body did not finish arriving before the call's deadline, otherwise 400
+/// with the error details. If you would rather handle these errors yourself, accept `Data` and
+/// read or extract it yourself.
 ///
 /// Your implementation function must return a value which implements the [IntoWebResponse] trait.
 /// Implementations of this trait are provided for
@@ -86,16 +92,15 @@ where
     let request = match TExtract::extract(payload) {
         Ok(request) => request,
         Err(error) => {
+            let (status, message) = if TExtract::timed_out(&error) {
+                (408, "Timed out reading request body".to_string())
+            } else {
+                (400, format!("Failed to parse request body: {error}"))
+            };
             return guest_function_web::Response {
-                status: 400,
+                status,
                 headers: vec![],
-                body: momento_functions_bytes::Data::from(
-                    format!("Failed to parse request body: {error}")
-                        .to_string()
-                        .as_bytes()
-                        .to_vec(),
-                )
-                .into(),
+                body: momento_functions_bytes::Data::from(message).into(),
             };
         }
     };

@@ -70,7 +70,7 @@ impl SseEvent {
     /// use momento_functions_bytes::encoding::Extract;
     /// use momento_functions_http::sse::SseEvent;
     ///
-    /// fn extract_event(event: SseEvent) -> Result<String, std::string::FromUtf8Error> {
+    /// fn extract_event(event: SseEvent) -> Result<String, std::io::Error> {
     ///     event.extract()
     /// }
     /// ```

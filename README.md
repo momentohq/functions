@@ -75,7 +75,8 @@ fn ping(_payload: Data) -> &'static str {
 
 `Data` is a buffer that can stay on the host instead of being copied into your
 function's memory — useful when you're just passing bodies through. Call
-`Data::into_bytes()` when you actually need the bytes.
+`Data::try_into_bytes()` when you actually need the bytes, or read it through
+`std::io::Read` to process a request body as it arrives.
 
 For typed JSON in/out, swap the payload type for `momento_functions_bytes::encoding::Json<T>`:
 

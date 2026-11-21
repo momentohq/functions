@@ -1,0 +1,5 @@
+env.sh
+.venv/
+__pycache__/
+.pytest_cache/
+java/target/

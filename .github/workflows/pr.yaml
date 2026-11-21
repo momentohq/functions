@@ -30,3 +30,7 @@ jobs:
     - name: Doc tests
       # The default target is our wasm target, which won't compile
       run: cargo test --doc --target x86_64-unknown-linux-gnu
+
+    - name: Unit tests
+      # Only crates whose unit tests need no Functions host
+      run: cargo test --lib --target x86_64-unknown-linux-gnu -p example-dynamodb-cache-core

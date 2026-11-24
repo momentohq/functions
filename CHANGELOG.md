@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.0](https://github.com/momentohq/functions/compare/v0.27.1...v0.28.0) (2026-11-24)
+
+
+### Features
+
+* add proxy and federated DynamoDB caching function prototypes with e2e tests ([#114](https://github.com/momentohq/functions/issues/114)) ([5df58cb](https://github.com/momentohq/functions/commit/5df58cbb811915a84e0d01b3ccbb291794fdba47))
+* fail extraction when a streamed body fails instead of truncating it ([#115](https://github.com/momentohq/functions/issues/115)) ([9a8f27b](https://github.com/momentohq/functions/commit/9a8f27b00e7d0fea4c251363140896604f4aa02b))
+
 ## [0.27.1](https://github.com/momentohq/functions/compare/v0.27.0...v0.27.1) (2026-11-19)
 
 

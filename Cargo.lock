@@ -573,7 +573,7 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
 name = "momento-functions"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "itertools",
  "log",
@@ -588,7 +588,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-aws-auth"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "thiserror",
  "wit-bindgen",
@@ -596,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-aws-ddb"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "base64",
  "momento-functions-aws-auth",
@@ -609,7 +609,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-aws-s3"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-aws-auth",
  "momento-functions-bytes",
@@ -619,7 +619,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-aws-secrets-manager"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-aws-auth",
  "momento-functions-bytes",
@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-bytes"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -638,7 +638,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-cache"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-bytes",
  "serde",
@@ -649,7 +649,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-cache-list"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-bytes",
  "momento-functions-collections-common",
@@ -661,11 +661,11 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-collections-common"
-version = "0.27.1"
+version = "0.28.0"
 
 [[package]]
 name = "momento-functions-guest-spawn"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-bytes",
  "serde",
@@ -675,7 +675,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-guest-web"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-bytes",
  "serde",
@@ -685,7 +685,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-host"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "base64",
  "log",
@@ -697,7 +697,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-host-log"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "log",
  "thiserror",
@@ -707,7 +707,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-http"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-bytes",
  "serde",
@@ -718,7 +718,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-log"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "log",
  "momento-functions-host",
@@ -728,7 +728,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-spawn"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-bytes",
  "thiserror",
@@ -737,7 +737,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-token"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -747,7 +747,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-topic"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-bytes",
  "thiserror",
@@ -756,7 +756,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-valkey"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "momento-functions-bytes",
  "thiserror",
@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "momento-functions-wit"
-version = "0.27.1"
+version = "0.28.0"
 dependencies = [
  "wit-bindgen",
 ]

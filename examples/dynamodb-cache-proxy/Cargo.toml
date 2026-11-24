@@ -1,0 +1,17 @@
+[package]
+name = "example-dynamodb-cache-proxy"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+example-dynamodb-cache-core = { path = "../dynamodb-cache-core" }
+momento-functions-bytes     = { workspace = true }
+momento-functions-guest-web = { workspace = true }
+momento-functions-host-log  = { workspace = true }
+momento-functions-http      = { workspace = true }
+
+log                         = { workspace = true }

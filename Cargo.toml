@@ -25,6 +25,9 @@ members = [
     # V2 examples
     "examples/cache-scalar",
     "examples/dynamodb-accelerator",
+    "examples/dynamodb-cache-core",
+    "examples/dynamodb-cache-federated",
+    "examples/dynamodb-cache-proxy",
     "examples/environment-variables",
     "examples/fine-foods-embeddings",
     "examples/function-environment",
